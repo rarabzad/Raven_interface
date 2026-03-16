@@ -11594,7 +11594,7 @@ function applyTheme(id) {
       subdomains: theme.mapTile && theme.mapTile.includes('{s}') ? ['a','b','c'] : [],
       maxZoom: 19,
       detectRetina: true
-    });
+    }).addTo(map);
     // Insert below all other layers (pane hack: add first, then move to back)
     window._tileLayer.addTo(map);
     window._tileLayer.bringToBack();
