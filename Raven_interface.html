@@ -2038,7 +2038,7 @@ function initMap() {
   }
   map = L.map('map', {center:[58,-122], zoom:5, zoomControl:false, preferCanvas:true});
   L.control.zoom({position:'bottomright'}).addTo(map);
-  window._tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  window._tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
     attribution:'©OpenStreetMap ©CARTO', subdomains:'abcd', maxZoom:19
   }).addTo(map);
   // Layer order: subbasins at bottom, then rivers, then HRU geo, then scatter, then gauges on top
@@ -11485,7 +11485,7 @@ const THEMES = [
     id: 'ocean',
     name: 'Ocean Dark',
     dark: true,
-    mapTile: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    mapTile: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
     mapAttr: '©OpenStreetMap ©CARTO',
     swatches: ['#080b0d','#00e4b4','#4da8ff','#9ab0c4'],
   },
@@ -11509,8 +11509,8 @@ const THEMES = [
     id: 'terrain',
     name: 'Terrain Light',
     dark: false,
-    mapTile: 'https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.png',
-    mapAttr: '©OpenStreetMap ©Stamen Design',
+    mapTile: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    mapAttr: '© OpenTopoMap © OpenStreetMap contributors',
     swatches: ['#f4f1ec','#a05020','#2068b0','#708050'],
   },
   {
@@ -11525,7 +11525,7 @@ const THEMES = [
     id: 'voyager',
     name: 'Voyager',
     dark: false,
-    mapTile: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    mapTile: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
     mapAttr: '©OpenStreetMap ©CARTO',
     swatches: ['#f5f5f5','#0066cc','#00aa66','#884400'],
   },
@@ -11533,7 +11533,7 @@ const THEMES = [
     id: 'midnight',
     name: 'Midnight',
     dark: true,
-    mapTile: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    mapTile: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
     mapAttr: '©OpenStreetMap ©CARTO',
     swatches: ['#06050f','#b06aff','#6ab0ff','#a89ed8'],
   },
@@ -11541,7 +11541,7 @@ const THEMES = [
     id: 'solarized',
     name: 'Solarized',
     dark: true,
-    mapTile: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    mapTile: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
     mapAttr: '©OpenStreetMap ©CARTO',
     swatches: ['#002b36','#2aa198','#268bd2','#93a1a1'],
   },
@@ -11549,7 +11549,7 @@ const THEMES = [
     id: 'slate',
     name: 'Slate',
     dark: false,
-    mapTile: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    mapTile: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
     mapAttr: '©OpenStreetMap ©CARTO',
     swatches: ['#f0f2f5','#0070b0','#0068c0','#384060'],
   },
@@ -11590,9 +11590,10 @@ function applyTheme(id) {
     // Remove old tile layer and add the new one
     if (window._tileLayer) { map.removeLayer(window._tileLayer); }
     window._tileLayer = L.tileLayer(theme.mapTile, {
-      attribution: theme.mapAttr || '©OpenStreetMap',
-      subdomains: theme.mapTile.includes('{s}') ? 'abcd' : 'abc',
+      attribution: theme.mapAttr || '© OpenStreetMap contributors',
+      subdomains: theme.mapTile && theme.mapTile.includes('{s}') ? ['a','b','c'] : [],
       maxZoom: 19,
+      detectRetina: true
     });
     // Insert below all other layers (pane hack: add first, then move to back)
     window._tileLayer.addTo(map);
