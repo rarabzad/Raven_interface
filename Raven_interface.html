@@ -1,4 +1,4 @@
-<html lang="en" data-theme="ocean">
+<html lang="en" data-theme="satellite">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -262,7 +262,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);color:var
 #layout{position:fixed;top:var(--topbar-h);bottom:var(--statusbar-h);left:0;right:0;display:flex}
 
 /* ── SIDEBAR ── */
-#sidebar{width:var(--sidebar-w);background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+#sidebar{width:var(--sidebar-w);background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;flex-shrink:0;min-height:0}
 .sb-section{border-bottom:1px solid var(--border)}
 .sb-head{padding:8px 12px 4px;font-size:8px;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;font-weight:600}
 .nav-item{display:flex;align-items:center;gap:7px;padding:6px 12px;cursor:pointer;color:var(--text2);font-size:10px;transition:all .1s;border-left:2px solid transparent;user-select:none}
@@ -492,16 +492,23 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 #player-gradient{width:100%;height:10px;border-radius:2px;margin-bottom:4px}
 #player-legend-labels{display:flex;justify-content:space-between;font-size:8px;color:var(--text3)}
 
-#hydro-panel{position:absolute;bottom:0;left:0;right:0;height:380px;background:rgba(8,11,13,.97);border-top:1px solid var(--border2);z-index:600;display:none;flex-direction:column}
+#hydro-panel{position:absolute;bottom:0;left:0;right:0;height:380px;background:rgba(8,11,13,.97);border-top:1px solid var(--border2);z-index:800;display:none;flex-direction:column}
 #hydro-panel.open{display:flex}
+/* Top control bar */
 #hydro-tabs{display:flex;gap:0;flex-shrink:0;border-bottom:1px solid var(--border);align-items:stretch;overflow:hidden;min-height:26px}
-.htab{padding:3px 10px;font-size:9px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;white-space:nowrap;height:26px;display:flex;align-items:center}
-.htab:hover{color:var(--text1)}
-.htab.on{color:var(--accent);border-bottom-color:var(--accent)}
+/* Legend chips */
 #hydro-legend{display:flex;flex-wrap:wrap;gap:4px;padding:0;flex-shrink:0;align-items:center;max-width:260px;overflow:hidden}
 .hleg-chip{display:flex;align-items:center;gap:4px;padding:2px 7px;border-radius:10px;font-size:8px;cursor:pointer;border:1px solid;user-select:none;transition:opacity .12s}
 .hleg-chip.muted{opacity:.35}
 .hleg-chip .hlc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+/* Inner area: vertical tab strip + chart side by side */
+#hydro-inner{flex:1;display:flex;overflow:hidden;min-height:0}
+/* Vertical tab strip */
+#hydro-tab-pills{display:flex;flex-direction:column;width:36px;flex-shrink:0;border-right:1px solid var(--border);background:var(--bg1);overflow:hidden}
+.htab{padding:0;font-size:8px;font-weight:600;color:var(--text3);cursor:pointer;border-left:2px solid transparent;border-top:none;border-bottom:none;transition:all .12s;white-space:nowrap;width:36px;height:32px;display:flex;align-items:center;justify-content:center;letter-spacing:.04em;text-transform:uppercase;user-select:none;flex-shrink:0}
+.htab:hover{color:var(--text1);background:var(--bg2)}
+.htab.on{color:var(--accent);border-left-color:var(--accent);background:var(--bg2)}
+/* Chart body — position:relative so all absolute children anchor here */
 #hydro-body{flex:1;position:relative;overflow:hidden}
 #hydro-tab-pills::-webkit-scrollbar{height:0}
 #hydro-fdc-canvas{display:block;position:absolute;top:0;left:0;width:100%;height:100%}
@@ -528,9 +535,14 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 #hydro-meta{font-size:9px;color:var(--text3)}
 #hydro-close{background:none;border:none;color:var(--text2);font-size:14px;cursor:pointer;padding:0;flex-shrink:0}
 #hydro-close:hover{color:var(--err)}
-#hydro-canvas-wrap{flex:1;position:relative;overflow:hidden;cursor:crosshair}
-#hydro-canvas{display:block;position:absolute;top:0;left:0;width:100%;height:100%}
-#hydro-crosshair{display:none;position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+/* canvas-wrap fills the body; stats bar overlays its bottom edge */
+#hydro-canvas-wrap{position:absolute;inset:0;overflow:hidden;cursor:crosshair}
+#hydro-canvas{display:block;position:absolute;top:0;left:0;right:0;bottom:28px}
+#hydro-crosshair{display:none;position:absolute;top:0;left:0;right:0;bottom:28px;pointer-events:none}
+/* Stats bar pinned at bottom of canvas-wrap */
+#hydro-stats-bar{position:absolute;bottom:0;left:0;right:0;height:auto;min-height:22px;border-top:1px solid var(--border);padding:2px 8px 2px 52px;font-size:9px;background:var(--bg1);display:none;gap:8px;flex-wrap:wrap;align-items:center;line-height:1.5;z-index:2}
+#hydro-stats-bar span{color:var(--text3);white-space:nowrap}
+#hydro-stats-bar b{font-weight:600}
 /* Tooltip */
 #hydro-tooltip{position:absolute;background:rgba(13,18,21,.95);border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;display:none;z-index:10;min-width:120px;max-width:220px;white-space:nowrap}
 #hydro-tooltip .ht-date{color:var(--text3);font-size:8px;margin-bottom:3px}
@@ -671,6 +683,59 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
 #met-crosshair{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #met-tooltip{position:fixed;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:9999;white-space:nowrap;line-height:1.6}
 
+
+/* ── PANEL COLLAPSE / RESIZE ── */
+#sidebar{transition:width .18s ease;position:relative;overflow-y:auto;overflow-x:hidden}
+#sidebar.collapsed{width:0!important;overflow:hidden;border-right:none}
+#panel{transition:width .18s ease;position:relative}
+#panel.collapsed{width:0!important;overflow:hidden;border-left:none}
+
+/* Toggle buttons — direct body children, always on top */
+#sidebar-toggle, #panel-toggle {
+  position:fixed;
+  top:50%;
+  transform:translateY(-50%);
+  z-index:9000;
+  width:16px; height:44px;
+  background:var(--bg4);
+  border:1px solid var(--border3);
+  color:var(--accent);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  font-size:10px; font-family:var(--mono);
+  user-select:none;
+  transition:background .12s, left .18s ease, right .18s ease;
+}
+#sidebar-toggle:hover, #panel-toggle:hover {
+  background:var(--accent); color:#000;
+}
+#sidebar-toggle {
+  left:var(--sidebar-w);
+  border-left:none;
+  border-radius:0 4px 4px 0;
+}
+#sidebar-toggle.collapsed { left:0; }
+#panel-toggle {
+  right:var(--panel-w);
+  border-right:none;
+  border-radius:4px 0 0 4px;
+}
+#panel-toggle.collapsed { right:0; }
+
+/* Resize handles */
+#sidebar-resize{position:absolute;right:-3px;top:0;bottom:0;width:6px;cursor:col-resize;z-index:400;background:transparent;transition:background .15s}
+#sidebar-resize:hover,#sidebar-resize.dragging{background:var(--accent3)}
+#panel-resize{position:absolute;left:-3px;top:0;bottom:0;width:6px;cursor:col-resize;z-index:400;background:transparent;transition:background .15s}
+#panel-resize:hover,#panel-resize.dragging{background:var(--accent3)}
+
+/* ── LAYER STYLE PANEL ── */
+.lsp-section{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lsp-section:last-of-type{border-bottom:none;margin-bottom:0}
+.lsp-head{font-size:9px;color:var(--accent);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.lsp-row{display:flex;align-items:center;gap:7px;margin-bottom:5px;min-height:20px}
+.lsp-row label{width:80px;flex-shrink:0;font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+.lsp-row input[type=range]{height:3px;accent-color:var(--accent);cursor:pointer}
+.lsp-val{width:28px;flex-shrink:0;font-size:9px;color:var(--accent);text-align:right}
 
 /* ── LIGHT THEME OVERRIDES ─── */
 [data-theme="slate"] body,
@@ -831,6 +896,8 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
       <div class="sb-head">Loaded Files</div>
       <div id="loaded-chips" style="padding:6px 8px;min-height:26px"></div>
     </div>
+    <!-- Resize handle sits inside sidebar, on its right edge -->
+    <div id="sidebar-resize" title="Drag to resize sidebar"></div>
   </nav>
 
   <!-- MAIN AREA -->
@@ -853,6 +920,8 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
         <div class="mt-btn" id="mt-conn" title="Basin Connectivity Inspector" onclick="toggleConnPanel()">⎇</div>
         <div style="height:6px"></div>
         <div class="mt-btn" title="Fit bounds" onclick="fitBounds()">⊞</div>
+        <div style="height:6px"></div>
+        <div class="mt-btn" id="mt-style" title="Layer Styles" onclick="toggleLayerStylePanel()" style="font-size:10px">🎨</div>
       </div>
       <div id="map-legend">
         <div class="leg-head">Legend</div>
@@ -868,6 +937,52 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
         </div>
         <div id="conn-body">
           <div class="conn-tip">Click a subbasin polygon<br>to inspect its network</div>
+        </div>
+      </div>
+
+      <!-- LAYER STYLE PANEL -->
+      <div id="layer-style-panel" style="display:none;position:absolute;top:10px;left:46px;z-index:600;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);width:260px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-family:var(--mono)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--bg3)">
+          <span style="font-size:10px;font-weight:600;color:var(--text0);letter-spacing:.06em;text-transform:uppercase">Layer Styles</span>
+          <button onclick="toggleLayerStylePanel()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;line-height:1;padding:0 2px">✕</button>
+        </div>
+        <div style="padding:10px;overflow-y:auto;max-height:480px">
+
+          <!-- HRU Scatter -->
+          <div class="lsp-section">
+            <div class="lsp-head">◉ HRU Scatter</div>
+            <div class="lsp-row"><label>Opacity</label><input type="range" min="10" max="100" value="72" oninput="layerStyleChange('hru','opacity',this.value)" style="flex:1"><span class="lsp-val" id="lsp-hru-opacity-val">72%</span></div>
+            <div class="lsp-row"><label>Min radius</label><input type="range" min="1" max="6" value="3" oninput="layerStyleChange('hru','minRadius',this.value)" style="flex:1"><span class="lsp-val" id="lsp-hru-minRadius-val">3</span></div>
+            <div class="lsp-row"><label>Max radius</label><input type="range" min="4" max="20" value="9" oninput="layerStyleChange('hru','maxRadius',this.value)" style="flex:1"><span class="lsp-val" id="lsp-hru-maxRadius-val">9</span></div>
+            <div class="lsp-row"><label>Border</label><input type="range" min="0" max="20" value="0" oninput="layerStyleChange('hru','borderWidth',this.value)" style="flex:1"><span class="lsp-val" id="lsp-hru-borderWidth-val">0</span></div>
+            <div class="lsp-row"><label>Border color</label><input type="color" value="#000000" oninput="layerStyleChange('hru','borderColor',this.value)" style="width:36px;height:22px;border:none;background:none;cursor:pointer;padding:0"></div>
+          </div>
+
+          <!-- Subbasin Polygons -->
+          <div class="lsp-section">
+            <div class="lsp-head">⬡ Subbasin Polygons</div>
+            <div class="lsp-row"><label>Fill color</label><input type="color" value="#2a6099" id="lsp-sb-fillColor" oninput="layerStyleChange('sb','fillColor',this.value)" style="width:36px;height:22px;border:none;background:none;cursor:pointer;padding:0"></div>
+            <div class="lsp-row"><label>Fill opacity</label><input type="range" min="0" max="60" value="35" oninput="layerStyleChange('sb','fillOpacity',this.value)" style="flex:1"><span class="lsp-val" id="lsp-sb-fillOpacity-val">35%</span></div>
+            <div class="lsp-row"><label>Border color</label><input type="color" value="#cc2222" id="lsp-sb-color" oninput="layerStyleChange('sb','color',this.value)" style="width:36px;height:22px;border:none;background:none;cursor:pointer;padding:0"></div>
+            <div class="lsp-row"><label>Border width</label><input type="range" min="1" max="8" value="1.2" step="0.5" oninput="layerStyleChange('sb','weight',this.value)" style="flex:1"><span class="lsp-val" id="lsp-sb-weight-val">1.2</span></div>
+          </div>
+
+          <!-- River Network -->
+          <div class="lsp-section">
+            <div class="lsp-head">〜 River Network</div>
+            <div class="lsp-row"><label>Color</label><input type="color" value="#4a8eff" id="lsp-river-color" oninput="layerStyleChange('river','color',this.value)" style="width:36px;height:22px;border:none;background:none;cursor:pointer;padding:0"></div>
+            <div class="lsp-row"><label>Width</label><input type="range" min="1" max="8" value="2" step="0.5" oninput="layerStyleChange('river','weight',this.value)" style="flex:1"><span class="lsp-val" id="lsp-river-weight-val">2</span></div>
+            <div class="lsp-row"><label>Opacity</label><input type="range" min="10" max="100" value="80" oninput="layerStyleChange('river','opacity',this.value)" style="flex:1"><span class="lsp-val" id="lsp-river-opacity-val">80%</span></div>
+          </div>
+
+          <!-- HRU GeoJSON -->
+          <div class="lsp-section">
+            <div class="lsp-head">◉ HRU GeoJSON Polygons</div>
+            <div class="lsp-row"><label>Fill opacity</label><input type="range" min="0" max="80" value="18" oninput="layerStyleChange('hruGeo','fillOpacity',this.value)" style="flex:1"><span class="lsp-val" id="lsp-hruGeo-fillOpacity-val">18%</span></div>
+            <div class="lsp-row"><label>Border width</label><input type="range" min="0" max="6" value="1" step="0.5" oninput="layerStyleChange('hruGeo','weight',this.value)" style="flex:1"><span class="lsp-val" id="lsp-hruGeo-weight-val">1</span></div>
+          </div>
+
+          <button class="btn sm" style="width:100%;margin-top:4px" onclick="layerStyleReset()">↺ Reset to defaults</button>
         </div>
       </div>
       <!-- SPATIAL PLAYER LEGEND (top-right of map) -->
@@ -917,13 +1032,17 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
           <button class="btn sm" onclick="closeMetPanel()">&#x2715; Close</button>
         </div>
         <div id="met-params"></div>
-        <div id="met-tabs" style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
-          <div class="htab on" id="mttab-ts"    onclick="setMetTab('ts')"    style="height:24px;font-size:9px">Time Series</div>
-          <div class="htab"    id="mttab-clim"  onclick="setMetTab('clim')"  style="height:24px;font-size:9px">Climatology</div>
-          <div class="htab"    id="mttab-hmap"  onclick="setMetTab('hmap')"  style="height:24px;font-size:9px">Heatmap</div>
-          <div class="htab"    id="mttab-cmp"   onclick="setMetTab('cmp')"   style="height:24px;font-size:9px">Compare Gauges</div>
-        </div>
-        <div id="met-body" style="flex:1;position:relative;overflow:hidden">
+        <!-- Inner: vertical tab strip left + chart body right (same pattern as hydro panel) -->
+        <div id="met-inner" style="flex:1;display:flex;overflow:hidden;min-height:0">
+          <div id="met-tabs" style="display:flex;flex-direction:column;width:36px;flex-shrink:0;border-right:1px solid var(--border);background:var(--bg1);overflow:hidden">
+            <div class="htab on" id="mttab-ts"    onclick="setMetTab('ts')"    title="Time Series">TS</div>
+            <div class="htab"    id="mttab-clim"  onclick="setMetTab('clim')"  title="Climatology">CLM</div>
+            <div class="htab"    id="mttab-bwk"   onclick="setMetTab('bwk')"   title="Box-Whisker Monthly">BWK</div>
+            <div class="htab"    id="mttab-ptd"   onclick="setMetTab('ptd')"   title="P–T Joint Distribution">PTD</div>
+            <div class="htab"    id="mttab-hmap"  onclick="setMetTab('hmap')"  title="Heatmap">HMP</div>
+            <div class="htab"    id="mttab-cmp"   onclick="setMetTab('cmp')"   title="Compare Gauges">CMP</div>
+          </div>
+          <div id="met-body" style="flex:1;position:relative;overflow:hidden">
           <div id="met-ts-wrap"   style="position:absolute;inset:0">
             <canvas id="met-canvas"></canvas>
             <canvas id="met-crosshair" style="position:absolute;inset:0;pointer-events:none"></canvas>
@@ -931,6 +1050,15 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
           <div id="met-clim-wrap" style="position:absolute;inset:0;display:none">
             <canvas id="met-clim-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
             <div id="met-clim-tooltip" style="position:fixed;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:9999;white-space:nowrap;line-height:1.6"></div>
+          </div>
+          <div id="met-bwk-wrap" style="position:absolute;inset:0;display:none">
+            <canvas id="met-bwk-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+            <div id="met-bwk-tooltip" style="position:fixed;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:9999;white-space:nowrap"></div>
+          </div>
+          <div id="met-ptd-wrap" style="position:absolute;inset:0;display:none">
+            <canvas id="met-ptd-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+            <div id="met-ptd-toolbar" style="position:absolute;top:4px;right:8px;display:flex;gap:5px;z-index:5"></div>
+            <div id="met-ptd-tooltip" style="position:fixed;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:9999;white-space:nowrap"></div>
           </div>
           <div id="met-hmap-wrap" style="position:absolute;inset:0;display:none;overflow-y:auto">
             <canvas id="met-hmap-canvas" style="display:block"></canvas>
@@ -949,27 +1077,18 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
             </div>
             <div id="met-cmp-tooltip" style="position:fixed;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:9999;white-space:nowrap"></div>
           </div>
-        </div>
-      </div>
-      <div id="met-tooltip"></div>
+        </div><!-- end met-body -->
+        </div><!-- end met-inner -->
+      </div><!-- end met-panel -->
 
       <!-- HYDROGRAPH PANEL (slides up from map bottom) -->
       <div id="hydro-panel">
-        <!-- Single compact bar: legend chips | tab pills | zoom controls | meta | close -->
+        <!-- Top bar: legend chips | zoom controls | meta | close -->
         <div id="hydro-tabs">
-          <!-- Series legend chips inline left of tabs -->
+          <!-- Series legend chips inline left -->
           <div id="hydro-legend" style="display:flex;flex-wrap:nowrap;gap:3px;padding:0 6px;flex-shrink:0;align-items:center;max-width:220px;overflow:hidden;border-right:1px solid var(--border)"></div>
-          <!-- Scrollable tab strip -->
-          <div id="hydro-tab-pills" style="display:flex;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none;align-items:stretch">
-          <div class="htab on" id="htab-ts"   onclick="setHydroTab('ts')">Time Series</div>
-          <div class="htab"    id="htab-fdc"  onclick="setHydroTab('fdc')">Flow Duration</div>
-          <div class="htab"    id="htab-scat" onclick="setHydroTab('scat')">Sim vs Obs</div>
-          <div class="htab"    id="htab-cal"  onclick="setHydroTab('cal')">Calendar</div>
-          <div class="htab"    id="htab-diag" onclick="setHydroTab('diag')">Diagnostics</div>
-          <div class="htab"    id="htab-cdep" onclick="setHydroTab('cdep')">Cumul. Depart.</div>
-          <div class="htab"    id="htab-resid" onclick="setHydroTab('resid')">Residuals</div>
-          <div class="htab"    id="htab-wbal"  onclick="setHydroTab('wbal')" title="Annual water balance">Water Balance</div>
-          </div>
+          <!-- Spacer -->
+          <div style="flex:1;min-width:0"></div>
           <!-- Fixed right controls — always visible -->
           <div style="display:flex;align-items:center;flex-shrink:0;border-left:1px solid var(--border);padding-left:4px;gap:2px">
           <div id="hydro-zoom-wrap" style="display:flex;align-items:center;gap:3px">
@@ -978,29 +1097,75 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
             <div class="hz-btn" onclick="hydroPan(-1)"  title="Pan left">◀</div>
             <div class="hz-btn" onclick="hydroPan(1)"   title="Pan right">▶</div>
             <div class="hz-btn" onclick="hydroReset()"  title="Reset view" style="width:auto;padding:0 5px">⊡</div>
+            <div class="hz-btn" id="hydro-log-btn" onclick="hydroToggleLog()" title="Toggle log Y-axis" style="width:auto;padding:0 5px;font-size:8px">LOG</div>
+            <div class="hz-btn" onclick="hydroExportCSV()" title="Export visible window as CSV" style="width:auto;padding:0 5px;font-size:9px">CSV</div>
+            <div class="hz-btn" id="hydro-anno-btn" onclick="hydroToggleAnnoMode()" title="Annotate date range (click-drag)" style="width:auto;padding:0 5px;font-size:9px">ANN</div>
             <div class="hz-btn" onclick="hydroDownloadPNG()" title="Download chart as PNG" style="width:auto;padding:0 5px">⬇</div>
             <span id="hydro-range" style="font-size:9px;color:var(--text3);min-width:110px;text-align:center"></span>
             <span id="hydro-stats" style="font-size:9px;color:var(--accent);display:none;white-space:nowrap"></span>
           </div>
           <div style="display:flex;align-items:center;gap:5px;padding:0 4px">
             <span id="hydro-meta" style="font-size:9px;color:var(--text3)"></span>
-            
-            
             <button class="hz-btn" onclick="hydroClearAll()" style="width:auto;padding:0 6px">Clear</button>
             <button onclick="closeHydro()" title="Close panel (Esc)" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text1);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:var(--r);font-family:var(--mono);line-height:1.4;white-space:nowrap">✕</button>
           </div>
           </div><!-- end fixed-right controls -->
-        </div>
+        </div><!-- end hydro-tabs -->
+        <!-- Inner: vertical tabs on left + chart body -->
+        <div id="hydro-inner">
+          <!-- ── Vertical tab strip ─────────────────────────────────────── -->
+          <div id="hydro-tab-pills">
+            <div class="htab on" id="htab-ts"    onclick="setHydroTab('ts')"    title="Time Series">TS</div>
+            <div class="htab"    id="htab-fdc"   onclick="setHydroTab('fdc')"   title="Flow Duration Curve">FDC</div>
+            <div class="htab"    id="htab-fdb"   onclick="setHydroTab('fdb')"   title="FDC Bias (Sim−Obs)">FDB</div>
+            <div class="htab"    id="htab-aclm"  onclick="setHydroTab('aclm')"  title="Annual Climatology">CLM</div>
+            <div class="htab"    id="htab-scat"  onclick="setHydroTab('scat')"  title="Sim vs Obs Scatter">S/O</div>
+            <div class="htab"    id="htab-cal"   onclick="setHydroTab('cal')"   title="Calendar Heatmap">CAL</div>
+            <div class="htab"    id="htab-diag"  onclick="setHydroTab('diag')"  title="Diagnostics">DGN</div>
+            <div class="htab"    id="htab-cdep"  onclick="setHydroTab('cdep')"  title="Cumulative Departure">CDP</div>
+            <div class="htab"    id="htab-resid" onclick="setHydroTab('resid')" title="Residuals">RSD</div>
+            <div class="htab"    id="htab-wbal"  onclick="setHydroTab('wbal')"  title="Annual Water Balance">WBL</div>
+          </div>
+          <!-- ── Chart body ─────────────────────────────────────────────── -->
         <div id="hydro-body">
-          <div id="hydro-canvas-wrap" style="position:absolute;inset:0">
+          <div id="hydro-canvas-wrap">
             <canvas id="hydro-canvas"></canvas>
             <canvas id="hydro-crosshair"></canvas>
             <div id="hydro-tooltip"></div>
+            <div id="hydro-anno-overlay" style="position:absolute;inset:0;pointer-events:none"></div>
+            <!-- Stats bar: absolutely pinned at bottom inside canvas-wrap -->
+            <div id="hydro-stats-bar"></div>
           </div>
           <div id="hydro-fdc-wrap" style="position:absolute;inset:0;display:none">
             <canvas id="hydro-fdc-canvas"></canvas>
             <canvas id="hydro-fdc-crosshair" style="position:absolute;top:0;left:0;pointer-events:none"></canvas>
             <div id="hydro-fdc-tooltip" style="position:absolute;display:none;z-index:10"></div>
+          </div>
+          <div id="hydro-fdcbias-wrap" style="position:absolute;inset:0;display:none">
+            <canvas id="hydro-fdcbias-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+            <div id="hydro-fdcbias-tooltip" style="position:fixed;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:9999;white-space:nowrap"></div>
+          </div>
+          <div id="hydro-aclm-wrap" style="position:absolute;inset:0;display:none;flex-direction:column">
+            <div id="hydro-aclm-toolbar" style="display:flex;align-items:center;gap:6px;padding:3px 8px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;min-height:26px">
+              <span style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Stat:</span>
+              <div class="hz-btn on" id="aclm-btn-med"  onclick="setAclmStat('med')"  style="width:auto;padding:0 7px;font-size:9px">Median</div>
+              <div class="hz-btn"    id="aclm-btn-mean" onclick="setAclmStat('mean')" style="width:auto;padding:0 7px;font-size:9px">Mean</div>
+              <div style="width:1px;height:12px;background:var(--border);flex-shrink:0;margin:0 2px"></div>
+              <span style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Scale:</span>
+              <div class="hz-btn on" id="aclm-btn-doy"   onclick="setAclmScale('doy')"   style="width:auto;padding:0 7px;font-size:9px">Day of Year</div>
+              <div class="hz-btn"    id="aclm-btn-month" onclick="setAclmScale('month')" style="width:auto;padding:0 7px;font-size:9px">Monthly</div>
+              <div style="margin-left:auto;display:flex;align-items:center;gap:4px">
+                <span style="font-size:8px;color:var(--text3)">Envelope</span>
+                <div id="aclm-env-toggle" onclick="toggleAclmEnvelope()" title="Show percentile envelope"
+                  style="width:28px;height:14px;border-radius:7px;background:var(--bg3);border:1px solid var(--border2);cursor:pointer;position:relative;transition:background .15s;flex-shrink:0">
+                  <div id="aclm-env-knob" style="position:absolute;top:1px;left:1px;width:10px;height:10px;border-radius:50%;background:var(--text3);transition:all .15s"></div>
+                </div>
+              </div>
+            </div>
+            <div style="flex:1;position:relative;overflow:hidden;min-height:0">
+              <canvas id="hydro-aclm-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+            </div>
+            <div id="hydro-aclm-tooltip" style="position:fixed;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:9999;white-space:nowrap;line-height:1.6"></div>
           </div>
           <div id="hydro-scatter-wrap" style="position:absolute;inset:0;display:none">
             <canvas id="hydro-scatter-canvas"></canvas>
@@ -1056,10 +1221,14 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
             <canvas id="hydro-wbal-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
             <div id="hydro-wbal-tooltip" style="position:fixed;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:9999;white-space:nowrap"></div>
           </div>
-        </div>
-      </div>
-    </div>
+        </div><!-- end hydro-body -->
+        </div><!-- end hydro-inner -->
+      </div><!-- end hydro-panel -->
+    </div><!-- end map-wrap -->
+    <!-- Panel collapse toggle -->
     <div id="panel">
+      <!-- Resize handle sits inside panel on its left edge -->
+      <div id="panel-resize" title="Drag to resize panel"></div>
       <div id="panel-hdr">
         <div style="min-width:0">
           <div class="ph-title" id="ph-title">.rvi — Simulation Options</div>
@@ -2011,15 +2180,21 @@ const ravenOut = {
 
 // Active hydrograph state
 const hydroState = {
-  residView: 'daily',      // 'daily' | 'monthly'
-  residMode: 'ts',         // 'ts' | 'clim'   (time-series vs climatological)
-  residDist: false,        // show residual distribution panel
-  residKey: null,          // which basin to show (null = first active)
-  activeKeys: [],          // ordered list of active series keys
-  mutedKeys: new Set(),    // keys whose line is hidden in chart
-  tab: 'ts',               // 'ts' | 'fdc' | 'scat' | 'diag'
+  residView: 'daily',
+  residMode: 'ts',
+  residDist: false,
+  residKey: null,
+  activeKeys: [],
+  mutedKeys: new Set(),
+  tab: 'ts',
   viewStart: null,
   viewEnd: null,
+  logScale: false,
+  annotations: [],
+  _annoDrag: null,
+  aclmStat: 'med',      // 'med' | 'mean'
+  aclmScale: 'doy',     // 'doy' | 'month'
+  aclmEnvelope: true,   // show percentile envelope
 };
 
 // Diagnostics.csv data: array of {period, filename, metrics:{DIAG_X: val}}
@@ -2038,8 +2213,10 @@ function initMap() {
   }
   map = L.map('map', {center:[58,-122], zoom:5, zoomControl:false, preferCanvas:true});
   L.control.zoom({position:'bottomright'}).addTo(map);
-  window._tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
-    attribution:'©OpenStreetMap ©CARTO', subdomains:'abcd', maxZoom:19
+  // Default tile: satellite theme (will be overridden by initTheme → applyTheme)
+  window._tileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution:'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP',
+    maxZoom:19
   }).addTo(map);
   // Layer order: subbasins at bottom, then rivers, then HRU geo, then scatter, then gauges on top
   sbLyr      = L.layerGroup().addTo(map);
@@ -2161,6 +2338,8 @@ function refreshMap() {
     gaugeLyr.addLayer(m);
   }
   refreshDemandLayer();
+  // Re-apply any custom layer styles the user has set
+  if (typeof applyLayerStyles === 'function') applyLayerStyles();
 }
 
 function refreshDemandLayer() {
@@ -2313,11 +2492,23 @@ function renderSubbasinLayer() {
   const fm = geodata.sbFieldMap;
   L.geoJSON(geodata.sb, {
     style: feat => {
+      const sbSt   = layerStyles?.sb || {};
       const serKey = seriesKeyForFeature(feat);
-      return { color: serKey ? '#00e4b4':'#4a6880',
-               fillColor: serKey ? '#00e4b4':'#1e3040',
-               fillOpacity: serKey ? 0.18:0.10,
-               weight: serKey ? 1.5:0.8 };
+      // Matched basins always get the accent color; unmatched get user-set or default style
+      if (serKey) {
+        return {
+          color:       '#00e4b4',
+          fillColor:   '#00e4b4',
+          fillOpacity: Math.max(0.15, (sbSt.fillOpacity ?? 18) / 100),
+          weight:      Math.max(1.2, sbSt.weight || 1.5),
+        };
+      }
+      return {
+        color:       sbSt.color || '#cc2222',
+        fillColor:   sbSt.fillColor || '#2a6099',
+        fillOpacity: (sbSt.fillOpacity ?? 10) / 100,
+        weight:      sbSt.weight      || 0.8,
+      };
     },
     onEachFeature: (feat, layer) => {
       const p      = feat.properties || {};
@@ -2333,7 +2524,10 @@ function renderSubbasinLayer() {
         ? (ravenOut.series[serKey].label || serKey) : null;
 
       // Register in direct-lookup map for the player
-      if (serKey) featureLayerMap[serKey] = layer;
+      if (serKey) {
+        featureLayerMap[serKey] = layer;
+        layer.options._hasMatch = true; // flag so applyLayerStyles preserves accent color
+      }
 
       layer.bindPopup(`<b>${escH(displayName)}</b>
         <div class="row">SubId: <span>${subId}</span>&nbsp;↓&nbsp;<span>${dowId}</span></div>
@@ -2357,11 +2551,38 @@ function renderSubbasinLayer() {
         }
       });
       layer.on('mouseover', () => {
-        if (!serKey) return;
-        layer.setStyle({fillOpacity:0.32});
+        const cur      = layer.options;
+        const sbSt     = layerStyles?.sb || {};
+        const isMatch  = !!layer.options._hasMatch;
+        const baseOp   = isMatch ? Math.max(0.15, (sbSt.fillOpacity ?? 18) / 100)
+                                 : (sbSt.fillOpacity ?? 10) / 100;
+        layer.setStyle({
+          fillOpacity: Math.min(0.72, baseOp * 2.5),
+          fillColor:   cur.fillColor,
+          color:       cur.color,
+          weight:      cur.weight,
+        });
       });
       layer.on('mouseout', () => {
-        layer.setStyle({fillOpacity: serKey ? 0.18:0.10});
+        const cur     = layer.options;
+        const sbSt    = layerStyles?.sb || {};
+        const isMatch = !!layer.options._hasMatch;
+        // Check if this basin is actively selected in the hydro panel
+        const isActive = serKey && hydroState.activeKeys.includes(serKey);
+        let baseOp;
+        if (isActive) {
+          baseOp = Math.max(0.22, ((sbSt.fillOpacity ?? 10) / 100) * 2);
+        } else if (isMatch) {
+          baseOp = Math.max(0.15, (sbSt.fillOpacity ?? 18) / 100);
+        } else {
+          baseOp = (sbSt.fillOpacity ?? 10) / 100;
+        }
+        layer.setStyle({
+          fillOpacity: baseOp,
+          fillColor:   cur.fillColor,
+          color:       cur.color,
+          weight:      cur.weight,
+        });
       });
     }
   }).addTo(sbLyr);
@@ -2370,6 +2591,8 @@ function renderSubbasinLayer() {
   if (connState.active) {
     if (connState.selectedId !== null) applyConnHighlights();
   }
+  // Re-apply user layer styles
+  if (typeof applyLayerStyles === 'function') applyLayerStyles();
 }
 
 // ── RIVER GEOJSON IMPORT ──────────────────────────────────────────────────────
@@ -2393,6 +2616,7 @@ function importRiverGeoJSON() {
     const btn = document.getElementById('mt-river'); if (btn) btn.classList.add('on');
     const ns  = document.getElementById('ns-river');  if (ns)  ns.classList.add('active');
     toast(`River network — ${gj.features.length} features`,'ok');
+    if (typeof applyLayerStyles === 'function') applyLayerStyles();
   });
 }
 window.importRiverGeoJSON = importRiverGeoJSON;
@@ -2435,6 +2659,7 @@ function importHRUGeoJSON() {
         layerVis.hruGeo = true;
         if (!map.hasLayer(hruGeoLyr)) map.addLayer(hruGeoLyr);
         toast(`HRU layer — ${gj.features.length} features`,'ok');
+        if (typeof applyLayerStyles === 'function') applyLayerStyles();
       }
     );
   });
@@ -2603,12 +2828,25 @@ function linkOutputToSubbasins() {
 // ── HYDROGRAPH DISPLAY ────────────────────────────────────────────────────────
 
 function refreshMapSelection() {
+  const sbSt = layerStyles?.sb || {};
   Object.entries(featureLayerMap).forEach(([k, l]) => {
     if (!l || !l.setStyle) return;
     const active = hydroState.activeKeys.includes(k);
-    const ci = hydroState.activeKeys.indexOf(k);
-    const col = active ? seriesColor(ci, false) : '#4a6880';
-    l.setStyle({ weight: active ? 2.5 : 0.8, color: col, fillOpacity: active ? 0.22 : 0.10 });
+    const ci     = hydroState.activeKeys.indexOf(k);
+    // Use the series color when active, or the user-set border color when inactive
+    const borderCol = active ? seriesColor(ci, false) : (sbSt.color || '#cc2222');
+    // fillColor is always the series color for matched basins (never overwrite with flat style)
+    const fillCol   = active ? seriesColor(ci, false) : '#00e4b4';
+    // Base fill opacity from layerStyles, boosted when active
+    const baseFillOp = (sbSt.fillOpacity ?? 10) / 100;
+    const fillOp     = active ? Math.max(0.22, baseFillOp * 2) : baseFillOp;
+    const wt         = active ? Math.max(2.5, (sbSt.weight || 1) * 2) : (sbSt.weight || 0.8);
+    l.setStyle({
+      color:       borderCol,
+      fillColor:   fillCol,
+      fillOpacity: fillOp,
+      weight:      wt,
+    });
     if (active) l.bringToFront();
   });
 }
@@ -2818,7 +3056,7 @@ function applyConnHighlights() {
       } else if (connState.downstreamIds.includes(id)) {
         l.setStyle({ color: '#f0a832', weight: 2, fillColor: '#f0a832', fillOpacity: 0.18 });
       } else {
-        l.setStyle({ color: '#1e3040', weight: 0.8, fillColor: '#1e3040', fillOpacity: 0.10 });
+        l.setStyle({ color: '#cc2222', weight: 1.2, fillColor: '#2a6099', fillOpacity: 0.35 });
       }
     };
     if (geoLayer.eachLayer) geoLayer.eachLayer(eachFn); else eachFn(geoLayer);
@@ -2833,18 +3071,23 @@ function clearConnectivity() {
   const btn = document.getElementById('mt-conn');
   if (btn) btn.classList.remove('on');
   document.getElementById('conn-panel').classList.remove('open');
-  // Restore normal subbasin styles
+  // Restore normal subbasin styles — respect user layerStyles and active series
   if (sbLyr) {
+    const sbSt = layerStyles?.sb || {};
     sbLyr.eachLayer(gl => {
       const eachFn = l => {
-        const p = l.feature?.properties || {};
-        const fm = geodata.sbFieldMap || {};
-        const serKey = seriesKeyForFeature(l.feature);
+        if (!l.setStyle) return;
+        const serKey  = seriesKeyForFeature(l.feature);
+        const active  = serKey && hydroState.activeKeys.includes(serKey);
+        const ci      = serKey ? hydroState.activeKeys.indexOf(serKey) : -1;
+        const fillCol = serKey ? (active ? seriesColor(ci, false) : '#00e4b4') : (sbSt.fillColor || '#2a6099');
+        const borCol  = serKey ? (active ? seriesColor(ci, false) : '#00e4b4') : (sbSt.color || '#cc2222');
+        const baseFillOp = (sbSt.fillOpacity ?? 10) / 100;
         l.setStyle({
-          color: serKey ? '#00e4b4' : '#4a6880',
-          fillColor: serKey ? '#00e4b4' : '#1e3040',
-          fillOpacity: serKey ? 0.18 : 0.10,
-          weight: serKey ? 1.5 : 0.8
+          color:       borCol,
+          fillColor:   fillCol,
+          fillOpacity: active ? Math.max(0.22, baseFillOp * 2) : (serKey ? Math.max(0.15, baseFillOp) : baseFillOp),
+          weight:      active ? Math.max(2.5, (sbSt.weight||1)*2) : (serKey ? Math.max(1.2, sbSt.weight||0.8) : (sbSt.weight||0.8)),
         });
       };
       if (gl.eachLayer) gl.eachLayer(eachFn); else eachFn(gl);
@@ -2921,23 +3164,39 @@ function openHydroPanel() {
 
 // Sets tab pill active + shows correct sub-panel + zoom visibility — no draw
 function _activateTabChrome(tab) {
-  ['ts','fdc','scat','cal','diag','cdep','resid'].forEach(t => {
+  ['ts','fdc','fdb','aclm','scat','cal','diag','cdep','resid','wbal'].forEach(t => {
     const el = document.getElementById('htab-'+t);
     if (el) el.classList.toggle('on', t === tab);
   });
   const show = id => { const e=document.getElementById(id); if(e) e.style.display=''; };
   const hide = id => { const e=document.getElementById(id); if(e) e.style.display='none'; };
   const zoomWrap = document.getElementById('hydro-zoom-wrap');
-  hide('hydro-canvas-wrap'); hide('hydro-fdc-wrap'); hide('hydro-scatter-wrap');
-  hide('hydro-cal-wrap'); hide('hydro-diag-wrap'); hide('hydro-cdep-wrap'); hide('hydro-resid-wrap'); hide('hydro-wbal-wrap');
-  if (tab==='ts')   { show('hydro-canvas-wrap');  if(zoomWrap)zoomWrap.style.visibility=''; updateHydroRange(); }
-  if (tab==='fdc')  { show('hydro-fdc-wrap');     if(zoomWrap)zoomWrap.style.visibility='hidden'; }
-  if (tab==='scat') { show('hydro-scatter-wrap'); if(zoomWrap)zoomWrap.style.visibility='hidden'; }
-  if (tab==='cal')  { show('hydro-cal-wrap');     if(zoomWrap)zoomWrap.style.visibility='hidden'; }
-  if (tab==='diag') { show('hydro-diag-wrap');    if(zoomWrap)zoomWrap.style.visibility='hidden'; }
-  if (tab==='cdep') { show('hydro-cdep-wrap');    if(zoomWrap)zoomWrap.style.visibility='hidden'; }
-  if (tab==='resid') { const rw=document.getElementById('hydro-resid-wrap'); if(rw)rw.style.display='flex'; if(zoomWrap)zoomWrap.style.visibility='hidden'; }
-  if (tab==='wbal')  { show('hydro-wbal-wrap');    if(zoomWrap)zoomWrap.style.visibility='hidden'; }
+  const logBtn   = document.getElementById('hydro-log-btn');
+  const annoBtn  = document.getElementById('hydro-anno-btn');
+  hide('hydro-canvas-wrap'); hide('hydro-fdc-wrap'); hide('hydro-fdcbias-wrap');
+  hide('hydro-aclm-wrap');
+  hide('hydro-scatter-wrap'); hide('hydro-cal-wrap'); hide('hydro-diag-wrap');
+  hide('hydro-cdep-wrap'); hide('hydro-resid-wrap'); hide('hydro-wbal-wrap');
+  if (tab==='ts')   { show('hydro-canvas-wrap');    if(zoomWrap)zoomWrap.style.visibility=''; updateHydroRange();
+                      if(logBtn)logBtn.style.display=''; if(annoBtn)annoBtn.style.display=''; }
+  if (tab==='fdc')  { show('hydro-fdc-wrap');       if(zoomWrap)zoomWrap.style.visibility='hidden';
+                      if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
+  if (tab==='fdb')  { show('hydro-fdcbias-wrap');   if(zoomWrap)zoomWrap.style.visibility='hidden';
+                      if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
+  if (tab==='aclm') { const aw=document.getElementById('hydro-aclm-wrap'); if(aw)aw.style.display='flex'; if(zoomWrap)zoomWrap.style.visibility='hidden';
+                      if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
+  if (tab==='scat') { show('hydro-scatter-wrap');   if(zoomWrap)zoomWrap.style.visibility='hidden';
+                      if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
+  if (tab==='cal')  { show('hydro-cal-wrap');       if(zoomWrap)zoomWrap.style.visibility='hidden';
+                      if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
+  if (tab==='diag') { show('hydro-diag-wrap');      if(zoomWrap)zoomWrap.style.visibility='hidden';
+                      if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
+  if (tab==='cdep') { show('hydro-cdep-wrap');      if(zoomWrap)zoomWrap.style.visibility='hidden';
+                      if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
+  if (tab==='resid') { const rw=document.getElementById('hydro-resid-wrap'); if(rw)rw.style.display='flex'; if(zoomWrap)zoomWrap.style.visibility='hidden';
+                      if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
+  if (tab==='wbal')  { show('hydro-wbal-wrap');     if(zoomWrap)zoomWrap.style.visibility='hidden';
+                      if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
 }
 
 function renderHydroLegend() {
@@ -2972,12 +3231,14 @@ function setHydroTab(tab) {
 window.setHydroTab = setHydroTab;
 
 function redrawActiveTab() {
-  if (hydroState.tab === 'ts')   requestAnimationFrame(drawHydrograph);
-  if (hydroState.tab === 'fdc')  requestAnimationFrame(drawFDC);
-  if (hydroState.tab === 'scat') requestAnimationFrame(drawScatter);
-  if (hydroState.tab === 'cal')  requestAnimationFrame(drawCalendar);
-  if (hydroState.tab === 'diag') renderDiagTable();
-  if (hydroState.tab === 'cdep') requestAnimationFrame(drawCumulDep);
+  if (hydroState.tab === 'ts')    requestAnimationFrame(drawHydrograph);
+  if (hydroState.tab === 'fdc')   requestAnimationFrame(drawFDC);
+  if (hydroState.tab === 'fdb')   requestAnimationFrame(drawFDCBias);
+  if (hydroState.tab === 'aclm')  requestAnimationFrame(drawAnnualClimatology);
+  if (hydroState.tab === 'scat')  requestAnimationFrame(drawScatter);
+  if (hydroState.tab === 'cal')   requestAnimationFrame(drawCalendar);
+  if (hydroState.tab === 'diag')  renderDiagTable();
+  if (hydroState.tab === 'cdep')  requestAnimationFrame(drawCumulDep);
   if (hydroState.tab === 'resid') requestAnimationFrame(drawResidHeatmap);
   if (hydroState.tab === 'wbal')  requestAnimationFrame(drawWaterBalance);
 }
@@ -3130,10 +3391,13 @@ function drawCrosshair(mx, my) {
   const wrap = document.getElementById('hydro-canvas-wrap');
   const tip  = document.getElementById('hydro-tooltip');
   if (!cvs || !wrap || !hydroState.activeKeys.length) return;
+  const dpr = window.devicePixelRatio || 1;
   const W = wrap.offsetWidth, H = wrap.offsetHeight;
-  cvs.width = W; cvs.height = H;
+  cvs.width = Math.round(W*dpr); cvs.height = Math.round(H*dpr);
   cvs.style.width = W+'px'; cvs.style.height = H+'px'; cvs.style.display = 'block';
   const ctx = cvs.getContext('2d');
+  ctx.save();
+  ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
 
   const { s, e } = getViewRange();
@@ -3142,7 +3406,7 @@ function drawCrosshair(mx, my) {
   const cH = H - _PAD.top  - _PAD.bottom;
 
   if (mx < _PAD.left || mx > W - _PAD.right || my < _PAD.top || my > H - _PAD.bottom) {
-    tip.style.display = 'none'; return;
+    tip.style.display = 'none'; ctx.restore(); return;
   }
 
   // Vertical crosshair line
@@ -3151,25 +3415,32 @@ function drawCrosshair(mx, my) {
   ctx.setLineDash([]);
 
   const frac = (mx - _PAD.left) / cW;
-  const idx  = Math.round(s + frac * span);
-  if (idx < 0 || idx >= ravenOut.dates.length) { tip.style.display = 'none'; return; }
+  const idx  = Math.round(s + frac * (span || 1));
+  if (idx < 0 || idx >= ravenOut.dates.length) { tip.style.display = 'none'; ctx.restore(); return; }
 
   // Collect active (non-muted) series
   const activeVis = hydroState.activeKeys.filter(k => !hydroState.mutedKeys.has(k) && ravenOut.series[k]);
 
   // Recompute Y scale across all visible series (same as drawHydrograph)
+  const useLog = hydroState.logScale;
   let yMin = Infinity, yMax = -Infinity;
   for (const k of activeVis) {
     const sr = ravenOut.series[k];
     for (const arr of [sr.sim, sr.obs]) {
       if (!arr) continue;
-      for (let i = s; i <= e; i++) { const v = arr[i]; if (v !== null && !isNaN(v)) { yMin = Math.min(yMin, v); yMax = Math.max(yMax, v); } }
+      for (let i = s; i <= e; i++) { const v = arr[i]; if (v !== null && !isNaN(v) && (!useLog||v>0)) { yMin = Math.min(yMin, v); yMax = Math.max(yMax, v); } }
     }
   }
   if (!isFinite(yMin)) { yMin = 0; yMax = 1; }
   if (yMax === yMin) yMax = yMin + 1;
-  const yPad = (yMax - yMin) * 0.06; yMin -= yPad; yMax += yPad;
-  const py = v => _PAD.top + (1 - (v - yMin) / (yMax - yMin)) * cH;
+  let py;
+  if (useLog && yMin > 0) {
+    const logMin = Math.log10(yMin * 0.9), logMax = Math.log10(yMax * 1.1);
+    py = v => v > 0 ? _PAD.top + (1 - (Math.log10(v) - logMin) / (logMax - logMin)) * cH : _PAD.top + cH + 2;
+  } else {
+    const yPad = (yMax - yMin) * 0.06; yMin -= yPad; yMax += yPad;
+    py = v => _PAD.top + (1 - (v - yMin) / (yMax - yMin)) * cH;
+  }
 
   const dotX   = _PAD.left + ((idx - s) / span) * cW;
   const tipRows = [];
@@ -3209,6 +3480,7 @@ function drawCrosshair(mx, my) {
   if (tx + 230 > W) tx = mx - 235;
   if (ty + 120 > H) ty = H - 124;
   tip.style.left = tx + 'px'; tip.style.top = ty + 'px';
+  ctx.restore(); // balance ctx.save()/ctx.scale(dpr,dpr)
 }
 
 function hideCrosshair() {
@@ -3223,25 +3495,32 @@ function drawHydrograph() {
   const canvas = document.getElementById('hydro-canvas');
   if (!canvas || !hydroState.activeKeys.length) return;
   const wrap = document.getElementById('hydro-canvas-wrap');
-  const W = wrap.offsetWidth || 700, H = wrap.offsetHeight || 180;
-  canvas.width = W; canvas.height = H;
+  const dpr = window.devicePixelRatio || 1;
+  const W = wrap.offsetWidth || 700;
+  // Stats bar takes ~22px from bottom when visible
+  const statsBar = document.getElementById('hydro-stats-bar');
+  const statsH = (statsBar && statsBar.style.display !== 'none') ? (statsBar.offsetHeight || 22) : 0;
+  const H = Math.max(60, wrap.offsetHeight - statsH) || 180;
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
-  // Also size crosshair canvas
   const chc = document.getElementById('hydro-crosshair');
-  if (chc) { chc.width=W; chc.height=H; chc.style.width=W+'px'; chc.style.height=H+'px'; }
+  if (chc) { chc.width=Math.round(W*dpr); chc.height=Math.round(H*dpr); chc.style.width=W+'px'; chc.style.height=H+'px'; }
 
   const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
 
   const activeSeries = hydroState.activeKeys
     .filter(k => !hydroState.mutedKeys.has(k) && ravenOut.series[k]);
 
-  if (!activeSeries.length) { ctx.clearRect(0,0,W,H); return; }
+  if (!activeSeries.length) { ctx.restore(); return; }
 
   const PAD = _PAD;
   const cW = W - PAD.left - PAD.right, cH = H - PAD.top - PAD.bottom;
   const { s: i0, e: i1 } = getViewRange();
-  const span = i1 - i0;
+  const span = i1 - i0 || 1;
+  const useLog = hydroState.logScale;
 
   // Y range across all active series
   let yMin=Infinity, yMax=-Infinity;
@@ -3249,32 +3528,65 @@ function drawHydrograph() {
     const s = ravenOut.series[k];
     for (const arr of [s.sim, s.obs]) {
       if (!arr) continue;
-      for (let i=i0;i<=i1;i++){const v=arr[i];if(v!==null&&!isNaN(v)){yMin=Math.min(yMin,v);yMax=Math.max(yMax,v);}}
+      for (let i=i0;i<=i1;i++){const v=arr[i];if(v!==null&&!isNaN(v)&&(!useLog||v>0)){yMin=Math.min(yMin,v);yMax=Math.max(yMax,v);}}
     }
   }
   if (!isFinite(yMin)){yMin=0;yMax=1;}
   if (yMax===yMin) yMax=yMin+1;
-  const yPad=(yMax-yMin)*0.06; yMin-=yPad; yMax+=yPad;
 
-  const px = i => PAD.left + ((i-i0)/span)*cW;
-  const py = v => PAD.top  + (1-(v-yMin)/(yMax-yMin))*cH;
-
-  // Grid lines + Y axis labels
-  ctx.strokeStyle='rgba(30,45,56,.9)'; ctx.lineWidth=0.5;
-  const yTicks=4;
-  for (let t=0; t<=yTicks; t++) {
-    const yv=yMin+(yMax-yMin)*(t/yTicks), y=py(yv);
-    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(W-PAD.right,y); ctx.stroke();
-    ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
-    const label=Math.abs(yv)>=1000?(yv/1000).toFixed(1)+'k':yv.toFixed(3).replace(/\.?0+$/,'');
-    ctx.fillText(label, PAD.left-4, y+3);
+  // Build py function — linear or log
+  let py;
+  if (useLog && yMin > 0) {
+    const logMin = Math.log10(yMin * 0.9);
+    const logMax = Math.log10(yMax * 1.1);
+    py = v => v > 0 ? PAD.top + (1 - (Math.log10(v) - logMin) / (logMax - logMin)) * cH : PAD.top + cH + 2;
+    // Y grid ticks — powers of 10
+    const lo = Math.floor(logMin), hi = Math.ceil(logMax);
+    ctx.setLineDash([]);
+    for (let exp = lo; exp <= hi; exp++) {
+      for (const mult of [1,2,3,5]) {
+        const yv = mult * Math.pow(10, exp);
+        if (yv < Math.pow(10, logMin)*0.85 || yv > Math.pow(10, logMax)*1.15) continue;
+        const y = py(yv);
+        ctx.strokeStyle = mult===1 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)';
+        ctx.lineWidth=0.5;
+        ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(W-PAD.right,y); ctx.stroke();
+        if (mult===1 || mult===2 || mult===5) {
+          ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
+          const label = yv>=1000?(yv/1000).toFixed(0)+'k':yv>=1?yv.toFixed(0):yv.toFixed(2);
+          ctx.fillText(label, PAD.left-4, y+3);
+        }
+      }
+    }
+  } else {
+    const yPad=(yMax-yMin)*0.06; yMin-=yPad; yMax+=yPad;
+    py = v => PAD.top + (1-(v-yMin)/(yMax-yMin))*cH;
+    ctx.setLineDash([]);
+    const yTicks=4;
+    for (let t=0; t<=yTicks; t++) {
+      const yv=yMin+(yMax-yMin)*(t/yTicks), y=py(yv);
+      ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=0.5;
+      ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(W-PAD.right,y); ctx.stroke();
+      ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
+      const label=Math.abs(yv)>=1000?(yv/1000).toFixed(1)+'k':yv.toFixed(3).replace(/\.?0+$/,'');
+      ctx.fillText(label, PAD.left-4, y+3);
+    }
   }
 
-  // Y axis unit label (from first series)
+  // Log label indicator
+  if (useLog) {
+    ctx.fillStyle='#f0a832'; ctx.font='7px IBM Plex Mono,monospace'; ctx.textAlign='left';
+    ctx.fillText('LOG', PAD.left+2, PAD.top+8);
+  }
+
+  // Y axis unit label
   const firstSer = ravenOut.series[activeSeries[0]];
   ctx.save(); ctx.translate(10, PAD.top+cH/2); ctx.rotate(-Math.PI/2);
   ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
   ctx.fillText(firstSer?.units||'m³/s', 0, 0); ctx.restore();
+
+  // px maps a data index to canvas X coordinate — must be defined before any use
+  const px = i => PAD.left + ((i-i0)/span)*cW;
 
   // Precipitation bars (top 18%)
   const precip = ravenOut.precip;
@@ -3291,64 +3603,59 @@ function drawHydrograph() {
     }
   }
 
+  // Annotations — draw before series so they sit behind
+  _drawAnnotations(ctx, i0, i1, px, py, PAD, W, H, cH);
+
   // Clip to chart area
   ctx.save();
   ctx.beginPath(); ctx.rect(PAD.left, PAD.top, cW, cH); ctx.clip();
 
   // Draw all active series
-  activeSeries.forEach((k, ci) => {
+  activeSeries.forEach((k) => {
     const s = ravenOut.series[k];
     const simCol = seriesColor(hydroState.activeKeys.indexOf(k), false);
     const obsCol = seriesColor(hydroState.activeKeys.indexOf(k), true);
     // Simulated
     if (s.sim && s.sim.slice(i0,i1+1).some(v=>v!==null)) {
-      ctx.strokeStyle=simCol; ctx.lineWidth=1.6; ctx.lineJoin='round'; ctx.setLineDash([]);
+      ctx.setLineDash([]);
+      ctx.strokeStyle=simCol; ctx.lineWidth=1.6; ctx.lineJoin='round';
       ctx.beginPath(); let started=false;
       for (let i=i0;i<=i1;i++) {
-        if(s.sim[i]===null||isNaN(s.sim[i])){started=false;continue;}
-        if(!started){ctx.moveTo(px(i),py(s.sim[i]));started=true;}else ctx.lineTo(px(i),py(s.sim[i]));
+        const v=s.sim[i];
+        if(v===null||isNaN(v)||(useLog&&v<=0)){started=false;continue;}
+        if(!started){ctx.moveTo(px(i),py(v));started=true;}else ctx.lineTo(px(i),py(v));
       }
       ctx.stroke();
     }
     // Observed
     if (s.obs && s.obs.slice(i0,i1+1).some(v=>v!==null&&!isNaN(v))) {
-      ctx.strokeStyle=obsCol; ctx.lineWidth=1.2; ctx.setLineDash([4,3]);
+      ctx.setLineDash([4,3]);
+      ctx.strokeStyle=obsCol; ctx.lineWidth=1.2;
       ctx.beginPath(); let started=false;
       for (let i=i0;i<=i1;i++) {
-        if(s.obs[i]===null||isNaN(s.obs[i])){started=false;continue;}
-        if(!started){ctx.moveTo(px(i),py(s.obs[i]));started=true;}else ctx.lineTo(px(i),py(s.obs[i]));
+        const v=s.obs[i];
+        if(v===null||isNaN(v)||(useLog&&v<=0)){started=false;continue;}
+        if(!started){ctx.moveTo(px(i),py(v));started=true;}else ctx.lineTo(px(i),py(v));
       }
-      ctx.stroke(); ctx.setLineDash([]);
-    }
-    // I3: Gap tick marks where obs is missing but sim exists
-    if (s.sim && s.obs) {
-      ctx.strokeStyle = obsCol + '55'; ctx.lineWidth = 0.8;
-      for (let i=i0;i<=i1;i++) {
-        if((s.obs[i]===null||isNaN(s.obs[i]))&&s.sim[i]!==null&&!isNaN(s.sim[i])){
-          const x=px(i);
-          ctx.setLineDash([2,3]);
-          ctx.beginPath(); ctx.moveTo(x,PAD.top+cH*0.88); ctx.lineTo(x,PAD.top+cH); ctx.stroke();
-        }
-      }
+      ctx.stroke();
       ctx.setLineDash([]);
     }
   });
 
-  // Error fill between sim and obs (per series)
-  activeSeries.forEach((k, ci) => {
+  // Error fill between sim and obs
+  activeSeries.forEach((k) => {
     const s = ravenOut.series[k];
     if (!s.sim || !s.obs) return;
     const simCol = seriesColor(hydroState.activeKeys.indexOf(k), false);
     ctx.save();
+    ctx.setLineDash([]);
     ctx.beginPath(); ctx.rect(PAD.left, PAD.top, cW, cH); ctx.clip();
-    // Build fill: polygon around sim then reverse obs
-    let firstSim = -1;
     const simPts = [], obsPts = [];
     for (let i=i0; i<=i1; i++) {
-      if(s.sim[i]!==null&&!isNaN(s.sim[i])&&s.obs[i]!==null&&!isNaN(s.obs[i])) {
-        if (firstSim < 0) firstSim = i;
-        simPts.push([px(i), py(s.sim[i])]);
-        obsPts.push([px(i), py(s.obs[i])]);
+      const sv=s.sim[i], ov=s.obs[i];
+      if(sv!==null&&!isNaN(sv)&&ov!==null&&!isNaN(ov)&&(!useLog||(sv>0&&ov>0))) {
+        simPts.push([px(i), py(sv)]);
+        obsPts.push([px(i), py(ov)]);
       }
     }
     if (simPts.length > 1) {
@@ -3356,7 +3663,7 @@ function drawHydrograph() {
       simPts.forEach(([x,y],j) => j===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y));
       for (let j=obsPts.length-1; j>=0; j--) ctx.lineTo(obsPts[j][0], obsPts[j][1]);
       ctx.closePath();
-      ctx.fillStyle = simCol + '18';  // very subtle fill
+      ctx.fillStyle = simCol + '18';
       ctx.fill();
     }
     ctx.restore();
@@ -3365,55 +3672,29 @@ function drawHydrograph() {
   ctx.restore(); // end clip
 
   // X axis date ticks
+  ctx.setLineDash([]);
   ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
   const maxTicks = Math.min(8, span);
   for (let t=0; t<=maxTicks; t++) {
     const i = i0 + Math.round((t/maxTicks)*span);
     const x = px(i);
     ctx.fillText((ravenOut.dates[i]||'').slice(0,10), x, H-4);
-    ctx.strokeStyle='rgba(30,45,56,.6)'; ctx.lineWidth=0.5;
+    ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=0.5;
     ctx.beginPath(); ctx.moveTo(x,H-PAD.bottom); ctx.lineTo(x,H-PAD.bottom+3); ctx.stroke();
   }
-  // Update inline NSE/KGE badge
+
+  // Stats bar + old inline badge
+  _updateStatsBar(activeSeries, i0, i1);
   const statsEl = document.getElementById('hydro-stats');
-  if (statsEl) {
-    let badges = [];
-    for (const k of activeSeries) {
-      const sr = ravenOut.series[k];
-      if (!sr || !sr.sim || !sr.obs) continue;
-      const paired = [];
-      for (let i = i0; i <= i1; i++) {
-        const s = sr.sim[i], o = sr.obs[i];
-        if (s !== null && o !== null && !isNaN(s) && !isNaN(o)) paired.push([s, o]);
-      }
-      if (paired.length < 5) continue;
-      const n = paired.length;
-      const obsMean = paired.reduce((a,p)=>a+p[1],0)/n;
-      const ssTot = paired.reduce((a,p)=>a+(p[1]-obsMean)**2,0);
-      const ssRes = paired.reduce((a,p)=>a+(p[0]-p[1])**2,0);
-      const nse = ssTot>0 ? 1-ssRes/ssTot : NaN;
-      const simMean = paired.reduce((a,p)=>a+p[0],0)/n;
-      const simStd = Math.sqrt(paired.reduce((a,p)=>a+(p[0]-simMean)**2,0)/n);
-      const obsStd = Math.sqrt(paired.reduce((a,p)=>a+(p[1]-obsMean)**2,0)/n);
-      const r = paired.reduce((a,p)=>a+(p[0]-simMean)*(p[1]-obsMean),0)/(n*simStd*obsStd||1);
-      const kge = obsStd>0 ? 1-Math.sqrt((r-1)**2+(simStd/obsStd-1)**2+(simMean/obsMean-1)**2) : NaN;
-      const nseCol = nse>0.75?'#00e4b4':nse>0.5?'#f0a832':'#e85050';
-      const lbl = activeSeries.length>1 ? (sr.label||k).slice(0,8)+' ' : '';
-      if (!isNaN(nse)) badges.push(`<span style="color:${nseCol}">${lbl}NSE ${nse.toFixed(3)}</span>`);
-      if (!isNaN(kge)) badges.push(`<span style="color:var(--text2)">KGE ${kge.toFixed(3)}</span>`);
-    }
-    if (badges.length) {
-      statsEl.innerHTML = badges.join(' · ');
-      statsEl.style.display = '';
-    } else {
-      statsEl.style.display = 'none';
-    }
-  }
+  if (statsEl) statsEl.style.display = 'none'; // stats bar replaces it
+
+  ctx.restore(); // balance DPR save
 }
 window.drawHydrograph = drawHydrograph;
 window.addEventListener('resize', () => {
-  if (hydroState.activeKeys.length) drawHydrograph();
-  if (hydroState.activeKeys.length && hydroState.tab==='resid') requestAnimationFrame(drawResidHeatmap);
+  if (!hydroState.activeKeys.length) return;
+  // Only redraw the currently visible tab
+  if (typeof redrawActiveTab === 'function') redrawActiveTab();
 });
 
 // ── FLOW DURATION CURVE ───────────────────────────────────────────────────────
@@ -3422,11 +3703,14 @@ function drawFDC() {
   const canvas = document.getElementById('hydro-fdc-canvas');
   if (!canvas || !wrap || !hydroState.activeKeys.length) return;
 
+  const dpr = window.devicePixelRatio || 1;
   const W = wrap.offsetWidth || 700, H = wrap.offsetHeight || 240;
-  canvas.width = W; canvas.height = H;
+  canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
 
   const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
 
   const PAD = { top:18, right:24, bottom:42, left:62 };
@@ -3472,7 +3756,7 @@ function drawFDC() {
   const toX = p => PAD.left + p * cW; // p = exceedance probability 0..1
 
   // Y grid + labels
-  ctx.strokeStyle = 'rgba(30,45,56,.9)'; ctx.lineWidth = 0.5;
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
   ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'right';
   const yTicks = useLog
     ? Array.from({length: Math.ceil(Math.log10(yMax)-Math.log10(yMin))+1}, (_,i) => Math.pow(10, Math.floor(Math.log10(yMin))+i)).filter(v=>v<=yMax*1.05)
@@ -3495,7 +3779,7 @@ function drawFDC() {
   ctx.fillStyle = '#334d60'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
   for (const p of xTicks) {
     const x = toX(p);
-    ctx.strokeStyle = 'rgba(30,45,56,.9)'; ctx.lineWidth = 0.5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
     ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, H-PAD.bottom); ctx.stroke();
     ctx.fillText(Math.round(p*100)+'%', x, H - PAD.bottom + 12);
   }
@@ -3555,6 +3839,7 @@ function drawFDC() {
     ctx.fillStyle = c.color; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'left';
     ctx.fillText(c.label.length > 14 ? c.label.slice(0,13)+'…' : c.label, legX - 64, y + 7);
   });
+  ctx.restore(); // balance DPR save
 }
 window.drawFDC = drawFDC;
 window.addEventListener('resize', () => { if (hydroState.activeKeys.length && hydroState.tab==='fdc') drawFDC(); });
@@ -3565,11 +3850,14 @@ function drawScatter() {
   const canvas = document.getElementById('hydro-scatter-canvas');
   if (!canvas || !wrap || !hydroState.activeKeys.length) return;
 
+  const dpr = window.devicePixelRatio || 1;
   const W = wrap.offsetWidth || 700, H = wrap.offsetHeight || 240;
-  canvas.width = W; canvas.height = H;
+  canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
 
   const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
 
   const PAD = { top:18, right:24, bottom:46, left:62 };
@@ -3615,7 +3903,7 @@ function drawScatter() {
     const x = toX(v), y = toY(v);
     const lbl = v >= 1000 ? (v/1000).toFixed(1)+'k' : v.toFixed(v < 1 ? 2 : 1);
 
-    ctx.strokeStyle = 'rgba(30,45,56,.9)'; ctx.lineWidth = 0.5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
     // vertical grid
     ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, H - PAD.bottom); ctx.stroke();
     // horizontal grid
@@ -3698,6 +3986,7 @@ function drawScatter() {
       legY += 13;
     });
   }
+  ctx.restore(); // balance DPR save
 }
 window.drawScatter = drawScatter;
 window.addEventListener('resize', () => { if (hydroState.activeKeys.length && hydroState.tab==='scat') drawScatter(); });
@@ -3830,10 +4119,12 @@ function drawCalendar() {
   const wrap   = document.getElementById('hydro-cal-wrap');
   const canvas = document.getElementById('hydro-cal-canvas');
   if (!canvas || !wrap) return;
+  const dpr = window.devicePixelRatio || 1;
   const W = wrap.offsetWidth || 700, H = wrap.offsetHeight || 260;
-  canvas.width = W; canvas.height = H;
+  canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
   const ctx = canvas.getContext('2d');
+  ctx.save(); ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
 
   const visibleKeys = hydroState.activeKeys.filter(k => !hydroState.mutedKeys.has(k) && ravenOut.series[k]);
@@ -3844,18 +4135,18 @@ function drawCalendar() {
     ctx.fillText('Select a single basin to view the calendar heatmap', W/2, H/2 - 8);
     ctx.fillStyle='#334d60'; ctx.font='9px IBM Plex Mono,monospace';
     ctx.fillText(`(${visibleKeys.length} series currently active — mute all but one using the legend)`, W/2, H/2 + 10);
-    return;
+    ctx.restore(); return;
   }
 
   const k = visibleKeys[0];
   if (!k || !ravenOut.dates.length) {
     ctx.fillStyle='#334d60'; ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center';
-    ctx.fillText('Select a basin to view calendar heatmap', W/2, H/2); return;
+    ctx.fillText('Select a basin to view calendar heatmap', W/2, H/2); ctx.restore(); return;
   }
   const sr    = ravenOut.series[k];
   const arr   = sr.sim || sr.obs;
   const dates = ravenOut.dates;
-  if (!arr) return;
+  if (!arr) { ctx.restore(); return; }
 
   // Build map: year → doy → value
   const yearMap = {};
@@ -3869,7 +4160,7 @@ function drawCalendar() {
     yearMap[yr][doy] = v;
   }
   const years = Object.keys(yearMap).map(Number).sort((a,b)=>a-b);
-  if (!years.length) { ctx.fillStyle='#334d60'; ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center'; ctx.fillText('No dated data', W/2, H/2); return; }
+  if (!years.length) { ctx.fillStyle='#334d60'; ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center'; ctx.fillText('No dated data', W/2, H/2); ctx.restore(); return; }
 
   const PAD = { top:16, right:20, bottom:28, left:42 };
   const cW  = W - PAD.left - PAD.right;
@@ -3881,7 +4172,7 @@ function drawCalendar() {
 
   // Value range for colour mapping
   const allVals = Object.values(yearMap).flatMap(m => Object.values(m)).filter(v=>v>0);
-  if (!allVals.length) return;
+  if (!allVals.length) { ctx.restore(); return; }
   const vMin = allVals.reduce((a,b)=>b<a?b:a,Infinity), vMax = allVals.reduce((a,b)=>b>a?b:a,-Infinity);
 
   // Colour scale: viridis-like (dark purple → teal → yellow)
@@ -3952,6 +4243,7 @@ function drawCalendar() {
   // Title
   ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
   ctx.fillText(`${sr.label||k} — ${sr.sim?'Simulated':'Observed'}  ·  Julian day vs Year`, PAD.left, PAD.top - 4);
+  ctx.restore(); // balance DPR save
 }
 window.drawCalendar = drawCalendar;
 window.addEventListener('resize', () => { if (hydroState.activeKeys.length && hydroState.tab==='cal') drawCalendar(); });
@@ -10338,12 +10630,16 @@ window.metSetDateRange = metSetDateRange;
 // ── Met panel tab switching ──────────────────────────────────────────────────
 function setMetTab(tab) {
   metState.tab = tab;
-  ['ts','clim','hmap','cmp'].forEach(t => {
+  ['ts','clim','bwk','ptd','hmap','cmp'].forEach(t => {
     const tb = document.getElementById('mttab-'+t); if(tb) tb.classList.toggle('on', t===tab);
     const wr = document.getElementById('met-'+t+'-wrap'); if(wr) wr.style.display = t===tab ? '' : 'none';
   });
-  if (tab === 'ts')   setTimeout(drawMetChart, 20);
-  if (tab === 'clim') setTimeout(drawMetClim,  20);
+  // cmp-wrap needs flex display not block
+  if (tab === 'cmp') { const cw = document.getElementById('met-cmp-wrap'); if(cw) cw.style.display = 'flex'; }
+  if (tab === 'ts')   setTimeout(drawMetChart,      20);
+  if (tab === 'clim') setTimeout(drawMetClim,       20);
+  if (tab === 'bwk')  setTimeout(drawMetBoxWhisker, 20);
+  if (tab === 'ptd')  setTimeout(drawMetPTDist,     20);
   if (tab === 'hmap') {
     // Inject param selector above heatmap if multiple visible params
     const d = metState.gaugeId ? metGaugeData[metState.gaugeId] : null;
@@ -11564,7 +11860,7 @@ const THEMES = [
 ];
 
 const THEME_STORAGE_KEY = 'raven_editor_theme';
-let _currentTheme = 'ocean';
+let _currentTheme = 'satellite';
 
 function applyTheme(id) {
   const theme = THEMES.find(t => t.id === id) || THEMES[0];
@@ -11595,8 +11891,6 @@ function applyTheme(id) {
       maxZoom: 19,
       detectRetina: true
     }).addTo(map);
-    // Insert below all other layers (pane hack: add first, then move to back)
-    window._tileLayer.addTo(map);
     window._tileLayer.bringToBack();
   }
 
@@ -11678,10 +11972,10 @@ function initTheme() {
     if (saved && THEMES.find(t => t.id === saved)) {
       applyTheme(saved);
     } else {
-      applyTheme('ocean');
+      applyTheme('satellite');
     }
   } catch(e) {
-    applyTheme('ocean');
+    applyTheme('satellite');
   }
 }
 
@@ -13588,12 +13882,1411 @@ window.addEventListener('resize', () => {
   if (hydroState.activeKeys.length && hydroState.tab==='wbal') requestAnimationFrame(drawWaterBalance);
 });
 
+// ══════════════════════════════════════════════════════════════════════════════
+// LAYER STYLE TOOLS
+// ══════════════════════════════════════════════════════════════════════════════
+const layerStyles = {
+  hru:    { opacity: 72, minRadius: 3, maxRadius: 9, borderWidth: 0, borderColor: '#000000' },
+  sb:     { fillColor: '#2a6099', fillOpacity: 35, color: '#cc2222', weight: 1.2 },
+  river:  { color: '#4a8eff', weight: 2, opacity: 80 },
+  hruGeo: { fillOpacity: 35, weight: 1.2 },
+};
+
+function toggleLayerStylePanel() {
+  const panel = document.getElementById('layer-style-panel');
+  const btn   = document.getElementById('mt-style');
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if (btn) btn.classList.toggle('on', !isOpen);
+}
+window.toggleLayerStylePanel = toggleLayerStylePanel;
+
+function layerStyleChange(layer, prop, rawVal) {
+  const numVal = parseFloat(rawVal);
+  layerStyles[layer][prop] = isNaN(numVal) ? rawVal : numVal;
+
+  // Update display value label
+  const labelId = `lsp-${layer}-${prop}-val`;
+  const labelEl = document.getElementById(labelId);
+  if (labelEl) {
+    if (prop === 'opacity' || prop === 'fillOpacity') labelEl.textContent = Math.round(numVal) + '%';
+    else if (prop === 'weight' || prop === 'borderWidth') labelEl.textContent = numVal;
+    else if (prop === 'minRadius' || prop === 'maxRadius') labelEl.textContent = Math.round(numVal);
+  }
+
+  applyLayerStyles();
+}
+window.layerStyleChange = layerStyleChange;
+
+function applyLayerStyles() {
+  const ls = layerStyles;
+
+  // HRU scatter markers — only adjust opacity/radius/border, not fillColor
+  if (hruLyr && (mapMode === 'hru' || mapMode === 'all')) {
+    const st = ls.hru;
+    hruLyr.eachLayer(m => {
+      if (!m._latlng) return;
+      const origR = m.options._origRadius || m.options.radius;
+      m.options._origRadius = origR;
+      m.setStyle({
+        fillOpacity: st.opacity / 100,
+        weight: st.borderWidth,
+        color: st.borderWidth > 0 ? st.borderColor : 'rgba(0,0,0,0)',
+      });
+      m.setRadius(Math.max(st.minRadius, Math.min(st.maxRadius, origR)));
+    });
+  }
+
+  // Subbasin polygons — only apply weight; preserve per-feature fill/border colors
+  // (which encode whether the basin has output data matched to it)
+  if (sbLyr) {
+    const st = ls.sb;
+    sbLyr.eachLayer(gl => {
+      const fn = l => {
+        if (!l.setStyle) return;
+        // Check if this layer has a matched series (serKey stored during renderSubbasinLayer)
+        const hasMatch = l.options && (l.options.color === '#00e4b4' || l.options._hasMatch);
+        if (hasMatch) {
+          // Matched basin: only change weight, keep its accent color
+          l.setStyle({ weight: st.weight });
+        } else {
+          // Unmatched basin: apply full custom style
+          l.setStyle({
+            fillColor: st.fillColor,
+            fillOpacity: st.fillOpacity / 100,
+            color: st.color,
+            weight: st.weight,
+          });
+        }
+      };
+      if (gl.eachLayer) gl.eachLayer(fn); else fn(gl);
+    });
+  }
+
+  // River network
+  if (riverLyr) {
+    const st = ls.river;
+    riverLyr.eachLayer(gl => {
+      const fn = l => {
+        if (!l.setStyle) return;
+        l.setStyle({ color: st.color, weight: st.weight, opacity: st.opacity / 100 });
+      };
+      if (gl.eachLayer) gl.eachLayer(fn); else fn(gl);
+    });
+  }
+
+  // HRU GeoJSON polygons — preserve fill color, adjust opacity/weight only
+  if (hruGeoLyr) {
+    const st = ls.hruGeo;
+    hruGeoLyr.eachLayer(gl => {
+      const fn = l => {
+        if (!l.setStyle) return;
+        l.setStyle({ fillOpacity: st.fillOpacity / 100, weight: st.weight });
+      };
+      if (gl.eachLayer) gl.eachLayer(fn); else fn(gl);
+    });
+  }
+}
+window.applyLayerStyles = applyLayerStyles;
+
+function layerStyleReset() {
+  layerStyles.hru    = { opacity: 72, minRadius: 3, maxRadius: 9, borderWidth: 0, borderColor: '#000000' };
+  layerStyles.sb     = { fillColor: '#2a6099', fillOpacity: 35, color: '#cc2222', weight: 1.2 };
+  layerStyles.river  = { color: '#4a8eff', weight: 2, opacity: 80 };
+  layerStyles.hruGeo = { fillOpacity: 18, weight: 1 };
+
+  // Reset all inputs in the panel
+  const setInput = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  setInput('lsp-hru-opacity-val', null);
+  // Re-sync slider values
+  const panel = document.getElementById('layer-style-panel');
+  if (panel) {
+    panel.querySelectorAll('input[type=range]').forEach(inp => {
+      const match = inp.getAttribute('oninput')?.match(/layerStyleChange\('(\w+)','(\w+)'/);
+      if (!match) return;
+      const [, layer, prop] = match;
+      inp.value = layerStyles[layer]?.[prop] ?? inp.value;
+      inp.dispatchEvent(new Event('input'));
+    });
+    panel.querySelectorAll('input[type=color]').forEach(inp => {
+      const match = inp.getAttribute('oninput')?.match(/layerStyleChange\('(\w+)','(\w+)'/);
+      if (!match) return;
+      const [, layer, prop] = match;
+      const val = layerStyles[layer]?.[prop];
+      if (val) inp.value = val;
+    });
+  }
+
+  applyLayerStyles();
+  // Trigger a full map refresh to restore default HRU colors
+  refreshMap();
+  toast('Layer styles reset to defaults', 'ok');
+}
+window.layerStyleReset = layerStyleReset;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// NEW FEATURES: LOG SCALE · STATS BAR · CSV EXPORT · ANNOTATIONS
+//               FDC BIAS · MET BOX-WHISKER · MET P–T JOINT
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── LOG-SCALE TOGGLE ─────────────────────────────────────────────────────────
+function hydroToggleLog() {
+  hydroState.logScale = !hydroState.logScale;
+  const btn = document.getElementById('hydro-log-btn');
+  if (btn) {
+    btn.style.background    = hydroState.logScale ? 'var(--accent3)' : '';
+    btn.style.color         = hydroState.logScale ? '#000' : '';
+    btn.style.borderColor   = hydroState.logScale ? 'var(--accent)' : '';
+  }
+  requestAnimationFrame(drawHydrograph);
+}
+window.hydroToggleLog = hydroToggleLog;
+
+// ── HYDRO CSV EXPORT ──────────────────────────────────────────────────────────
+function hydroExportCSV() {
+  if (!hydroState.activeKeys.length || !ravenOut.dates.length) { toast('No data to export','warn'); return; }
+  const { s: i0, e: i1 } = getViewRange();
+  const keys = hydroState.activeKeys.filter(k => ravenOut.series[k]);
+  const hasPrecip = ravenOut.precip.some(v => v !== null);
+
+  // Header
+  const cols = ['date'];
+  keys.forEach(k => {
+    const lbl = (ravenOut.series[k].label || k).replace(/,/g,'_');
+    cols.push(lbl + '_sim', lbl + '_obs');
+  });
+  if (hasPrecip) cols.push('precip_mm_d');
+
+  const rows = [cols.join(',')];
+  for (let i = i0; i <= i1; i++) {
+    const row = [ravenOut.dates[i] || ''];
+    keys.forEach(k => {
+      const s = ravenOut.series[k];
+      const sv = s.sim?.[i]; const ov = s.obs?.[i];
+      row.push(sv !== null && sv !== undefined && !isNaN(sv) ? sv.toFixed(4) : '');
+      row.push(ov !== null && ov !== undefined && !isNaN(ov) ? ov.toFixed(4) : '');
+    });
+    if (hasPrecip) {
+      const pv = ravenOut.precip[i];
+      row.push(pv !== null && pv !== undefined && !isNaN(pv) ? pv.toFixed(3) : '');
+    }
+    rows.push(row.join(','));
+  }
+
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const d0 = (ravenOut.dates[i0]||'').slice(0,10);
+  const d1 = (ravenOut.dates[i1]||'').slice(0,10);
+  a.download = `hydrograph_${d0}_${d1}.csv`;
+  a.click();
+  toast(`Exported ${rows.length - 1} rows`, 'ok');
+}
+window.hydroExportCSV = hydroExportCSV;
+
+// ── ANNOTATION TOOL ────────────────────────────────────────────────────────────
+const ANNO_COLORS = ['#f0a832','#00e4b4','#4da8ff','#b06aff','#e85050','#7fdb6a'];
+let _annoColorIdx = 0;
+
+function hydroToggleAnnoMode() {
+  hydroState._annoMode = !hydroState._annoMode;
+  const btn = document.getElementById('hydro-anno-btn');
+  const wrap = document.getElementById('hydro-canvas-wrap');
+  if (btn) {
+    btn.style.background  = hydroState._annoMode ? 'var(--accent3)' : '';
+    btn.style.color       = hydroState._annoMode ? '#000' : '';
+    btn.style.borderColor = hydroState._annoMode ? 'var(--accent)' : '';
+    btn.title = hydroState._annoMode ? 'Click-drag on chart to mark a period. ESC to cancel.' : 'Annotate date range (click-drag)';
+  }
+  if (wrap) wrap.style.cursor = hydroState._annoMode ? 'crosshair' : '';
+}
+window.hydroToggleAnnoMode = hydroToggleAnnoMode;
+
+// Wire up annotation drag on the canvas-wrap div
+(function setupAnnotations() {
+  let dragStartX = null, dragStartI = null;
+  const ANNO_DRAG_DIV_ID = 'hydro-anno-drag';
+
+  function getIdxFromX(mx) {
+    const wrap = document.getElementById('hydro-canvas-wrap');
+    if (!wrap) return null;
+    const { s, e } = getViewRange();
+    const cW = wrap.offsetWidth - _PAD.left - _PAD.right;
+    const frac = (mx - _PAD.left) / cW;
+    return Math.max(s, Math.min(e, Math.round(s + frac * (e - s))));
+  }
+
+  function getOrCreateDragDiv() {
+    let d = document.getElementById(ANNO_DRAG_DIV_ID);
+    if (!d) {
+      d = document.createElement('div');
+      d.id = ANNO_DRAG_DIV_ID;
+      d.style.cssText = 'position:absolute;top:0;height:100%;pointer-events:none;border:1px dashed rgba(255,255,255,.5);background:rgba(255,255,255,.06);display:none';
+      const overlay = document.getElementById('hydro-anno-overlay');
+      if (overlay) overlay.appendChild(d);
+    }
+    return d;
+  }
+
+  window.addEventListener('load', () => {
+    const wrap = document.getElementById('hydro-canvas-wrap');
+    if (!wrap) return;
+
+    wrap.addEventListener('mousedown', e => {
+      if (!hydroState._annoMode) return;
+      const rect = wrap.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      if (mx < _PAD.left || mx > wrap.offsetWidth - _PAD.right) return;
+      dragStartX = mx;
+      dragStartI = getIdxFromX(mx);
+      e.preventDefault();
+    });
+
+    wrap.addEventListener('mousemove', e => {
+      if (!hydroState._annoMode || dragStartI === null) return;
+      const rect = wrap.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const curI = getIdxFromX(mx);
+      const { s, e: ev } = getViewRange();
+      const span = ev - s || 1;
+      const cW = wrap.offsetWidth - _PAD.left - _PAD.right;
+      const x0 = _PAD.left + ((Math.min(dragStartI, curI) - s) / span) * cW;
+      const x1 = _PAD.left + ((Math.max(dragStartI, curI) - s) / span) * cW;
+      const dd = getOrCreateDragDiv();
+      dd.style.left   = x0 + 'px';
+      dd.style.width  = Math.max(2, x1 - x0) + 'px';
+      dd.style.display = '';
+    });
+
+    wrap.addEventListener('mouseup', e => {
+      if (!hydroState._annoMode || dragStartI === null) return;
+      const rect = wrap.getBoundingClientRect();
+      const endI = getIdxFromX(e.clientX - rect.left);
+      const dd = getOrCreateDragDiv(); dd.style.display = 'none';
+      dragStartX = null;
+
+      const i0 = Math.min(dragStartI, endI);
+      const i1 = Math.max(dragStartI, endI);
+      dragStartI = null;
+
+      if (i1 - i0 < 2) return; // too small — ignore
+
+      // Prompt for label
+      const d0 = (ravenOut.dates[i0]||'').slice(0,10);
+      const d1 = (ravenOut.dates[i1]||'').slice(0,10);
+      const label = window.prompt(`Label for ${d0} → ${d1}:`, 'Event') || 'Event';
+      const color = ANNO_COLORS[_annoColorIdx % ANNO_COLORS.length];
+      _annoColorIdx++;
+      hydroState.annotations.push({ i0, i1, label, color });
+      requestAnimationFrame(drawHydrograph);
+    });
+
+    // ESC cancels anno mode
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && hydroState._annoMode) {
+        hydroState._annoMode = false;
+        hydroToggleAnnoMode(); // will toggle back off visually
+        hydroToggleAnnoMode(); // force re-sync (double toggle = off)
+        // Actually just force off:
+        hydroState._annoMode = false;
+        const btn = document.getElementById('hydro-anno-btn');
+        const wrap2 = document.getElementById('hydro-canvas-wrap');
+        if (btn) { btn.style.background=''; btn.style.color=''; btn.style.borderColor=''; }
+        if (wrap2) wrap2.style.cursor = '';
+        const dd = document.getElementById(ANNO_DRAG_DIV_ID);
+        if (dd) dd.style.display = 'none';
+        dragStartI = null;
+      }
+    });
+  });
+})();
+
+// Draw annotations onto the canvas (called from within drawHydrograph after ctx.restore of clip)
+function _drawAnnotations(ctx, i0view, i1view, px, py, PAD, W, H, cH) {
+  if (!hydroState.annotations.length) return;
+  const { s, e } = getViewRange();
+  const span = e - s || 1;
+  const cW = W - PAD.left - PAD.right;
+
+  hydroState.annotations.forEach((anno, ai) => {
+    // Check overlap with current view
+    if (anno.i1 < s || anno.i0 > e) return;
+    const x0 = PAD.left + ((Math.max(anno.i0, s) - s) / span) * cW;
+    const x1 = PAD.left + ((Math.min(anno.i1, e) - s) / span) * cW;
+    const w  = Math.max(1, x1 - x0);
+
+    // Shade band
+    ctx.fillStyle = anno.color + '22';
+    ctx.fillRect(x0, PAD.top, w, cH);
+    // Left edge line
+    ctx.strokeStyle = anno.color + 'bb'; ctx.lineWidth = 1; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x0, PAD.top); ctx.lineTo(x0, PAD.top + cH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x1, PAD.top); ctx.lineTo(x1, PAD.top + cH); ctx.stroke();
+
+    // Label at top of band
+    const lx = x0 + 3;
+    ctx.font = '8px IBM Plex Mono,monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = anno.color;
+    ctx.fillText(anno.label, lx, PAD.top + 10);
+
+    // Small × delete button — rendered as text, hit-tested via overlay click
+    ctx.fillStyle = anno.color + 'aa';
+    ctx.fillText('×', lx, PAD.top + 20);
+  });
+  ctx.setLineDash([]);
+}
+window._drawAnnotations = _drawAnnotations;
+
+// Click on annotation × to delete
+(function setupAnnoDelete() {
+  window.addEventListener('load', () => {
+    const wrap = document.getElementById('hydro-canvas-wrap');
+    if (!wrap) return;
+    wrap.addEventListener('click', e => {
+      if (hydroState._annoMode) return; // in anno mode, don't delete
+      const rect = wrap.getBoundingClientRect();
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      const dpr = window.devicePixelRatio || 1;
+      const W = wrap.offsetWidth, H = wrap.offsetHeight;
+      const { s, e: ev } = getViewRange();
+      const span = ev - s || 1;
+      const cW = W - _PAD.left - _PAD.right;
+      const cH = H - _PAD.top - _PAD.bottom;
+
+      // Check each annotation's × hit zone
+      for (let ai = hydroState.annotations.length - 1; ai >= 0; ai--) {
+        const anno = hydroState.annotations[ai];
+        if (anno.i1 < s || anno.i0 > ev) continue;
+        const x0 = _PAD.left + ((Math.max(anno.i0, s) - s) / span) * cW;
+        // × is at (x0+3, PAD.top+20) — ~10×10px hit zone
+        if (mx >= x0 && mx <= x0 + 16 && my >= _PAD.top + 14 && my <= _PAD.top + 24) {
+          hydroState.annotations.splice(ai, 1);
+          requestAnimationFrame(drawHydrograph);
+          break;
+        }
+      }
+    });
+  });
+})();
+
+// ── STATS SUMMARY BAR (updated by drawHydrograph) ─────────────────────────────
+function _updateStatsBar(activeSeries, i0, i1) {
+  const bar = document.getElementById('hydro-stats-bar');
+  if (!bar) return;
+  if (!activeSeries.length) { bar.style.display = 'none'; return; }
+
+  let html = '';
+  for (const k of activeSeries) {
+    const sr = ravenOut.series[k];
+    if (!sr || !sr.sim || !sr.obs) continue;
+    const paired = [];
+    for (let i = i0; i <= i1; i++) {
+      const s = sr.sim[i], o = sr.obs[i];
+      if (s !== null && o !== null && !isNaN(s) && !isNaN(o)) paired.push([s, o]);
+    }
+    if (paired.length < 5) continue;
+    const n  = paired.length;
+    const oMean = paired.reduce((a,p)=>a+p[1],0)/n;
+    const sMean = paired.reduce((a,p)=>a+p[0],0)/n;
+    const ssTot = paired.reduce((a,p)=>a+(p[1]-oMean)**2,0);
+    const ssRes = paired.reduce((a,p)=>a+(p[0]-p[1])**2,0);
+    const nse   = ssTot>0 ? 1-ssRes/ssTot : NaN;
+    const sStd  = Math.sqrt(paired.reduce((a,p)=>a+(p[0]-sMean)**2,0)/n);
+    const oStd  = Math.sqrt(paired.reduce((a,p)=>a+(p[1]-oMean)**2,0)/n);
+    const r     = paired.reduce((a,p)=>a+(p[0]-sMean)*(p[1]-oMean),0)/(n*sStd*oStd||1);
+    const kge   = oStd>0 ? 1-Math.sqrt((r-1)**2+(sStd/oStd-1)**2+(sMean/oMean-1)**2) : NaN;
+    const pbias = oMean>0 ? ((sMean-oMean)/oMean)*100 : NaN;
+    const rmse  = Math.sqrt(ssRes/n);
+    const ratio = oMean>0 ? sMean/oMean : NaN;
+
+    const nCol = isNaN(nse)?'#5c7d96':nse>0.75?'#00e4b4':nse>0.5?'#f0a832':'#e85050';
+    const kCol = isNaN(kge)?'#5c7d96':kge>0.75?'#00e4b4':kge>0.5?'#f0a832':'#e85050';
+    const bCol = isNaN(pbias)?'#5c7d96':Math.abs(pbias)<10?'#00e4b4':Math.abs(pbias)<25?'#f0a832':'#e85050';
+    const lbl  = activeSeries.length>1 ? `<span style="color:var(--text2);margin-right:5px">${(sr.label||k).slice(0,10)}</span>` : '';
+
+    const fmt1 = v => isNaN(v)?'—':v.toFixed(3);
+    const fmt2 = v => isNaN(v)?'—':v.toFixed(1);
+
+    html += `${lbl}`
+      + `<span title="Nash-Sutcliffe Efficiency">NSE <b style="color:${nCol}">${fmt1(nse)}</b></span>`
+      + `<span title="Kling-Gupta Efficiency">KGE <b style="color:${kCol}">${fmt1(kge)}</b></span>`
+      + `<span title="Percent Bias">PBIAS <b style="color:${bCol}">${fmt2(pbias)}%</b></span>`
+      + `<span title="Root Mean Square Error">RMSE <b style="color:var(--text1)">${fmt2(rmse)}</b></span>`
+      + `<span title="Mean simulated / Mean observed">Q̄sim/Q̄obs <b style="color:var(--text1)">${isNaN(ratio)?'—':ratio.toFixed(3)}</b></span>`
+      + `<span title="Mean observed">Q̄obs <b style="color:var(--text2)">${oMean.toFixed(2)}</b></span>`
+      + `<span title="Mean simulated">Q̄sim <b style="color:var(--text2)">${sMean.toFixed(2)}</b></span>`
+      + `<span style="color:var(--text3)">(n=${n})</span>`;
+  }
+  if (html) {
+    bar.innerHTML = html;
+    bar.style.display = 'flex';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+// ── ANNUAL CLIMATOLOGY TOOLBAR CONTROLS ──────────────────────────────────────
+function setAclmStat(s) {
+  hydroState.aclmStat = s;
+  ['med','mean'].forEach(v => {
+    const b = document.getElementById('aclm-btn-'+v);
+    if (b) b.classList.toggle('on', v === s);
+  });
+  requestAnimationFrame(drawAnnualClimatology);
+}
+window.setAclmStat = setAclmStat;
+
+function setAclmScale(s) {
+  hydroState.aclmScale = s;
+  ['doy','month'].forEach(v => {
+    const b = document.getElementById('aclm-btn-'+v);
+    if (b) b.classList.toggle('on', v === s);
+  });
+  requestAnimationFrame(drawAnnualClimatology);
+}
+window.setAclmScale = setAclmScale;
+
+function toggleAclmEnvelope() {
+  hydroState.aclmEnvelope = !hydroState.aclmEnvelope;
+  const tog  = document.getElementById('aclm-env-toggle');
+  const knob = document.getElementById('aclm-env-knob');
+  if (tog)  tog.style.background  = hydroState.aclmEnvelope ? 'var(--accent3)' : '';
+  if (knob) knob.style.transform  = hydroState.aclmEnvelope ? 'translateX(14px)' : '';
+  if (knob) knob.style.background = hydroState.aclmEnvelope ? 'var(--accent)' : '';
+  requestAnimationFrame(drawAnnualClimatology);
+}
+window.toggleAclmEnvelope = toggleAclmEnvelope;
+
+// ── DRAW ANNUAL CLIMATOLOGY ────────────────────────────────────────────────────
+// Shows day-of-year (or monthly) median/mean of simulated and observed flows,
+// with optional IQR + 5–95 percentile envelope, across ALL available years.
+function drawAnnualClimatology() {
+  const wrap   = document.getElementById('hydro-aclm-wrap');
+  const canvas = document.getElementById('hydro-aclm-canvas');
+  if (!canvas || !wrap || !hydroState.activeKeys.length) return;
+
+  // Size canvas from the inner div (flex:1 inside the wrap)
+  const inner = canvas.parentElement;
+  const dpr   = window.devicePixelRatio || 1;
+  const W     = inner.offsetWidth  || 700;
+  const H     = inner.offsetHeight || 240;
+  canvas.width  = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  canvas.style.width  = W + 'px'; canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.save(); ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const isMonthly  = hydroState.aclmScale === 'month';
+  const useMean    = hydroState.aclmStat  === 'mean';
+  const showEnv    = hydroState.aclmEnvelope;
+  const MONTHS     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const NBINS      = isMonthly ? 12 : 366;
+
+  // Build per-DOY/month arrays for each active series
+  const seriesData = [];
+  for (const k of hydroState.activeKeys) {
+    if (hydroState.mutedKeys.has(k)) continue;
+    const sr = ravenOut.series[k];
+    if (!sr) continue;
+    const ci = hydroState.activeKeys.indexOf(k);
+
+    const buildBins = arr => {
+      if (!arr) return null;
+      const bins = Array.from({ length: NBINS }, () => []);
+      ravenOut.dates.forEach((dt, i) => {
+        const v = arr[i];
+        if (v === null || isNaN(v) || v < 0) return;
+        const d   = new Date(dt);
+        const bin = isMonthly
+          ? d.getMonth()
+          : Math.max(0, Math.min(365, Math.round((d - new Date(d.getFullYear(), 0, 0)) / 86400000) - 1));
+        bins[bin].push(v);
+      });
+      // Sort each bin
+      bins.forEach(b => b.sort((a, b) => a - b));
+      return bins;
+    };
+
+    const simBins = buildBins(sr.sim);
+    const obsBins = buildBins(sr.obs);
+
+    const pct = (sorted, p) => {
+      if (!sorted || !sorted.length) return NaN;
+      const idx = p * (sorted.length - 1);
+      const lo  = Math.floor(idx), hi = Math.ceil(idx);
+      return lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+    };
+
+    const binStats = bins => {
+      if (!bins) return null;
+      return bins.map(b => ({
+        med:  pct(b, 0.5),
+        mean: b.length ? b.reduce((a, v) => a + v, 0) / b.length : NaN,
+        p25:  pct(b, 0.25), p75: pct(b, 0.75),
+        p05:  pct(b, 0.05), p95: pct(b, 0.95),
+        n:    b.length,
+      }));
+    };
+
+    seriesData.push({
+      label:   sr.label || k,
+      simCol:  seriesColor(ci, false),
+      obsCol:  seriesColor(ci, true),
+      sim:     binStats(simBins),
+      obs:     binStats(obsBins),
+    });
+  }
+
+  if (!seriesData.length) {
+    ctx.fillStyle = '#334d60'; ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillText('No data loaded', W / 2, H / 2);
+    ctx.restore(); return;
+  }
+
+  const PAD = { top: 26, right: 24, bottom: isMonthly ? 44 : 36, left: 62 };
+  const cW  = W - PAD.left - PAD.right;
+  const cH  = H - PAD.top  - PAD.bottom;
+
+  // Global Y range
+  let yMin = Infinity, yMax = -Infinity;
+  seriesData.forEach(sd => {
+    [sd.sim, sd.obs].forEach(stats => {
+      if (!stats) return;
+      stats.forEach(st => {
+        const v = useMean ? st.mean : st.med;
+        if (!isNaN(v)) { yMin = Math.min(yMin, st.p05 || v); yMax = Math.max(yMax, st.p95 || v); }
+      });
+    });
+  });
+  if (!isFinite(yMin)) { ctx.restore(); return; }
+  const yPad = (yMax - yMin) * 0.08 || 1;
+  yMin = Math.max(0, yMin - yPad); yMax += yPad;
+  const py = v => PAD.top + (1 - (v - yMin) / (yMax - yMin)) * cH;
+  const bx = i => PAD.left + (i / (NBINS - 1)) * cW;
+
+  // Y grid
+  ctx.setLineDash([]);
+  for (let t = 0; t <= 4; t++) {
+    const yv = yMin + (yMax - yMin) * t / 4, y = py(yv);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y); ctx.stroke();
+    ctx.fillStyle = '#334d60'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'right';
+    ctx.fillText(yv >= 1000 ? (yv/1000).toFixed(1)+'k' : yv.toFixed(yv < 1 ? 2 : 1), PAD.left - 3, y + 3);
+  }
+
+  // X grid + labels
+  ctx.fillStyle = '#334d60'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  if (isMonthly) {
+    MONTHS.forEach((m, i) => {
+      const x = PAD.left + (i / 11) * cW;
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + cH); ctx.stroke();
+      ctx.fillText(m, x, H - PAD.bottom + 12);
+    });
+  } else {
+    const monthStarts = [0,31,59,90,120,151,181,212,243,273,304,334];
+    MONTHS.forEach((m, i) => {
+      const x = PAD.left + (monthStarts[i] / 365) * cW;
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + cH); ctx.stroke();
+      ctx.fillText(m, Math.min(x + cW / 24, PAD.left + cW - 10), H - PAD.bottom + 12);
+    });
+  }
+
+  // Axes border
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, PAD.top + cH); ctx.lineTo(PAD.left + cW, PAD.top + cH); ctx.stroke();
+
+  // Y label
+  ctx.save(); ctx.translate(12, PAD.top + cH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  ctx.fillText((seriesData[0]?.sim ? ravenOut.series[hydroState.activeKeys[0]]?.units || 'm³/s' : 'm³/s'), 0, 0);
+  ctx.restore();
+
+  // Clip
+  ctx.save();
+  ctx.beginPath(); ctx.rect(PAD.left, PAD.top, cW, cH); ctx.clip();
+
+  seriesData.forEach(sd => {
+    const drawLine = (stats, col, dashed) => {
+      if (!stats) return;
+      const vals = stats.map(st => useMean ? st.mean : st.med);
+
+      // Envelope (5–95 band)
+      if (showEnv) {
+        ctx.beginPath();
+        const validFirst = stats.findIndex(st => !isNaN(st.p05));
+        if (validFirst >= 0) {
+          stats.forEach((st, i) => {
+            if (isNaN(st.p05)) return;
+            i === validFirst ? ctx.moveTo(bx(i), py(st.p05)) : ctx.lineTo(bx(i), py(st.p05));
+          });
+          for (let i = NBINS - 1; i >= 0; i--) {
+            if (!isNaN(stats[i].p95)) ctx.lineTo(bx(i), py(stats[i].p95));
+          }
+          ctx.closePath();
+          ctx.fillStyle = col + '18';
+          ctx.fill();
+        }
+        // IQR band
+        ctx.beginPath();
+        const vf2 = stats.findIndex(st => !isNaN(st.p25));
+        if (vf2 >= 0) {
+          stats.forEach((st, i) => {
+            if (isNaN(st.p25)) return;
+            i === vf2 ? ctx.moveTo(bx(i), py(st.p25)) : ctx.lineTo(bx(i), py(st.p25));
+          });
+          for (let i = NBINS - 1; i >= 0; i--) {
+            if (!isNaN(stats[i].p75)) ctx.lineTo(bx(i), py(stats[i].p75));
+          }
+          ctx.closePath();
+          ctx.fillStyle = col + '30';
+          ctx.fill();
+        }
+      }
+
+      // Central line (median or mean)
+      ctx.setLineDash(dashed ? [4, 3] : []);
+      ctx.strokeStyle = col; ctx.lineWidth = dashed ? 1.2 : 1.8; ctx.lineJoin = 'round';
+      ctx.beginPath(); let started = false;
+      vals.forEach((v, i) => {
+        if (isNaN(v)) { started = false; return; }
+        started ? ctx.lineTo(bx(i), py(v)) : (ctx.moveTo(bx(i), py(v)), started = true);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+    };
+
+    drawLine(sd.sim, sd.simCol, false);
+    drawLine(sd.obs, sd.obsCol, true);
+  });
+
+  ctx.restore(); // end clip
+
+  // Title
+  ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  const nYears = new Set(ravenOut.dates.map(d => d.slice(0,4))).size;
+  const statLabel = useMean ? 'Mean' : 'Median';
+  ctx.fillText(`Annual climatology · ${statLabel} ± ${showEnv ? 'IQR & 5–95%' : 'no envelope'} · ${nYears} years`, PAD.left + cW / 2, PAD.top - 8);
+
+  // Legend
+  let lx = PAD.left + 4;
+  seriesData.forEach(sd => {
+    if (sd.sim) {
+      ctx.strokeStyle = sd.simCol; ctx.lineWidth = 1.8; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(lx, H - 6); ctx.lineTo(lx + 14, H - 6); ctx.stroke();
+      ctx.fillStyle = sd.simCol; ctx.textAlign = 'left'; ctx.font = '8px IBM Plex Mono,monospace';
+      ctx.fillText(sd.label.slice(0,14) + ' sim', lx + 17, H - 3); lx += Math.min(110, sd.label.slice(0,14).length * 7 + 40);
+    }
+    if (sd.obs) {
+      ctx.strokeStyle = sd.obsCol; ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(lx, H - 6); ctx.lineTo(lx + 14, H - 6); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = sd.obsCol; ctx.textAlign = 'left'; ctx.font = '8px IBM Plex Mono,monospace';
+      ctx.fillText(sd.label.slice(0,14) + ' obs', lx + 17, H - 3); lx += Math.min(110, sd.label.slice(0,14).length * 7 + 40);
+    }
+  });
+
+  ctx.restore();
+
+  // Hover tooltip
+  canvas.onmousemove = e => {
+    const r   = canvas.getBoundingClientRect();
+    const mx  = (e.clientX - r.left) * (W / r.width);
+    const tip = document.getElementById('hydro-aclm-tooltip'); if (!tip) return;
+    if (mx < PAD.left || mx > PAD.left + cW) { tip.style.display = 'none'; return; }
+    const frac = (mx - PAD.left) / cW;
+    const bi   = Math.max(0, Math.min(NBINS - 1, Math.round(frac * (NBINS - 1))));
+
+    let html = '';
+    if (isMonthly) html = `<b style="color:#5c7d96">${MONTHS[bi]}</b><br>`;
+    else {
+      const doy = bi + 1;
+      const monthStarts = [1,32,60,91,121,152,182,213,244,274,305,335];
+      const mi = Math.max(0, monthStarts.findLastIndex ? monthStarts.findLastIndex(s => doy >= s) : monthStarts.reduce((acc, s, i) => doy >= s ? i : acc, 0));
+      const dayInMo = doy - monthStarts[mi] + 1;
+      html = `<b style="color:#5c7d96">${MONTHS[mi]} ${dayInMo} (DOY ${doy})</b><br>`;
+    }
+
+    const fmt = v => isNaN(v) ? '—' : v >= 1000 ? (v/1000).toFixed(2)+'k' : v.toFixed(3);
+    seriesData.forEach(sd => {
+      [['sim', sd.sim, sd.simCol], ['obs', sd.obs, sd.obsCol]].forEach(([type, stats, col]) => {
+        if (!stats || !stats[bi]) return;
+        const st = stats[bi];
+        const cv = useMean ? st.mean : st.med;
+        if (isNaN(cv)) return;
+        html += `<span style="color:${col}">${sd.label.slice(0,10)} ${type}</span>: `
+          + `<b>${fmt(cv)}</b>`;
+        if (showEnv) html += ` [${fmt(st.p25)}–${fmt(st.p75)}]`;
+        html += ` (n=${st.n})<br>`;
+      });
+    });
+    tip.innerHTML = html; tip.style.display = 'block';
+    tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY - 10) + 'px';
+  };
+  canvas.onmouseleave = () => { const t = document.getElementById('hydro-aclm-tooltip'); if (t) t.style.display = 'none'; };
+}
+window.drawAnnualClimatology = drawAnnualClimatology;
+
+// ── FDC BIAS CURVE ────────────────────────────────────────────────────────────
+function drawFDCBias() {
+  const wrap   = document.getElementById('hydro-fdcbias-wrap');
+  const canvas = document.getElementById('hydro-fdcbias-canvas');
+  if (!canvas || !wrap || !hydroState.activeKeys.length) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const W = wrap.offsetWidth || 700, H = wrap.offsetHeight || 240;
+  canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.save(); ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const PAD = { top:26, right:24, bottom:44, left:64 };
+  const cW = W - PAD.left - PAD.right, cH = H - PAD.top - PAD.bottom;
+
+  // Build bias curves — (sim_exceedance - obs_exceedance) per probability step
+  const biasLines = [];
+  const PROB_STEPS = 200;
+  for (const k of hydroState.activeKeys) {
+    if (hydroState.mutedKeys.has(k)) continue;
+    const sr = ravenOut.series[k];
+    if (!sr || !sr.sim || !sr.obs) continue;
+    const ci = hydroState.activeKeys.indexOf(k);
+    const simSorted = sr.sim.filter(v => v!==null&&!isNaN(v)&&v>=0).sort((a,b)=>b-a);
+    const obsSorted = sr.obs.filter(v => v!==null&&!isNaN(v)&&v>=0).sort((a,b)=>b-a);
+    if (!simSorted.length || !obsSorted.length) continue;
+    const getQ = (arr, p) => {
+      const idx = p * (arr.length - 1);
+      const lo = Math.floor(idx), hi = Math.ceil(idx);
+      return lo===hi ? arr[lo] : arr[lo] + (arr[hi]-arr[lo])*(idx-lo);
+    };
+    const pts = [];
+    for (let j = 0; j <= PROB_STEPS; j++) {
+      const p = j / PROB_STEPS;
+      const qs = getQ(simSorted, p);
+      const qo = getQ(obsSorted, p);
+      // Relative bias: (sim - obs) / obs * 100 %
+      const bias = qo > 0.001 ? (qs - qo) / qo * 100 : NaN;
+      pts.push({ p, bias, qs, qo });
+    }
+    biasLines.push({ label: sr.label || k, color: seriesColor(ci, false), pts });
+  }
+
+  if (!biasLines.length) {
+    ctx.fillStyle = '#334d60'; ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillText('No paired sim/obs data — load output with observations', W/2, H/2);
+    ctx.restore(); return;
+  }
+
+  // Y range
+  const allBias = biasLines.flatMap(l => l.pts.map(p => p.bias)).filter(v => !isNaN(v));
+  if (!allBias.length) { ctx.restore(); return; }
+  let yMin = Math.max(-200, allBias.reduce((a,b)=>b<a?b:a, Infinity) * 1.1);
+  let yMax = Math.min( 200, allBias.reduce((a,b)=>b>a?b:a,-Infinity) * 1.1);
+  const yPad = (yMax - yMin) * 0.08;
+  yMin -= yPad; yMax += yPad;
+  if (yMin >= 0) yMin = -5;
+  if (yMax <= 0) yMax = 5;
+
+  const toX = p => PAD.left + p * cW;
+  const toY = v => PAD.top + (1 - (v - yMin) / (yMax - yMin)) * cH;
+
+  // Zero line
+  const y0 = toY(0);
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(PAD.left, y0); ctx.lineTo(PAD.left+cW, y0); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = '8px IBM Plex Mono,monospace';
+  ctx.textAlign = 'right'; ctx.fillText('0%', PAD.left-3, y0+3);
+
+  // Overestimate / underestimate bands
+  ctx.fillStyle = 'rgba(232,80,80,0.06)';
+  ctx.fillRect(PAD.left, PAD.top, cW, y0 - PAD.top);
+  ctx.fillStyle = 'rgba(77,168,255,0.06)';
+  ctx.fillRect(PAD.left, y0, cW, PAD.top + cH - y0);
+
+  // Band labels
+  ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(232,80,80,0.5)'; ctx.fillText('overestimate', PAD.left+3, PAD.top+11);
+  ctx.fillStyle = 'rgba(77,168,255,0.5)'; ctx.fillText('underestimate', PAD.left+3, PAD.top+cH-5);
+
+  // Grid Y
+  const nTy = 6;
+  for (let t=0; t<=nTy; t++) {
+    const v = yMin + (yMax-yMin)*t/nTy, y = toY(v);
+    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+cW,y); ctx.stroke();
+    ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
+    ctx.fillText(v.toFixed(0)+'%', PAD.left-3, y+3);
+  }
+
+  // Grid X
+  const xTicks = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0];
+  ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  for (const p of xTicks) {
+    const x = toX(p);
+    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(x,PAD.top); ctx.lineTo(x,PAD.top+cH); ctx.stroke();
+    ctx.fillText(Math.round(p*100)+'%', x, H-PAD.bottom+12);
+  }
+
+  // Draw bias curves
+  ctx.save();
+  ctx.beginPath(); ctx.rect(PAD.left, PAD.top, cW, cH); ctx.clip();
+  biasLines.forEach(line => {
+    ctx.strokeStyle = line.color; ctx.lineWidth = 1.8; ctx.lineJoin = 'round'; ctx.setLineDash([]);
+    ctx.beginPath(); let started = false;
+    line.pts.forEach(pt => {
+      if (isNaN(pt.bias)) { started=false; return; }
+      const x=toX(pt.p), y=toY(pt.bias);
+      started ? ctx.lineTo(x,y) : (ctx.moveTo(x,y), started=true);
+    });
+    ctx.stroke();
+  });
+  ctx.restore();
+
+  // Axes border
+  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=0.5;
+  ctx.beginPath(); ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,PAD.top+cH); ctx.lineTo(PAD.left+cW,PAD.top+cH); ctx.stroke();
+
+  // Labels
+  ctx.save(); ctx.translate(13, PAD.top+cH/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('Relative bias  (sim−obs)/obs  %', 0, 0); ctx.restore();
+  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('Exceedance probability', PAD.left+cW/2, H-4);
+
+  // Title
+  ctx.fillStyle='#5c7d96'; ctx.textAlign='center';
+  ctx.fillText('FDC Bias — Simulated minus Observed by exceedance probability', PAD.left+cW/2, PAD.top-8);
+
+  // Legend
+  let lx = PAD.left+4;
+  biasLines.forEach(line => {
+    ctx.strokeStyle=line.color; ctx.lineWidth=1.8;
+    ctx.beginPath(); ctx.moveTo(lx,PAD.top-6); ctx.lineTo(lx+16,PAD.top-6); ctx.stroke();
+    ctx.fillStyle=line.color; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
+    ctx.fillText(line.label.slice(0,16), lx+20, PAD.top-3);
+    lx += Math.max(80, line.label.slice(0,16).length*7+28);
+  });
+
+  ctx.restore();
+
+  // Hover tooltip
+  canvas.onmousemove = e => {
+    const r=canvas.getBoundingClientRect();
+    const mx=(e.clientX-r.left)*(W/r.width);
+    if (mx<PAD.left||mx>PAD.left+cW) return;
+    const p = (mx-PAD.left)/cW;
+    const tip=document.getElementById('hydro-fdcbias-tooltip'); if(!tip) return;
+    let rows=`<b style="color:#5c7d96">Exceedance: ${(p*100).toFixed(1)}%</b><br>`;
+    biasLines.forEach(line => {
+      const idx=Math.round(p*(line.pts.length-1));
+      const pt=line.pts[idx]; if(!pt||isNaN(pt.bias)) return;
+      const bCol=pt.bias>0?'#e85050':'#4da8ff';
+      rows+=`<span style="color:${line.color}">${line.label.slice(0,12)}</span>: `
+        +`<b style="color:${bCol}">${pt.bias.toFixed(1)}%</b> `
+        +`(sim=${pt.qs.toFixed(2)}, obs=${pt.qo.toFixed(2)})<br>`;
+    });
+    tip.innerHTML=rows; tip.style.display='block';
+    tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-10)+'px';
+  };
+  canvas.onmouseleave=()=>{ const t=document.getElementById('hydro-fdcbias-tooltip'); if(t) t.style.display='none'; };
+}
+window.drawFDCBias = drawFDCBias;
+
+// ── MET BOX-WHISKER CLIMATOLOGY ────────────────────────────────────────────────
+function drawMetBoxWhisker() {
+  const wrap   = document.getElementById('met-bwk-wrap');
+  const canvas = document.getElementById('met-bwk-canvas');
+  const d      = metState.gaugeId ? metGaugeData[metState.gaugeId] : null;
+  if (!canvas || !wrap || !d) return;
+
+  const dpr  = window.devicePixelRatio || 1;
+  const logW = wrap.offsetWidth  || 700;
+  const logH = wrap.offsetHeight || 260;
+  canvas.width  = logW*dpr; canvas.height = logH*dpr;
+  canvas.style.width = logW+'px'; canvas.style.height = logH+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.save(); ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, logW, logH);
+
+  const visParams = d.params.map((p,pi)=>({p,pi,unit:d.units[pi]||''}))
+    .filter(({pi})=>!metState.mutedParams.has(pi));
+  if (!visParams.length) { ctx.restore(); return; }
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const ML=52, MR=16, MT=28, MB=36;
+  const plotW=logW-ML-MR, plotH=logH-MT-MB;
+
+  // Process first visible param (non-precip preferred)
+  const isPrecip = p => { const u=p.toUpperCase(); return u.includes('PRECIP')||u.includes('RAIN')||u.includes('SNOW'); };
+  const target = visParams.find(({p})=>!isPrecip(p)) || visParams[0];
+  const { pi, p: pname, unit } = target;
+  const col = MET_COLORS[pi % MET_COLORS.length];
+
+  // Build monthly arrays
+  const byMonth = Array.from({length:12}, ()=>[]);
+  for (let i=0; i<d.dates.length; i++) {
+    const v = d.rows[i]?.[pi];
+    if (v===null||v===undefined||isNaN(v)) continue;
+    const mo = new Date(d.dates[i]).getMonth();
+    if (mo>=0&&mo<12) byMonth[mo].push(v);
+  }
+
+  // Compute percentiles per month
+  const stats = byMonth.map(arr => {
+    if (!arr.length) return null;
+    const s = [...arr].sort((a,b)=>a-b);
+    return {
+      p05: _pct(s,5), p25: _pct(s,25), med: _pct(s,50),
+      p75: _pct(s,75), p95: _pct(s,95),
+      mean: s.reduce((a,b)=>a+b,0)/s.length, n: s.length,
+    };
+  });
+
+  const allVals = stats.flatMap(s=>s?[s.p05,s.p95]:[]).filter(v=>!isNaN(v));
+  if (!allVals.length) { ctx.restore(); return; }
+  const vMin0 = allVals.reduce((a,b)=>b<a?b:a, Infinity);
+  const vMax0 = allVals.reduce((a,b)=>b>a?b:a,-Infinity);
+  const vPad  = (vMax0-vMin0)*0.08 || 1;
+  const vMin  = vMin0 - vPad;
+  const vMax  = vMax0 + vPad;
+  const toY   = v => MT + plotH - ((v-vMin)/(vMax-vMin))*plotH;
+
+  const bw    = plotW/12;  // width per month slot
+  const boxW  = bw * 0.55;
+
+  // Zero line for temperature
+  if (vMin<0&&vMax>0) {
+    const y0=toY(0);
+    ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(ML,y0); ctx.lineTo(ML+plotW,y0); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Grid Y
+  const nTy=5;
+  for(let t=0;t<=nTy;t++){
+    const v=vMin+(vMax-vMin)*t/nTy, y=toY(v);
+    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(ML,y); ctx.lineTo(ML+plotW,y); ctx.stroke();
+    ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
+    const lbl=Math.abs(v)<1?v.toFixed(2):v.toFixed(1);
+    ctx.fillText(lbl, ML-3, y+3);
+  }
+
+  // Draw box-whiskers
+  MONTHS.forEach((mo, mi) => {
+    const st = stats[mi]; if (!st) return;
+    const cx = ML + mi*bw + bw/2;
+    const bLeft  = cx - boxW/2;
+    const bRight = cx + boxW/2;
+
+    // 5–95 whisker line
+    ctx.strokeStyle = col+'88'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx, toY(st.p05)); ctx.lineTo(cx, toY(st.p95)); ctx.stroke();
+    // Whisker caps
+    [st.p05, st.p95].forEach(v => {
+      ctx.beginPath(); ctx.moveTo(cx-4, toY(v)); ctx.lineTo(cx+4, toY(v)); ctx.stroke();
+    });
+
+    // IQR box
+    const yTop = toY(st.p75), yBot = toY(st.p25);
+    ctx.fillStyle   = col + '30';
+    ctx.strokeStyle = col + 'aa';
+    ctx.lineWidth = 1;
+    ctx.fillRect(bLeft, yTop, boxW, yBot-yTop);
+    ctx.strokeRect(bLeft, yTop, boxW, yBot-yTop);
+
+    // Median line
+    const yMed = toY(st.med);
+    ctx.strokeStyle = col; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(bLeft, yMed); ctx.lineTo(bRight, yMed); ctx.stroke();
+
+    // Mean dot
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(cx, toY(st.mean), 2.5, 0, Math.PI*2); ctx.fill();
+  });
+
+  // X axis
+  ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  MONTHS.forEach((mo,mi)=>{ ctx.fillText(mo, ML+mi*bw+bw/2, logH-MB+13); });
+
+  // Axes border
+  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=0.5;
+  ctx.beginPath(); ctx.moveTo(ML,MT); ctx.lineTo(ML,MT+plotH); ctx.lineTo(ML+plotW,MT+plotH); ctx.stroke();
+
+  // Y axis label
+  ctx.save(); ctx.translate(11,MT+plotH/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText(pname+(unit?' ('+unit+')':''), 0, 0); ctx.restore();
+
+  // Title
+  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText(d.gaugeId+' · '+pname+' · Monthly distribution', ML+plotW/2, MT-10);
+
+  // Legend
+  ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
+  const items=[['box',col+'30',col+'aa','IQR (25–75%)'],['line',null,col,'Median'],['dot',col,null,'Mean'],['wsk',col+'88',null,'5–95%']];
+  let lx=ML+4;
+  items.forEach(([type,fill,stroke,lbl])=>{
+    if(type==='box'){ ctx.fillStyle=fill; ctx.strokeStyle=stroke; ctx.lineWidth=1; ctx.fillRect(lx,MT-17,10,10); ctx.strokeRect(lx,MT-17,10,10); }
+    else if(type==='line'){ ctx.strokeStyle=stroke; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(lx,MT-12); ctx.lineTo(lx+10,MT-12); ctx.stroke(); }
+    else if(type==='dot'){ ctx.fillStyle=fill; ctx.beginPath(); ctx.arc(lx+5,MT-12,2.5,0,Math.PI*2); ctx.fill(); }
+    else { ctx.strokeStyle=stroke; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(lx+5,MT-17); ctx.lineTo(lx+5,MT-7); ctx.stroke(); }
+    ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
+    ctx.fillText(lbl, lx+13, MT-9); lx+=70;
+  });
+
+  ctx.restore();
+
+  // Hover tooltip
+  canvas.onmousemove = e => {
+    const r=canvas.getBoundingClientRect();
+    const mx=(e.clientX-r.left)*(logW/r.width);
+    const mi=Math.floor((mx-ML)/bw);
+    const tip=document.getElementById('met-bwk-tooltip'); if(!tip) return;
+    if(mi<0||mi>11||!stats[mi]){ tip.style.display='none'; return; }
+    const st=stats[mi];
+    const fmt=v=>isNaN(v)?'—':Math.abs(v)<1?v.toFixed(3):v.toFixed(2);
+    tip.innerHTML=`<b style="color:${col}">${MONTHS[mi]}</b> <span style="color:var(--text3)">(n=${st.n})</span><br>`
+      +`P95: <b>${fmt(st.p95)}</b><br>P75: <b>${fmt(st.p75)}</b><br>`
+      +`<span style="color:${col}">Median: <b>${fmt(st.med)}</b></span><br>`
+      +`Mean: <b>${fmt(st.mean)}</b><br>P25: <b>${fmt(st.p25)}</b><br>P05: <b>${fmt(st.p05)}</b>`;
+    tip.style.display='block';
+    tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-10)+'px';
+  };
+  canvas.onmouseleave=()=>{ const t=document.getElementById('met-bwk-tooltip'); if(t) t.style.display='none'; };
+}
+window.drawMetBoxWhisker = drawMetBoxWhisker;
+
+// ── MET P–T JOINT DISTRIBUTION ────────────────────────────────────────────────
+function drawMetPTDist() {
+  const wrap   = document.getElementById('met-ptd-wrap');
+  const canvas = document.getElementById('met-ptd-canvas');
+  const d      = metState.gaugeId ? metGaugeData[metState.gaugeId] : null;
+  if (!canvas || !wrap || !d) return;
+
+  const dpr  = window.devicePixelRatio || 1;
+  const logW = wrap.offsetWidth  || 700;
+  const logH = wrap.offsetHeight || 260;
+  canvas.width  = logW*dpr; canvas.height = logH*dpr;
+  canvas.style.width = logW+'px'; canvas.style.height = logH+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.save(); ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, logW, logH);
+
+  // Find precip and temp params
+  const isPrecip = p => { const u=p.toUpperCase(); return u.includes('PRECIP')||u.includes('RAINFALL')||u.includes('RAIN'); };
+  const isTemp   = p => { const u=p.toUpperCase(); return u.includes('TEMP')||u==='T_AVE'||u==='T_MIN'||u==='T_MAX'; };
+
+  const precipPi = d.params.findIndex(isPrecip);
+  const tempPi   = d.params.findIndex(isTemp);
+
+  if (precipPi < 0 || tempPi < 0) {
+    ctx.fillStyle = '#334d60'; ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillText('Need both a precipitation and a temperature parameter', logW/2, logH/2-8);
+    ctx.fillStyle='#5c7d96'; ctx.font='9px IBM Plex Mono,monospace';
+    ctx.fillText('(detected param names: '+d.params.join(', ')+')', logW/2, logH/2+8);
+    ctx.restore(); return;
+  }
+
+  // Collect paired (T, P) points
+  const pts = [];
+  const i0 = metState.viewStart ?? 0;
+  const i1 = metState.viewEnd   ?? d.dates.length - 1;
+  for (let i = i0; i <= i1; i++) {
+    const p = d.rows[i]?.[precipPi];
+    const t = d.rows[i]?.[tempPi];
+    if (p===null||p===undefined||isNaN(p)||p<0) continue;
+    if (t===null||t===undefined||isNaN(t)) continue;
+    pts.push([t, p]);
+  }
+
+  if (!pts.length) {
+    ctx.fillStyle='#334d60'; ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center';
+    ctx.fillText('No valid P+T pairs in this date range', logW/2, logH/2);
+    ctx.restore(); return;
+  }
+
+  const ML=58, MR=24, MT=28, MB=40;
+  const plotW=logW-ML-MR, plotH=logH-MT-MB;
+
+  // Axis ranges
+  const temps = pts.map(p=>p[0]), precips = pts.map(p=>p[1]);
+  const tMin0 = temps.reduce((a,b)=>b<a?b:a,Infinity);
+  const tMax0 = temps.reduce((a,b)=>b>a?b:a,-Infinity);
+  const pMax0 = precips.reduce((a,b)=>b>a?b:a,0) * 1.05;
+  const tPad = (tMax0-tMin0)*0.06 || 2;
+  const tMin = tMin0 - tPad, tMax = tMax0 + tPad;
+  const pMin = 0, pMax = pMax0 || 1;
+
+  const toX = t => ML + ((t-tMin)/(tMax-tMin))*plotW;
+  const toY = p => MT + plotH - ((p-pMin)/(pMax-pMin))*plotH;
+
+  // Hexbin
+  const BINS_T = 30, BINS_P = 20;
+  const hexCounts = new Array(BINS_T*BINS_P).fill(0);
+  pts.forEach(([t,p]) => {
+    const bi = Math.min(BINS_T-1, Math.floor((t-tMin)/(tMax-tMin)*BINS_T));
+    const bj = Math.min(BINS_P-1, Math.floor((p-pMin)/(pMax-pMin)*BINS_P));
+    hexCounts[bj*BINS_T + bi]++;
+  });
+  const maxCount = hexCounts.reduce((a,b)=>b>a?b:a, 1);
+
+  // Draw hex-like cells
+  const cellW = plotW / BINS_T, cellH = plotH / BINS_P;
+  for (let bj=0; bj<BINS_P; bj++) {
+    for (let bi=0; bi<BINS_T; bi++) {
+      const cnt = hexCounts[bj*BINS_T+bi];
+      if (!cnt) continue;
+      const t = cnt / maxCount;
+      const cx = ML + bi*cellW;
+      const cy = MT + (BINS_P-1-bj)*cellH;
+      // Color: cold-precip = blue, warm-rain = coral, heavy-cold = purple
+      const tVal = tMin + (bi+0.5)/BINS_T*(tMax-tMin);
+      const pVal = (bj+0.5)/BINS_P * pMax;
+      let r,g,b;
+      if (tVal < 0) {
+        // Cold — blue to white snow
+        const f = Math.min(1, cnt/maxCount);
+        r=Math.round(30+f*50); g=Math.round(80+f*100); b=Math.round(180+f*60);
+      } else {
+        // Warm — yellow to deep coral
+        const f = Math.min(1, cnt/maxCount);
+        r=Math.round(200+f*50); g=Math.round(140-f*80); b=Math.round(30+f*20);
+      }
+      ctx.fillStyle = `rgba(${r},${g},${b},${0.15+t*0.7})`;
+      ctx.fillRect(cx, cy, cellW+0.5, cellH+0.5);
+    }
+  }
+
+  // Freezing line
+  const xFreeze = toX(0);
+  if (xFreeze >= ML && xFreeze <= ML+plotW) {
+    ctx.strokeStyle = 'rgba(77,168,255,0.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(xFreeze, MT); ctx.lineTo(xFreeze, MT+plotH); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#4da8ff'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillText('0°C', xFreeze, MT-4);
+  }
+
+  // Grid + axes
+  const nTticks=5, nPticks=4;
+  ctx.font='8px IBM Plex Mono,monospace';
+  for(let t=0;t<=nTticks;t++){
+    const tv=tMin+(tMax-tMin)*t/nTticks, x=toX(tv);
+    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(x,MT); ctx.lineTo(x,MT+plotH); ctx.stroke();
+    ctx.fillStyle='#334d60'; ctx.textAlign='center';
+    ctx.fillText(tv.toFixed(0)+'°', x, logH-MB+12);
+  }
+  for(let t=0;t<=nPticks;t++){
+    const pv=pMin+(pMax-pMin)*t/nPticks, y=toY(pv);
+    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(ML,y); ctx.lineTo(ML+plotW,y); ctx.stroke();
+    ctx.fillStyle='#334d60'; ctx.textAlign='right';
+    ctx.fillText(pv<1?pv.toFixed(2):pv.toFixed(1), ML-3, y+3);
+  }
+
+  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=0.5;
+  ctx.beginPath(); ctx.moveTo(ML,MT); ctx.lineTo(ML,MT+plotH); ctx.lineTo(ML+plotW,MT+plotH); ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('Temperature ('+d.params[tempPi]+')  °C', ML+plotW/2, logH-4);
+  ctx.save(); ctx.translate(11,MT+plotH/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('Precipitation ('+d.params[precipPi]+')  mm/d', 0, 0); ctx.restore();
+
+  // Title + stats
+  const coldRain = pts.filter(([t,p])=>t<0&&p>0).length;
+  const pctColdRain = (coldRain/pts.length*100).toFixed(1);
+  ctx.fillStyle='#5c7d96'; ctx.textAlign='center';
+  ctx.fillText(`${d.gaugeId} · P–T joint distribution (${pts.length} days) · ${pctColdRain}% rain/snow at T<0°C`, ML+plotW/2, MT-10);
+
+  ctx.restore();
+
+  // Hover tooltip
+  canvas.onmousemove = e => {
+    const r=canvas.getBoundingClientRect();
+    const mx=(e.clientX-r.left)*(logW/r.width);
+    const my=(e.clientY-r.top)*(logH/r.height);
+    const tip=document.getElementById('met-ptd-tooltip'); if(!tip) return;
+    if(mx<ML||mx>ML+plotW||my<MT||my>MT+plotH){ tip.style.display='none'; return; }
+    const tVal = tMin + (mx-ML)/plotW*(tMax-tMin);
+    const pVal = pMin + (1-(my-MT)/plotH)*(pMax-pMin);
+    const bi=Math.floor((tVal-tMin)/(tMax-tMin)*BINS_T);
+    const bj=Math.floor((pVal-pMin)/(pMax-pMin)*BINS_P);
+    const cnt = (bi>=0&&bi<BINS_T&&bj>=0&&bj<BINS_P) ? hexCounts[bj*BINS_T+bi] : 0;
+    const pct=(cnt/pts.length*100).toFixed(2);
+    tip.innerHTML=`<b>T=${tVal.toFixed(1)}°C  P=${Math.max(0,pVal).toFixed(2)} mm/d</b><br>`
+      +`Cell count: <b style="color:var(--accent)">${cnt}</b> (${pct}% of days)`;
+    tip.style.display='block';
+    tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-10)+'px';
+  };
+  canvas.onmouseleave=()=>{ const t=document.getElementById('met-ptd-tooltip'); if(t) t.style.display='none'; };
+}
+window.drawMetPTDist = drawMetPTDist;
+
 function toast(msg,type='ok') {
   const el=document.createElement('div'); el.className='toast '+type; el.textContent=msg;
   document.getElementById('toasts').appendChild(el);
   setTimeout(()=>el.remove(),3200);
 }
 window.toast=toast;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SIDEBAR + PANEL: COLLAPSE & RESIZE
+// ══════════════════════════════════════════════════════════════════════════════
+(function() {
+  const MIN_W = 120, MAX_SB = 420, MAX_PANEL = 600;
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  let sbCollapsed = false, panelCollapsed = false;
+  let sbW = 188, panelW = 370; // mirror CSS defaults
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function setCSSVar(name, val) {
+    document.documentElement.style.setProperty(name, val + 'px');
+  }
+  function applyWidths() {
+    const sb    = document.getElementById('sidebar');
+    const panel = document.getElementById('panel');
+    const sbTog = document.getElementById('sidebar-toggle');
+    const pTog  = document.getElementById('panel-toggle');
+    if (!sb || !panel) return;
+
+    if (sbCollapsed) {
+      sb.classList.add('collapsed');
+      sb.style.width = '0';
+      setCSSVar('--sidebar-w', 0);
+      if (sbTog) { sbTog.textContent = '❯'; sbTog.classList.add('collapsed'); }
+    } else {
+      sb.classList.remove('collapsed');
+      sb.style.width = sbW + 'px';
+      setCSSVar('--sidebar-w', sbW);
+      if (sbTog) { sbTog.textContent = '❮'; sbTog.classList.remove('collapsed'); }
+    }
+
+    if (panelCollapsed) {
+      panel.classList.add('collapsed');
+      panel.style.width = '0';
+      setCSSVar('--panel-w', 0);
+      if (pTog) { pTog.textContent = '❮'; pTog.classList.add('collapsed'); }
+    } else {
+      panel.classList.remove('collapsed');
+      panel.style.width = panelW + 'px';
+      setCSSVar('--panel-w', panelW);
+      if (pTog) { pTog.textContent = '❯'; pTog.classList.remove('collapsed'); }
+    }
+
+    // Invalidate map size so it fills the new space
+    setTimeout(() => { if (window.map) map.invalidateSize(); }, 200);
+  }
+
+  // ── Toggle functions ───────────────────────────────────────────────────────
+  window.toggleSidebar = function() {
+    sbCollapsed = !sbCollapsed;
+    applyWidths();
+    try { localStorage.setItem('raven_sb_collapsed', sbCollapsed); } catch(e) {}
+  };
+  window.togglePanel = function() {
+    panelCollapsed = !panelCollapsed;
+    applyWidths();
+    try { localStorage.setItem('raven_panel_collapsed', panelCollapsed); } catch(e) {}
+  };
+
+  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    // Ignore if typing in an input/textarea
+    if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+    if (e.key === '[') { window.toggleSidebar(); }
+    if (e.key === ']') { window.togglePanel(); }
+  });
+
+  // ── Drag-to-resize: sidebar ────────────────────────────────────────────────
+  (function setupSbResize() {
+    const handle = document.getElementById('sidebar-resize');
+    if (!handle) return;
+    let dragging = false, startX = 0, startW = 0;
+
+    handle.addEventListener('mousedown', e => {
+      if (sbCollapsed) return;
+      dragging = true; startX = e.clientX; startW = sbW;
+      handle.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const delta = e.clientX - startX;
+      sbW = Math.max(MIN_W, Math.min(MAX_SB, startW + delta));
+      const sb = document.getElementById('sidebar');
+      if (sb) sb.style.width = sbW + 'px';
+      setCSSVar('--sidebar-w', sbW);
+      if (window.map) map.invalidateSize();
+    });
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      try { localStorage.setItem('raven_sb_w', sbW); } catch(e) {}
+    });
+  })();
+
+  // ── Drag-to-resize: right panel ────────────────────────────────────────────
+  (function setupPanelResize() {
+    const handle = document.getElementById('panel-resize');
+    if (!handle) return;
+    let dragging = false, startX = 0, startW = 0;
+
+    handle.addEventListener('mousedown', e => {
+      if (panelCollapsed) return;
+      dragging = true; startX = e.clientX; startW = panelW;
+      handle.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const delta = startX - e.clientX; // moving left = making panel wider
+      panelW = Math.max(MIN_W, Math.min(MAX_PANEL, startW + delta));
+      const panel = document.getElementById('panel');
+      if (panel) panel.style.width = panelW + 'px';
+      setCSSVar('--panel-w', panelW);
+      if (window.map) map.invalidateSize();
+    });
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      try { localStorage.setItem('raven_panel_w', panelW); } catch(e) {}
+    });
+  })();
+
+  // ── Restore persisted state on load ───────────────────────────────────────
+  window.addEventListener('load', () => {
+    try {
+      const sw = parseInt(localStorage.getItem('raven_sb_w'));
+      if (sw >= MIN_W && sw <= MAX_SB) sbW = sw;
+      const pw = parseInt(localStorage.getItem('raven_panel_w'));
+      if (pw >= MIN_W && pw <= MAX_PANEL) panelW = pw;
+      sbCollapsed    = localStorage.getItem('raven_sb_collapsed')    === 'true';
+      panelCollapsed = localStorage.getItem('raven_panel_collapsed') === 'true';
+    } catch(e) {}
+    applyWidths();
+  });
+})();
 
 // ══════════════════════════════════════════════════════════════════════════════
 // DRAG & DROP
@@ -13611,6 +15304,8 @@ window.addEventListener('load', function() {
   setPanel('rvi');
   setStatus('Ready — drag & drop or Import .rv* files to begin');
   setTimeout(draftCheckOnLoad, 800);
+  // Ensure map fills space after panels are positioned
+  setTimeout(() => { if (window.map) map.invalidateSize(); }, 250);
 });
 </script>
 <!-- CALIBRATION WIZARD MODAL -->
@@ -13628,6 +15323,9 @@ window.addEventListener('load', function() {
     </div>
   </div>
 </div>
+<!-- Collapse toggle buttons — outside all containers so nothing clips them -->
+<div id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar ([ key)">❮</div>
+<div id="panel-toggle"   onclick="togglePanel()"   title="Toggle panel (] key)">❯</div>
 
 </body>
 </html>
