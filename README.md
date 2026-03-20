@@ -1,16 +1,7 @@
 # Raven_interface
 [Open Raven interface Live](https://rarabzad.github.io/Raven_interface/)
 
-# ⬡ Raven Model Editor
- 
-A browser-based graphical interface for building, editing, inspecting, and visualizing [Raven](https://raven.uwaterloo.ca) hydrological model input files. Everything runs locally in your browser — no server, no installation, no dependencies.
- 
-> **Developed by [Rezgar Arabzadeh](https://github.com/rarabzad)**
-> Department of Civil and Environmental Engineering, University of Waterloo
- 
----
- 
-## Overview
+# Overview
  
 Raven Model Editor provides a complete GUI workflow for the [Raven Hydrological Modelling Framework](https://raven.uwaterloo.ca) — from constructing a new model from scratch, to importing existing configurations, editing parameters, visualizing spatial data on interactive maps, analyzing model outputs, and exporting ready-to-run file sets.
  
