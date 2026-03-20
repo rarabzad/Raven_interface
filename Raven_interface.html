@@ -15,6 +15,9 @@
   --r:3px;
   --topbar-h:46px; --statusbar-h:28px;
   --sidebar-w:188px; --panel-w:370px;
+  --overlay-bg:rgba(8,11,13,.97);
+  --overlay-bg2:rgba(8,11,13,.9);
+  --overlay-bg3:rgba(8,11,13,.6);
 }
 
 /* ── OCEAN DARK (default) ─── */
@@ -74,7 +77,10 @@
   --ok:#006020; --ok2:#d0f0e0;
   --purple:#6030c0;
 
-  --tooltip-bg:rgba(240,242,245,.97);}
+  --tooltip-bg:rgba(240,242,245,.97);
+  --overlay-bg:rgba(224,228,234,.97);
+  --overlay-bg2:rgba(224,228,234,.9);
+  --overlay-bg3:rgba(224,228,234,.6);}
 
 /* ── PAPER LIGHT ─── */
 [data-theme="paper"] {
@@ -91,7 +97,10 @@
   --ok:#2a6020; --ok2:#d8f0d8;
   --purple:#603090;
 
-  --tooltip-bg:rgba(248,244,236,.97);}
+  --tooltip-bg:rgba(248,244,236,.97);
+  --overlay-bg:rgba(232,224,200,.97);
+  --overlay-bg2:rgba(232,224,200,.9);
+  --overlay-bg3:rgba(232,224,200,.6);}
 
 /* ── HIGH CONTRAST ─── */
 [data-theme="contrast"] {
@@ -136,6 +145,9 @@
   --ok:#2a6020; --ok2:#d8f4d8;
   --purple:#603090;
   --tooltip-bg:rgba(240,237,230,.97);
+  --overlay-bg:rgba(222,218,208,.97);
+  --overlay-bg2:rgba(222,218,208,.9);
+  --overlay-bg3:rgba(222,218,208,.6);
 }
 
 [data-theme="terrain"] {
@@ -152,6 +164,9 @@
   --ok:#286018; --ok2:#d8f4d0;
   --purple:#583088;
   --tooltip-bg:rgba(244,241,236,.97);
+  --overlay-bg:rgba(226,221,212,.97);
+  --overlay-bg2:rgba(226,221,212,.9);
+  --overlay-bg3:rgba(226,221,212,.6);
 }
 
 [data-theme="osm"] {
@@ -168,6 +183,9 @@
   --ok:#007700; --ok2:#d8f8d0;
   --purple:#660099;
   --tooltip-bg:rgba(248,248,248,.97);
+  --overlay-bg:rgba(230,230,230,.97);
+  --overlay-bg2:rgba(230,230,230,.9);
+  --overlay-bg3:rgba(230,230,230,.6);
 }
 
 [data-theme="voyager"] {
@@ -184,6 +202,9 @@
   --ok:#006622; --ok2:#d8f8e0;
   --purple:#6600aa;
   --tooltip-bg:rgba(245,245,245,.97);
+  --overlay-bg:rgba(224,224,224,.97);
+  --overlay-bg2:rgba(224,224,224,.9);
+  --overlay-bg3:rgba(224,224,224,.6);
 }
 
 /* ── SOLARIZED DARK ─── */
@@ -219,6 +240,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);color:var
 ::-webkit-scrollbar-track{background:var(--bg1)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+/* ── KEYBOARD FOCUS ── */
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-radius:var(--r)}
+button:focus-visible,.btn:focus-visible,.nav-item:focus-visible{outline:2px solid var(--accent);outline-offset:-1px}
+/* Selection color */
+::selection{background:var(--accent3);color:#fff}
 
 /* ── THEME PICKER ── */
 .theme-picker-wrap{position:relative;display:inline-flex;align-items:center}
@@ -293,7 +320,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);color:var
 .mt-btn{width:28px;height:28px;background:var(--bg2);border:1px solid var(--border2);color:var(--text1);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:var(--r);transition:all .1s;font-size:12px;user-select:none}
 .mt-btn:hover{background:var(--bg4);color:var(--accent)}
 .mt-btn.on{background:var(--accent3);color:#000;border-color:var(--accent)}
-#map-legend{position:absolute;bottom:16px;left:10px;background:rgba(8,11,13,.9);border:1px solid var(--border);padding:8px 10px;border-radius:var(--r);z-index:500;min-width:110px}
+#map-legend{position:absolute;bottom:16px;left:10px;background:var(--overlay-bg2);border:1px solid var(--border);padding:8px 10px;border-radius:var(--r);z-index:500;min-width:110px}
 .leg-head{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
 .leg-row{display:flex;align-items:center;gap:6px;margin:3px 0}
 .leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
@@ -413,8 +440,9 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 
 /* ── MODAL ── */
 #modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center}
-#modal-bg.open{display:flex}
+#modal-bg.open{display:flex;animation:modal-in .15s ease}
 #modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);width:660px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.8)}
+@keyframes modal-in{from{opacity:0}to{opacity:1}}
 #modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:1px solid var(--border)}
 #modal-title{font-size:11px;font-weight:600;color:var(--text0)}
 #modal-x{background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:0;line-height:1}
@@ -442,7 +470,7 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 .fchip .dot{width:5px;height:5px;border-radius:50%;background:var(--ok)}
 
 /* ── SPATIAL PLAYER ── */
-#player-bar{position:absolute;bottom:0;left:0;right:0;height:54px;background:rgba(8,11,13,.97);border-top:1px solid var(--border2);z-index:601;display:none;flex-direction:column;justify-content:center;padding:0 12px;gap:5px}
+#player-bar{position:absolute;bottom:0;left:0;right:0;height:54px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:601;display:none;flex-direction:column;justify-content:center;padding:0 12px;gap:5px}
 #player-bar.open{display:flex}
 #player-row1{display:flex;align-items:center;gap:8px}
 #player-row2{display:flex;align-items:center;gap:8px}
@@ -486,13 +514,13 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 #player-close{background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;flex-shrink:0;padding:0}
 #player-close:hover{color:var(--err)}
 /* Color scale legend (overlays map, top-right of map-wrap) */
-#player-legend{position:absolute;top:10px;right:10px;z-index:500;background:rgba(8,11,13,.88);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;min-width:130px;display:none}
+#player-legend{position:absolute;top:10px;right:10px;z-index:500;background:var(--overlay-bg2);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;min-width:130px;display:none}
 #player-legend.open{display:block}
 #player-legend-title{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
 #player-gradient{width:100%;height:10px;border-radius:2px;margin-bottom:4px}
 #player-legend-labels{display:flex;justify-content:space-between;font-size:8px;color:var(--text3)}
 
-#hydro-panel{position:absolute;bottom:0;left:0;right:0;height:380px;background:rgba(8,11,13,.97);border-top:1px solid var(--border2);z-index:800;display:none;flex-direction:column}
+#hydro-panel{position:absolute;bottom:0;left:0;right:0;height:380px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:800;display:none;flex-direction:column}
 #hydro-panel.open{display:flex}
 /* Top control bar */
 #hydro-tabs{display:flex;gap:0;flex-shrink:0;border-bottom:1px solid var(--border);align-items:stretch;overflow:hidden;min-height:26px}
@@ -515,12 +543,12 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 #hydro-scatter-canvas{display:block;position:absolute;top:0;left:0;width:100%;height:100%}
 #hydro-diag-wrap{position:absolute;inset:0;overflow-y:auto;padding:6px 10px}
 #hydro-diag-wrap table{width:100%;font-size:9px;border-collapse:collapse}
-#hydro-diag-wrap th{color:var(--text3);font-weight:600;text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(8,11,13,.97)}
+#hydro-diag-wrap th{color:var(--text3);font-weight:600;text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--overlay-bg)}
 #hydro-diag-wrap td{padding:3px 6px;border-bottom:1px solid rgba(30,45,56,.4);color:var(--text1)}
 #hydro-diag-wrap tr:hover td{background:rgba(96,180,255,.05)}
 .diag-good{color:#00e4b4}.diag-ok{color:#f0a832}.diag-bad{color:#e05c5c}
 .diag-good-bg{background:rgba(0,228,180,.08)}.diag-ok-bg{background:rgba(240,168,50,.08)}.diag-bad-bg{background:rgba(224,92,92,.08)}
-#diag-summary{display:flex;gap:10px;flex-wrap:wrap;padding:6px 10px;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(8,11,13,.6)}
+#diag-summary{display:flex;gap:10px;flex-wrap:wrap;padding:6px 10px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--overlay-bg3)}
 .diag-sum-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 10px;min-width:80px;text-align:center}
 .diag-sum-val{font-size:13px;font-weight:700;font-family:var(--mono);color:var(--text0)}
 .diag-sum-lbl{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-top:1px}
@@ -544,7 +572,7 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 #hydro-stats-bar span{color:var(--text3);white-space:nowrap}
 #hydro-stats-bar b{font-weight:600}
 /* Tooltip */
-#hydro-tooltip{position:absolute;background:rgba(13,18,21,.95);border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;display:none;z-index:10;min-width:120px;max-width:220px;white-space:nowrap}
+#hydro-tooltip{position:absolute;background:var(--tooltip-bg,var(--overlay-bg));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;display:none;z-index:10;min-width:120px;max-width:220px;white-space:nowrap}
 #hydro-tooltip .ht-date{color:var(--text3);font-size:8px;margin-bottom:3px}
 #hydro-tooltip .ht-row{display:flex;align-items:center;gap:5px;margin:2px 0}
 #hydro-tooltip .ht-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
@@ -591,7 +619,7 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 .cal-tab{padding:5px 12px;font-size:9px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;white-space:nowrap;text-transform:uppercase;letter-spacing:.07em}
 .cal-tab:hover{color:var(--text1)}
 .cal-tab.on{color:var(--accent);border-bottom-color:var(--accent)}
-#conn-panel{position:absolute;top:10px;right:10px;width:220px;background:rgba(8,11,13,.96);border:1px solid var(--border2);border-radius:var(--r);z-index:500;display:none;flex-direction:column;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.7)}
+#conn-panel{position:absolute;top:10px;right:10px;width:220px;background:var(--overlay-bg);border:1px solid var(--border2);border-radius:var(--r);z-index:500;display:none;flex-direction:column;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.7)}
 #conn-panel.open{display:flex}
 #conn-hdr{display:flex;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border);gap:6px;flex-shrink:0}
 #conn-hdr-title{font-size:9px;font-weight:600;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;flex:1}
@@ -670,7 +698,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
 
 
 /* ── MET GAUGE TIME SERIES PANEL ── */
-#met-panel{position:absolute;bottom:0;left:0;right:0;height:360px;background:rgba(8,11,13,.97);border-top:1px solid var(--border2);z-index:601;display:none;flex-direction:column}
+#met-panel{position:absolute;bottom:0;left:0;right:0;height:360px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:601;display:none;flex-direction:column}
 #met-panel.open{display:flex}
 #met-hdr{display:flex;align-items:center;padding:5px 10px;border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;flex-wrap:wrap}
 #met-title{font-size:10px;font-weight:600;color:var(--accent);flex:1;min-width:80px}
@@ -807,6 +835,101 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
   background: var(--bg3);
   color: var(--text1);
   border-color: var(--border2);
+}
+
+/* ── ALL LIGHT THEME OVERRIDES ─── */
+[data-theme="slate"] .toast, [data-theme="paper"] .toast,
+[data-theme="topo"] .toast, [data-theme="terrain"] .toast,
+[data-theme="osm"] .toast, [data-theme="voyager"] .toast {
+  box-shadow: 0 4px 16px rgba(0,0,0,.15);
+}
+[data-theme="slate"] .leaflet-popup-content-wrapper,
+[data-theme="paper"] .leaflet-popup-content-wrapper,
+[data-theme="topo"] .leaflet-popup-content-wrapper,
+[data-theme="terrain"] .leaflet-popup-content-wrapper,
+[data-theme="osm"] .leaflet-popup-content-wrapper,
+[data-theme="voyager"] .leaflet-popup-content-wrapper {
+  box-shadow: 0 4px 20px rgba(0,0,0,.15);
+}
+[data-theme="topo"] body, [data-theme="terrain"] body,
+[data-theme="osm"] body, [data-theme="voyager"] body {
+  color: var(--text0);
+}
+[data-theme="topo"] input, [data-theme="terrain"] input,
+[data-theme="osm"] input, [data-theme="voyager"] input {
+  color: var(--text0);
+  background: var(--bg1);
+}
+[data-theme="topo"] select, [data-theme="terrain"] select,
+[data-theme="osm"] select, [data-theme="voyager"] select {
+  background: var(--bg1); color: var(--text0); border: 1px solid var(--border2);
+}
+[data-theme="topo"] textarea, [data-theme="terrain"] textarea,
+[data-theme="osm"] textarea, [data-theme="voyager"] textarea {
+  background: var(--bg0); border: 1px solid var(--border2); color: var(--text0);
+}
+[data-theme="topo"] #sidebar, [data-theme="terrain"] #sidebar,
+[data-theme="osm"] #sidebar, [data-theme="voyager"] #sidebar {
+  background: var(--bg2);
+}
+[data-theme="topo"] #topbar, [data-theme="terrain"] #topbar,
+[data-theme="osm"] #topbar, [data-theme="voyager"] #topbar {
+  background: var(--bg1); border-bottom-color: var(--border2);
+}
+[data-theme="topo"] #statusbar, [data-theme="terrain"] #statusbar,
+[data-theme="osm"] #statusbar, [data-theme="voyager"] #statusbar {
+  background: var(--bg2); border-top-color: var(--border2);
+}
+[data-theme="topo"] .nav-item:hover, [data-theme="terrain"] .nav-item:hover,
+[data-theme="osm"] .nav-item:hover, [data-theme="voyager"] .nav-item:hover {
+  background: var(--bg3);
+}
+[data-theme="topo"] .nav-item.active, [data-theme="terrain"] .nav-item.active,
+[data-theme="osm"] .nav-item.active, [data-theme="voyager"] .nav-item.active {
+  background: var(--accent4); color: var(--accent);
+}
+[data-theme="topo"] .hz-btn, [data-theme="terrain"] .hz-btn,
+[data-theme="osm"] .hz-btn, [data-theme="voyager"] .hz-btn {
+  background: var(--bg3); color: var(--text1); border-color: var(--border2);
+}
+[data-theme="topo"] .proc-item, [data-theme="terrain"] .proc-item,
+[data-theme="osm"] .proc-item, [data-theme="voyager"] .proc-item {
+  border-color: var(--border2);
+}
+[data-theme="topo"] input[type="number"],
+[data-theme="topo"] input[type="text"],
+[data-theme="topo"] input[type="date"],
+[data-theme="terrain"] input[type="number"],
+[data-theme="terrain"] input[type="text"],
+[data-theme="terrain"] input[type="date"],
+[data-theme="osm"] input[type="number"],
+[data-theme="osm"] input[type="text"],
+[data-theme="osm"] input[type="date"],
+[data-theme="voyager"] input[type="number"],
+[data-theme="voyager"] input[type="text"],
+[data-theme="voyager"] input[type="date"] {
+  background: var(--bg0); border: 1px solid var(--border2);
+  border-radius: var(--r); padding: 2px 5px; color: var(--text0);
+}
+/* Light theme modal overlay — less dark backdrop */
+[data-theme="slate"] #modal-bg, [data-theme="paper"] #modal-bg,
+[data-theme="topo"] #modal-bg, [data-theme="terrain"] #modal-bg,
+[data-theme="osm"] #modal-bg, [data-theme="voyager"] #modal-bg {
+  background: rgba(0,0,0,.4);
+}
+[data-theme="slate"] #modal, [data-theme="paper"] #modal,
+[data-theme="topo"] #modal, [data-theme="terrain"] #modal,
+[data-theme="osm"] #modal, [data-theme="voyager"] #modal {
+  box-shadow: 0 8px 40px rgba(0,0,0,.2);
+}
+/* Light theme scrollbar */
+[data-theme="slate"] ::-webkit-scrollbar-thumb,
+[data-theme="paper"] ::-webkit-scrollbar-thumb,
+[data-theme="topo"] ::-webkit-scrollbar-thumb,
+[data-theme="terrain"] ::-webkit-scrollbar-thumb,
+[data-theme="osm"] ::-webkit-scrollbar-thumb,
+[data-theme="voyager"] ::-webkit-scrollbar-thumb {
+  background: var(--border2);
 }
 </style>
 </head>
@@ -1269,7 +1392,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
 </div>
 
 <!-- HELP MODAL -->
-<div id="help-modal-bg" onclick="if(event.target===this)closeHelpModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;align-items:center;justify-content:center">
+<div id="help-modal-bg" onclick="if(event.target===this)closeHelpModal()" role="dialog" aria-modal="true" aria-label="Help documentation" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;align-items:center;justify-content:center">
   <div id="help-modal" style="background:var(--bg1);border:1px solid var(--border2);border-radius:8px;width:min(860px,96vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden">
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
@@ -1368,7 +1491,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
 <div id="sv-graph-tooltip"></div>
 
 <!-- MODAL -->
-<div id="modal-bg" onclick="if(event.target===this)closeModal()">
+<div id="modal-bg" onclick="if(event.target===this)closeModal()" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div id="modal">
     <div id="modal-hdr"><span id="modal-title">Modal</span><button id="modal-x" onclick="closeModal()">✕</button></div>
     <div id="modal-body"></div>
@@ -2883,8 +3006,9 @@ function buildConnLookup() {
 function getAllUpstream(startId, byId, childrenOf) {
   const visited = new Set();
   const queue = [startId];
-  while (queue.length) {
-    const cur = queue.shift();
+  let qi = 0;
+  while (qi < queue.length) {
+    const cur = queue[qi++];
     if (visited.has(cur)) continue;
     visited.add(cur);
     for (const child of (childrenOf[cur] || [])) queue.push(child);
@@ -3315,6 +3439,17 @@ function hydroDownloadPNG() {
 }
 window.hydroDownloadPNG = hydroDownloadPNG;
 
+// ── RAF THROTTLE for interactive chart redraws ──────────────────────────────
+let _rafHydro = null;
+function scheduleHydroRedraw() {
+  if (_rafHydro) return; // already scheduled
+  _rafHydro = requestAnimationFrame(() => {
+    _rafHydro = null;
+    updateHydroRange();
+    drawHydrograph();
+  });
+}
+
 // ── INTERACTION: zoom by scroll, pan by drag, crosshair on hover ──────────────
 let _hydroInteractionBound = false;
 function setupHydroInteraction() {
@@ -3339,7 +3474,7 @@ function setupHydroInteraction() {
     ns = Math.max(0, ns); ne = Math.min(n-1, ne);
     if (ne - ns < 2) return;
     hydroState.viewStart = ns; hydroState.viewEnd = ne;
-    updateHydroRange(); drawHydrograph();
+    scheduleHydroRedraw();
   }, { passive: false });
 
   // Drag to pan
@@ -3366,7 +3501,7 @@ function setupHydroInteraction() {
       if (ne >= n) { ns -= ne-(n-1); ne = n-1; }
       ns = Math.max(0, ns);
       hydroState.viewStart = ns; hydroState.viewEnd = ne;
-      updateHydroRange(); drawHydrograph();
+      scheduleHydroRedraw();
     }
     // Crosshair
     const wrap2 = document.getElementById('hydro-canvas-wrap');
@@ -3381,6 +3516,37 @@ function setupHydroInteraction() {
 }
 
 const _PAD = { top:12, right:16, bottom:26, left:54 };
+
+// Theme-aware canvas colors — reads live CSS variable values for proper light/dark support
+let _cachedIsLight = null;
+let _cachedCSSVars = {};
+function _invalidateThemeCache() { _cachedIsLight = null; _cachedCSSVars = {}; }
+function _cv(varName) {
+  if (_cachedCSSVars[varName] !== undefined) return _cachedCSSVars[varName];
+  const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  _cachedCSSVars[varName] = val;
+  return val;
+}
+function _isLightTheme() {
+  if (_cachedIsLight !== null) return _cachedIsLight;
+  const bg = _cv('--bg0');
+  if (!bg) { _cachedIsLight = false; return false; }
+  // Parse hex or rgb — light themes have bright bg0
+  const m = bg.match(/#([0-9a-f]{2})/i);
+  if (m) { _cachedIsLight = parseInt(m[1], 16) > 128; return _cachedIsLight; }
+  const rm = bg.match(/rgb\((\d+)/);
+  if (rm) { _cachedIsLight = parseInt(rm[1]) > 128; return _cachedIsLight; }
+  _cachedIsLight = false;
+  return false;
+}
+function _gridColor(strength) {
+  // strength: 0.04-0.18 for various grid densities
+  return _isLightTheme() ? `rgba(0,0,0,${strength * 1.5})` : `rgba(255,255,255,${strength})`;
+}
+function _labelColor() { return _cv('--text3') || '#334d60'; }
+function _axisLabelColor() { return _cv('--text2') || '#5c7d96'; }
+function _crosshairColor() { return _isLightTheme() ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.18)'; }
+function _diagonalColor() { return _isLightTheme() ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)'; }
 function _chartW() {
   const wrap = document.getElementById('hydro-canvas-wrap');
   return wrap ? (wrap.offsetWidth - _PAD.left - _PAD.right) : 0;
@@ -3410,7 +3576,7 @@ function drawCrosshair(mx, my) {
   }
 
   // Vertical crosshair line
-  ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+  ctx.strokeStyle = _crosshairColor(); ctx.lineWidth = 1; ctx.setLineDash([3,3]);
   ctx.beginPath(); ctx.moveTo(mx, _PAD.top); ctx.lineTo(mx, H - _PAD.bottom); ctx.stroke();
   ctx.setLineDash([]);
 
@@ -3548,11 +3714,11 @@ function drawHydrograph() {
         const yv = mult * Math.pow(10, exp);
         if (yv < Math.pow(10, logMin)*0.85 || yv > Math.pow(10, logMax)*1.15) continue;
         const y = py(yv);
-        ctx.strokeStyle = mult===1 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)';
+        ctx.strokeStyle = mult===1 ? _gridColor(0.08) : _gridColor(0.04);
         ctx.lineWidth=0.5;
         ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(W-PAD.right,y); ctx.stroke();
         if (mult===1 || mult===2 || mult===5) {
-          ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
+          ctx.fillStyle=_labelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
           const label = yv>=1000?(yv/1000).toFixed(0)+'k':yv>=1?yv.toFixed(0):yv.toFixed(2);
           ctx.fillText(label, PAD.left-4, y+3);
         }
@@ -3565,9 +3731,9 @@ function drawHydrograph() {
     const yTicks=4;
     for (let t=0; t<=yTicks; t++) {
       const yv=yMin+(yMax-yMin)*(t/yTicks), y=py(yv);
-      ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=0.5;
+      ctx.strokeStyle=_gridColor(0.06); ctx.lineWidth=0.5;
       ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(W-PAD.right,y); ctx.stroke();
-      ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
+      ctx.fillStyle=_labelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
       const label=Math.abs(yv)>=1000?(yv/1000).toFixed(1)+'k':yv.toFixed(3).replace(/\.?0+$/,'');
       ctx.fillText(label, PAD.left-4, y+3);
     }
@@ -3582,7 +3748,7 @@ function drawHydrograph() {
   // Y axis unit label
   const firstSer = ravenOut.series[activeSeries[0]];
   ctx.save(); ctx.translate(10, PAD.top+cH/2); ctx.rotate(-Math.PI/2);
-  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
   ctx.fillText(firstSer?.units||'m³/s', 0, 0); ctx.restore();
 
   // px maps a data index to canvas X coordinate — must be defined before any use
@@ -3673,13 +3839,13 @@ function drawHydrograph() {
 
   // X axis date ticks
   ctx.setLineDash([]);
-  ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_labelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
   const maxTicks = Math.min(8, span);
   for (let t=0; t<=maxTicks; t++) {
     const i = i0 + Math.round((t/maxTicks)*span);
     const x = px(i);
     ctx.fillText((ravenOut.dates[i]||'').slice(0,10), x, H-4);
-    ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=0.5;
+    ctx.strokeStyle=_gridColor(0.08); ctx.lineWidth=0.5;
     ctx.beginPath(); ctx.moveTo(x,H-PAD.bottom); ctx.lineTo(x,H-PAD.bottom+3); ctx.stroke();
   }
 
@@ -3736,7 +3902,7 @@ function drawFDC() {
     }
   }
   if (!curves.length) {
-    ctx.fillStyle = '#334d60'; ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = _labelColor(); ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
     ctx.fillText('No data', W/2, H/2); return;
   }
 
@@ -3756,7 +3922,7 @@ function drawFDC() {
   const toX = p => PAD.left + p * cW; // p = exceedance probability 0..1
 
   // Y grid + labels
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
+  ctx.strokeStyle = _gridColor(0.06); ctx.lineWidth = 0.5;
   ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'right';
   const yTicks = useLog
     ? Array.from({length: Math.ceil(Math.log10(yMax)-Math.log10(yMin))+1}, (_,i) => Math.pow(10, Math.floor(Math.log10(yMin))+i)).filter(v=>v<=yMax*1.05)
@@ -3764,26 +3930,26 @@ function drawFDC() {
   for (const yv of yTicks) {
     const y = toY(yv);
     ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(W-PAD.right, y); ctx.stroke();
-    ctx.fillStyle = '#334d60';
+    ctx.fillStyle = _labelColor();
     const lbl = yv >= 1000 ? (yv/1000).toFixed(1)+'k' : yv < 1 ? yv.toFixed(2) : yv.toFixed(1);
     ctx.fillText(lbl, PAD.left - 5, y + 3);
   }
 
   // Y axis label
   ctx.save(); ctx.translate(13, PAD.top + cH/2); ctx.rotate(-Math.PI/2);
-  ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
   ctx.fillText((useLog ? 'Log ' : '') + 'Flow (m³/s)', 0, 0); ctx.restore();
 
   // X grid + labels (exceedance probability %)
   const xTicks = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-  ctx.fillStyle = '#334d60'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = _labelColor(); ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
   for (const p of xTicks) {
     const x = toX(p);
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
+    ctx.strokeStyle = _gridColor(0.06); ctx.lineWidth = 0.5;
     ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, H-PAD.bottom); ctx.stroke();
     ctx.fillText(Math.round(p*100)+'%', x, H - PAD.bottom + 12);
   }
-  ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
   ctx.fillText('Exceedance Probability', PAD.left + cW/2, H - 4);
 
   // Clip + draw curves
@@ -3882,7 +4048,7 @@ function drawScatter() {
   }
 
   if (!series.length) {
-    ctx.fillStyle = '#334d60'; ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = _labelColor(); ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
     ctx.fillText('No paired sim/obs data', W/2, H/2); return;
   }
 
@@ -3903,25 +4069,25 @@ function drawScatter() {
     const x = toX(v), y = toY(v);
     const lbl = v >= 1000 ? (v/1000).toFixed(1)+'k' : v.toFixed(v < 1 ? 2 : 1);
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
+    ctx.strokeStyle = _gridColor(0.06); ctx.lineWidth = 0.5;
     // vertical grid
     ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, H - PAD.bottom); ctx.stroke();
     // horizontal grid
     ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(W - PAD.right, y); ctx.stroke();
 
-    ctx.fillStyle = '#334d60'; ctx.textAlign = 'center';
+    ctx.fillStyle = _labelColor(); ctx.textAlign = 'center';
     ctx.fillText(lbl, x, H - PAD.bottom + 11);
     ctx.textAlign = 'right';
     ctx.fillText(lbl, PAD.left - 5, y + 3);
   }
 
   // 1:1 line
-  ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1; ctx.setLineDash([5,4]);
+  ctx.strokeStyle = _diagonalColor(); ctx.lineWidth = 1; ctx.setLineDash([5,4]);
   ctx.beginPath(); ctx.moveTo(toX(0), toY(0)); ctx.lineTo(toX(axMax), toY(axMax)); ctx.stroke();
   ctx.setLineDash([]);
 
   // Axis labels
-  ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
   ctx.fillText('Observed (m³/s)', PAD.left + cW/2, H - 4);
   ctx.save(); ctx.translate(13, PAD.top + cH/2); ctx.rotate(-Math.PI/2);
   ctx.fillText('Simulated (m³/s)', 0, 0); ctx.restore();
@@ -3993,7 +4159,7 @@ window.addEventListener('resize', () => { if (hydroState.activeKeys.length && hy
 
 // ── SHARED TOOLTIP STYLE helper ───────────────────────────────────────────────
 function styleTooltip(el) {
-  el.style.cssText = 'position:absolute;background:rgba(13,18,21,.95);border:1px solid #2a3d4e;border-radius:3px;padding:5px 8px;font-size:9px;color:#9ab0c4;pointer-events:none;z-index:10;min-width:100px;white-space:nowrap';
+  el.style.cssText = 'position:absolute;background:var(--tooltip-bg,var(--overlay-bg));border:1px solid var(--border2);border-radius:3px;padding:5px 8px;font-size:9px;color:var(--text1);pointer-events:none;z-index:10;min-width:100px;white-space:nowrap';
 }
 
 // ── FDC CROSSHAIR ─────────────────────────────────────────────────────────────
@@ -4093,7 +4259,7 @@ function styleTooltip(el) {
       const simAtY = (1-(my-PAD.top)/cH)*axMax;
 
       // crosshairs
-      ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+      ctx.strokeStyle=_diagonalColor(); ctx.lineWidth=1; ctx.setLineDash([3,3]);
       ctx.beginPath(); ctx.moveTo(mx,PAD.top); ctx.lineTo(mx,H-PAD.bottom); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(PAD.left,my); ctx.lineTo(W-PAD.right,my); ctx.stroke();
       ctx.setLineDash([]);
@@ -4131,16 +4297,16 @@ function drawCalendar() {
 
   // Only works for exactly one series
   if (visibleKeys.length > 1) {
-    ctx.fillStyle='#5c7d96'; ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center';
+    ctx.fillStyle=_axisLabelColor(); ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center';
     ctx.fillText('Select a single basin to view the calendar heatmap', W/2, H/2 - 8);
-    ctx.fillStyle='#334d60'; ctx.font='9px IBM Plex Mono,monospace';
+    ctx.fillStyle=_labelColor(); ctx.font='9px IBM Plex Mono,monospace';
     ctx.fillText(`(${visibleKeys.length} series currently active — mute all but one using the legend)`, W/2, H/2 + 10);
     ctx.restore(); return;
   }
 
   const k = visibleKeys[0];
   if (!k || !ravenOut.dates.length) {
-    ctx.fillStyle='#334d60'; ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center';
+    ctx.fillStyle=_labelColor(); ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center';
     ctx.fillText('Select a basin to view calendar heatmap', W/2, H/2); ctx.restore(); return;
   }
   const sr    = ravenOut.series[k];
@@ -4160,7 +4326,7 @@ function drawCalendar() {
     yearMap[yr][doy] = v;
   }
   const years = Object.keys(yearMap).map(Number).sort((a,b)=>a-b);
-  if (!years.length) { ctx.fillStyle='#334d60'; ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center'; ctx.fillText('No dated data', W/2, H/2); ctx.restore(); return; }
+  if (!years.length) { ctx.fillStyle=_labelColor(); ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center'; ctx.fillText('No dated data', W/2, H/2); ctx.restore(); return; }
 
   const PAD = { top:16, right:20, bottom:28, left:42 };
   const cW  = W - PAD.left - PAD.right;
@@ -4208,7 +4374,7 @@ function drawCalendar() {
   });
 
   // Y axis — year labels
-  ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
+  ctx.fillStyle=_labelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
   years.forEach((yr, yi) => {
     if (nYear <= 20 || yi % Math.ceil(nYear/15) === 0)
       ctx.fillText(yr, PAD.left - 4, PAD.top + (yi+0.65)*cellH);
@@ -4217,7 +4383,7 @@ function drawCalendar() {
   // X axis — month labels
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const doyStarts = [1,32,60,91,121,152,182,213,244,274,305,335];
-  ctx.textAlign='center'; ctx.fillStyle='#334d60';
+  ctx.textAlign='center'; ctx.fillStyle=_labelColor();
   doyStarts.forEach((doy, mi) => {
     const x = PAD.left + (doy - 1 + 15) * cellW;
     ctx.fillText(months[mi], x, H - PAD.bottom + 11);
@@ -4230,18 +4396,18 @@ function drawCalendar() {
     ctx.fillStyle = valToColor(vMin + (i/lgW)*(vMax-vMin));
     ctx.fillRect(lgX+i, lgY, 1, lgH);
   }
-  ctx.strokeStyle='#334d60'; ctx.lineWidth=0.5;
+  ctx.strokeStyle=_labelColor(); ctx.lineWidth=0.5;
   ctx.strokeRect(lgX, lgY, lgW, lgH);
-  ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
+  ctx.fillStyle=_labelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
   const fmtV = v => v>=1000?(v/1000).toFixed(1)+'k':v.toFixed(1);
   ctx.fillText(fmtV(vMin), lgX, lgY+lgH+9);
   ctx.textAlign='right';
   ctx.fillText(fmtV(vMax), lgX+lgW, lgY+lgH+9);
-  ctx.textAlign='center'; ctx.fillStyle='#5c7d96';
+  ctx.textAlign='center'; ctx.fillStyle=_axisLabelColor();
   ctx.fillText(sr.units||'m³/s', lgX+lgW/2, lgY+lgH+9);
 
   // Title
-  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
   ctx.fillText(`${sr.label||k} — ${sr.sim?'Simulated':'Observed'}  ·  Julian day vs Year`, PAD.left, PAD.top - 4);
   ctx.restore(); // balance DPR save
 }
@@ -5403,9 +5569,12 @@ function detectRvType(content, hintExt) {
 }
 
 async function loadFiles(files) {
+  if (!files || !files.length) return;
+  setStatus(`Loading ${files.length} file(s)…`);
   const metFiles = [];   // files containing :MultiData — handled separately
   const rvFiles  = [];   // normal rv* files
 
+  try {
   for (const f of files) {
     const hintExt = f.name.split('.').pop().toLowerCase();
     const content = await f.text();
@@ -5418,9 +5587,12 @@ async function loadFiles(files) {
   }
 
   // ── Process normal rv* files ──────────────────────────────────────────────
+  // Clear previous texts for types being re-loaded to prevent accumulation
+  const loadedTypes = new Set();
   for (const { f, content, hintExt } of rvFiles) {
     const type = detectRvType(content, hintExt);
-    texts[type] = texts[type] ? texts[type] + '\n' + content : content;
+    if (!loadedTypes.has(type)) { texts[type] = content; loadedTypes.add(type); }
+    else { texts[type] = texts[type] + '\n' + content; }
   }
   if (rvFiles.length) {
     S = mkStore();
@@ -5472,6 +5644,12 @@ async function loadFiles(files) {
       const firstGauge = S.gauges.find(g => metGaugeData[g.id]?.loaded);
       if (firstGauge) setTimeout(() => openMetPanel(firstGauge.id), 200);
     }
+  }
+  } catch (err) {
+    toast(`Error loading files: ${err.message}`, 'err');
+    console.error('loadFiles error:', err);
+  } finally {
+    setStatus('Ready');
   }
 }
 window.loadFiles=loadFiles;
@@ -5675,6 +5853,8 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       closeModal && closeModal();
       closeCalModal && closeCalModal();
+      closeHelpModal && closeHelpModal();
+      closeThemeDropdown && closeThemeDropdown();
       clearConnectivity && clearConnectivity();
     }
     return;
@@ -5691,7 +5871,17 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeModal && closeModal();
     closeCalModal && closeCalModal();
+    closeHelpModal && closeHelpModal();
+    closeThemeDropdown && closeThemeDropdown();
     clearConnectivity && clearConnectivity();
+  }
+});
+
+// ── BEFOREUNLOAD: warn about unsaved changes ─────────────────────────────
+window.addEventListener('beforeunload', e => {
+  if (_modelDirty) {
+    e.preventDefault();
+    e.returnValue = '';
   }
 });
 
@@ -6102,7 +6292,7 @@ function activatePtab(id) {
 }
 
 // ── HELPERS ──────────────────────────────────────────────────────────────────
-function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function frow(label, input, hint) {
   return `<div class="f-row"><label title="${hint||''}">${label}</label>${input}</div>`;
 }
@@ -6722,7 +6912,7 @@ function rvhTab(id) {
       <div id="dag-wrap" style="position:relative;width:100%;height:calc(100vh - 200px);min-height:320px;background:var(--bg0);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
         <canvas id="dag-canvas" style="position:absolute;top:0;left:0"></canvas>
         <div id="dag-tooltip" style="position:absolute;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:10;white-space:nowrap"></div>
-        <div id="dag-legend-box" style="position:absolute;bottom:8px;left:8px;background:rgba(8,11,13,.85);border:1px solid var(--border);border-radius:var(--r);padding:5px 8px;font-size:8px;color:var(--text3)"></div>
+        <div id="dag-legend-box" style="position:absolute;bottom:8px;left:8px;background:var(--overlay-bg2);border:1px solid var(--border);border-radius:var(--r);padding:5px 8px;font-size:8px;color:var(--text3)"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin-top:5px">Click a node to inspect connectivity · Scroll to zoom · Drag to pan</div>`;
     setTimeout(() => { initDAG(); drawDAG(); }, 30);
@@ -6919,7 +7109,7 @@ function initDAG() {
   canvas.style.width  = canvas.width  + 'px';
   canvas.style.height = canvas.height + 'px';
 
-  if (!S.subbasins.length) { const ctx=canvas.getContext('2d'); ctx.font='10px IBM Plex Mono,monospace'; ctx.fillStyle='#334d60'; ctx.textAlign='center'; ctx.fillText('Load a .rvh file to view the routing network', canvas.width/2, canvas.height/2); return; }
+  if (!S.subbasins.length) { const ctx=canvas.getContext('2d'); ctx.font='10px IBM Plex Mono,monospace'; ctx.fillStyle=_labelColor(); ctx.textAlign='center'; ctx.fillText('Load a .rvh file to view the routing network', canvas.width/2, canvas.height/2); return; }
   buildDAGLayout();
   dagFitView();
 
@@ -7039,7 +7229,7 @@ function drawDAG() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (!dagState.nodes.length) {
-    ctx.fillStyle = '#334d60'; ctx.font = '11px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = _labelColor(); ctx.font = '11px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
     ctx.fillText('Load a .rvh file to view the routing network', canvas.width/2, canvas.height/2);
     return;
   }
@@ -7346,7 +7536,7 @@ function drawChannel(ci) {
     ctx.fillStyle='#00e4b4';
     for(const p of pts){ctx.beginPath();ctx.arc(px(p.x),py(p.y),2.5,0,Math.PI*2);ctx.fill();}
     // labels
-    ctx.fillStyle='#334d60';ctx.font='8px IBM Plex Mono,monospace';
+    ctx.fillStyle=_labelColor();ctx.font='8px IBM Plex Mono,monospace';
     ctx.fillText(`x: ${xmin.toFixed(0)}–${xmax.toFixed(0)} m`,pad,88);
     ctx.fillText(`slope: ${cp.bedslope}`,W-80,88);
   });
@@ -7680,7 +7870,7 @@ function drawSoilProfiles() {
   const colorBy = document.getElementById('spv-color')?.value || 'class';
 
   if (!profiles.length) {
-    ctx.fillStyle = '#334d60'; ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = _labelColor(); ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
     ctx.fillText('No profiles selected', W/2, H/2);
     ctx.restore(); return;
   }
@@ -7699,7 +7889,7 @@ function drawSoilProfiles() {
   ), 1);
 
   // Depth axis grid
-  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.strokeStyle = _gridColor(0.07);
   ctx.lineWidth = 1;
   const depthTicks = [0, 0.25, 0.5, 1, 1.5, 2, 3, 5].filter(d => d <= maxDepth + 0.01);
   for (const d of depthTicks) {
@@ -7710,7 +7900,7 @@ function drawSoilProfiles() {
   }
 
   // Surface line
-  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.strokeStyle = _crosshairColor();
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(MARGIN_L, MARGIN_T); ctx.lineTo(W - MARGIN_R, MARGIN_T); ctx.stroke();
 
@@ -8938,6 +9128,7 @@ async function exportZip() {
   const blob=await zip.generateAsync({type:'blob'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${run}_raven_export.zip`;a.click();
   toast(`Exported ${run}_raven_export.zip`,'ok');
+  clearDirty();
 }
 window.exportZip=exportZip;
 
@@ -9676,7 +9867,7 @@ function drawHRUPie() {
     ctx.closePath();
     ctx.fillStyle = colors[i];
     ctx.fill();
-    ctx.strokeStyle = 'rgba(8,11,13,.6)';
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg0').trim() || 'rgba(8,11,13,.6)';
     ctx.lineWidth = 0.5;
     ctx.stroke();
     angle += slice;
@@ -9992,7 +10183,7 @@ function drawSVGraph(canvas, pos, svNames, tiers, byTier, hovNode, hovEdge, edge
   // ── Tier bands ─────────────────────────────────────────────────────────────
   tiers.forEach((tier, ti) => {
     const y = ti * V_GAP + 8;
-    ctx.fillStyle = 'rgba(255,255,255,0.015)';
+    ctx.fillStyle = _gridColor(0.015);
     ctx.fillRect(0, y, W, V_GAP);
     ctx.fillStyle = '#2a3a4a';
     ctx.font = '8px IBM Plex Mono,monospace';
@@ -10215,7 +10406,7 @@ function drawLapseChart() {
 
   // ── Elevation grid lines + Y axis ticks ───────────────────────────────────
   const nYTicks = 6;
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.strokeStyle = _gridColor(0.06);
   ctx.lineWidth = 1;
   ctx.font = '10px IBM Plex Mono,monospace';
 
@@ -10229,7 +10420,7 @@ function drawLapseChart() {
   }
 
   // ── Plot area border ───────────────────────────────────────────────────────
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.strokeStyle = _diagonalColor();
   ctx.lineWidth = 1;
   ctx.strokeRect(ML, MT, plotW, plotH);
 
@@ -10650,7 +10841,7 @@ function setMetTab(tab) {
       if (!sel) {
         sel = document.createElement('div');
         sel.id = 'met-hmap-paramsel';
-        sel.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:9px;color:var(--text2);flex-shrink:0;border-bottom:1px solid var(--border);background:rgba(8,11,13,.9)';
+        sel.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:9px;color:var(--text2);flex-shrink:0;border-bottom:1px solid var(--border);background:var(--overlay-bg2)';
         hw.insertBefore(sel, hw.firstChild);
       }
       sel.style.display = vis.length > 1 ? '' : 'none';
@@ -10736,7 +10927,7 @@ function drawMetClim() {
   const otherParams  = visParams.filter(({p})=>!isPrecip(p));
 
   // Grid lines at month boundaries
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+  ctx.strokeStyle = _gridColor(0.05); ctx.lineWidth = 1;
   monthStarts.forEach(doy => {
     const x = doyToX(doy);
     ctx.beginPath(); ctx.moveTo(x,MT); ctx.lineTo(x,MT+plotH); ctx.stroke();
@@ -10836,7 +11027,7 @@ function drawMetClim() {
       ctx.fillStyle=col; ctx.font='8px IBM Plex Mono,monospace';
       for(let t=0;t<=5;t++){
         const v=vMin+(vMax-vMin)*t/5, y=toY(v,vMin,vMax);
-        ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
+        ctx.strokeStyle=_gridColor(0.06); ctx.lineWidth=1;
         ctx.beginPath(); ctx.moveTo(ML,y); ctx.lineTo(ML+plotW,y); ctx.stroke();
         ctx.textAlign='right'; ctx.fillText(Math.abs(v)<1?v.toFixed(2):v.toFixed(1), ML-4, y+3);
       }
@@ -10858,7 +11049,7 @@ function drawMetClim() {
   });
 
   // X axis: month labels
-  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
   monthStarts.forEach((doy,mi)=>{
     ctx.fillText(MONTHS[mi], Math.min(doyToX(doy+14),logW-MR-10), logH-MB+14);
   });
@@ -10868,7 +11059,7 @@ function drawMetClim() {
   ctx.strokeRect(ML,MT,plotW,plotH);
 
   // Title
-  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
   ctx.fillText('Annual Climatology — median · shaded 2.5%–97.5% · bars=precip (right axis)', ML, MT-6);
 
   ctx.restore();
@@ -10974,7 +11165,7 @@ function drawMetHeatmap() {
   });
 
   // Y axis: year labels
-  ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'right';
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'right';
   years.forEach((yr, yi) => {
     if (nYears <= 20 || yi % Math.ceil(nYears/20) === 0) {
       ctx.fillText(yr, ML-4, MT + (yi+0.7)*CELL_H);
@@ -10984,7 +11175,7 @@ function drawMetHeatmap() {
   // X axis: month labels
   const monthStarts = [1,32,60,91,121,152,182,213,244,274,305,335];
   const monthNames  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  ctx.textAlign = 'center'; ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace';
+  ctx.textAlign = 'center'; ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace';
   monthStarts.forEach((doy, mi) => {
     const x = ML + (doy-1+15)*CELL_W;
     ctx.fillText(monthNames[mi], Math.min(x, logW-MR-10), logH - MB + 12);
@@ -10997,15 +11188,15 @@ function drawMetHeatmap() {
     ctx.fillStyle = valToColor(vMin + (i/lgW)*(vMax-vMin));
     ctx.fillRect(lgX+i, lgY, 1, lgH);
   }
-  ctx.strokeStyle = '#334d60'; ctx.lineWidth = 0.5; ctx.strokeRect(lgX, lgY, lgW, lgH);
-  ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace';
+  ctx.strokeStyle = _labelColor(); ctx.lineWidth = 0.5; ctx.strokeRect(lgX, lgY, lgW, lgH);
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace';
   ctx.textAlign = 'left';  ctx.fillText((Math.abs(vMin)<1?vMin.toFixed(2):vMin.toFixed(1)), lgX, lgY+lgH+9);
   ctx.textAlign = 'right'; ctx.fillText((Math.abs(vMax)<1?vMax.toFixed(2):vMax.toFixed(1)), lgX+lgW, lgY+lgH+9);
   ctx.textAlign = 'center'; ctx.fillStyle = col;
   ctx.fillText(d.params[pi]+(d.units[pi]?' ('+d.units[pi]+')':''), lgX+lgW/2, lgY+lgH+9);
 
   // Title
-  ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'left';
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'left';
   ctx.fillText('Heatmap · '+d.params[pi]+' · Julian day vs Year', ML, MT-6);
 
   ctx.restore();
@@ -11093,7 +11284,7 @@ function drawMetChart() {
   const iToX = i => ML + ((i - i0) / span) * plotW;
 
   // Grid
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+  ctx.strokeStyle = _gridColor(0.06); ctx.lineWidth = 1;
   for (let gi = 0; gi <= 4; gi++) {
     const y = MT + (gi / 4) * plotH;
     ctx.beginPath(); ctx.moveTo(ML, y); ctx.lineTo(ML + plotW, y); ctx.stroke();
@@ -11709,11 +11900,11 @@ function drawDemandCycleChart(di) {
       ctx.fillText(v < 1 ? v.toFixed(2) : v.toFixed(1), x + bw/2, H - 16 - bh + 8);
     }
     // Zero line
-    ctx.fillStyle = '#334d60'; ctx.font = '7px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = _labelColor(); ctx.font = '7px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
     ctx.fillText(MONTHS[mi], x + bw/2, H - 2);
   });
   // Max label
-  ctx.fillStyle = '#5c7d96'; ctx.font = '7px IBM Plex Mono,monospace'; ctx.textAlign = 'right';
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '7px IBM Plex Mono,monospace'; ctx.textAlign = 'right';
   ctx.fillText('max: ' + (vMax<1?vMax.toFixed(3):vMax.toFixed(1)), W - 2, 8);
 }
 window.drawDemandCycleChart = drawDemandCycleChart;
@@ -11764,7 +11955,7 @@ function drawDemandPriorityBar() {
   ctx.font = '7px IBM Plex Mono,monospace'; ctx.textAlign = 'left';
   ctx.fillStyle = '#00e4b4'; ctx.fillText('● basin', ML, H - 2);
   ctx.fillStyle = '#b06aff'; ctx.fillText('● reservoir', ML + 42, H - 2);
-  ctx.fillStyle = '#5c7d96'; ctx.textAlign = 'right';
+  ctx.fillStyle = _axisLabelColor(); ctx.textAlign = 'right';
   ctx.fillText('← higher priority', W - MR, H - 2);
 }
 window.drawDemandPriorityBar = drawDemandPriorityBar;
@@ -11866,6 +12057,8 @@ function applyTheme(id) {
   const theme = THEMES.find(t => t.id === id) || THEMES[0];
   _currentTheme = theme.id;
   document.documentElement.setAttribute('data-theme', theme.id);
+  // Invalidate cached canvas color values
+  if (typeof _invalidateThemeCache === 'function') _invalidateThemeCache();
 
   // Update button label + swatch
   const btnName   = document.getElementById('theme-btn-name');
@@ -11898,8 +12091,14 @@ function applyTheme(id) {
   if (typeof drawMetChart === 'function' && document.getElementById('met-panel')?.classList.contains('open')) {
     requestAnimationFrame(drawMetChart);
   }
-  if (typeof drawHydrograph === 'function' && window.ravenOut?.dates?.length) {
+  if (typeof redrawActiveTab === 'function' && window.ravenOut?.dates?.length && hydroState?.activeKeys?.length) {
+    requestAnimationFrame(redrawActiveTab);
+  } else if (typeof drawHydrograph === 'function' && window.ravenOut?.dates?.length) {
     requestAnimationFrame(drawHydrograph);
+  }
+  // Refresh HRU pie chart if visible
+  if (typeof drawHruPie === 'function' && document.getElementById('rvh-pie-wrap')?.classList.contains('show')) {
+    requestAnimationFrame(drawHruPie);
   }
 }
 
@@ -12030,14 +12229,14 @@ function drawCumulDep() {
 
   // 1:1 diagonal
   const dmin = Math.min(xMin,yMin), dmax = Math.max(xMax,yMax);
-  ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1; ctx.setLineDash([6,4]);
+  ctx.strokeStyle=_diagonalColor(); ctx.lineWidth=1; ctx.setLineDash([6,4]);
   ctx.beginPath();
   ctx.moveTo(PAD.left+(dmin-xMin)/xR*cW, PAD.top+cH-(dmin-yMin)/yR*cH);
   ctx.lineTo(PAD.left+(dmax-xMin)/xR*cW, PAD.top+cH-(dmax-yMin)/yR*cH);
   ctx.stroke(); ctx.setLineDash([]);
 
   // Grid
-  ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+  ctx.strokeStyle=_gridColor(0.05); ctx.lineWidth=0.5;
   for (let t=0; t<=4; t++) {
     const xg=PAD.left+t/4*cW; ctx.beginPath(); ctx.moveTo(xg,PAD.top); ctx.lineTo(xg,PAD.top+cH); ctx.stroke();
     const yg=PAD.top+t/4*cH; ctx.beginPath(); ctx.moveTo(PAD.left,yg); ctx.lineTo(PAD.left+cW,yg); ctx.stroke();
@@ -12058,13 +12257,13 @@ function drawCumulDep() {
   });
 
   // Axes
-  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=0.5;
+  ctx.strokeStyle=_diagonalColor(); ctx.lineWidth=0.5;
   ctx.beginPath(); ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,PAD.top+cH); ctx.lineTo(PAD.left+cW,PAD.top+cH); ctx.stroke();
-  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace';
   ctx.textAlign='center'; ctx.fillText('Cumulative observed (m³/s·day)', PAD.left+cW/2, H-4);
   ctx.save(); ctx.translate(12,PAD.top+cH/2); ctx.rotate(-Math.PI/2);
   ctx.textAlign='center'; ctx.fillText('Cumulative simulated', 0, 0); ctx.restore();
-  ctx.textAlign='left'; ctx.fillStyle='#334d60';
+  ctx.textAlign='left'; ctx.fillStyle=_labelColor();
   ctx.fillText('1:1 perfect agreement', PAD.left+8, PAD.top+14);
   ctx.restore();
 
@@ -12225,7 +12424,7 @@ function _drawResidDist(residuals) {
   }
 
   // X axis ticks
-  ctx.fillStyle = '#5c7d96'; ctx.font = '7px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '7px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
   for (let t = 0; t <= 4; t++) {
     const v = binMin + (t/4)*binRange;
     const x = PAD.left + (t/4)*cW;
@@ -12233,7 +12432,7 @@ function _drawResidDist(residuals) {
   }
 
   // Stats annotation
-  ctx.fillStyle = '#5c7d96'; ctx.font = '7px IBM Plex Mono,monospace'; ctx.textAlign = 'left';
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '7px IBM Plex Mono,monospace'; ctx.textAlign = 'left';
   ctx.fillText(`μ=${mean.toFixed(2)}`, PAD.left, PAD.top-16);
   ctx.fillText(`σ=${std.toFixed(2)}`, PAD.left, PAD.top-7);
   // Gaussian curve legend
@@ -12246,7 +12445,7 @@ function _drawResidDist(residuals) {
   ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, PAD.top+cH); ctx.lineTo(PAD.left+cW, PAD.top+cH); ctx.stroke();
 
   // Title
-  ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
   ctx.fillText('Distribution', PAD.left+cW/2, 9);
 
   ctx.restore();
@@ -12322,21 +12521,21 @@ function _drawResidClim(sr, keys, k, isMonthly, serCol, PAD, W, H, ctx) {
 
   // Zero line
   const y0 = py(0);
-  ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1; ctx.setLineDash([5,5]);
+  ctx.strokeStyle = _crosshairColor(); ctx.lineWidth = 1; ctx.setLineDash([5,5]);
   ctx.beginPath(); ctx.moveTo(PAD.left, y0); ctx.lineTo(PAD.left+cW, y0); ctx.stroke();
   ctx.setLineDash([]);
 
   // Grid + Y axis
-  ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace';
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace';
   for (let t = 0; t <= 5; t++) {
     const v = yMin+(yMax-yMin)*t/5, y = py(v);
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.5;
+    ctx.strokeStyle = _gridColor(0.05); ctx.lineWidth = 0.5;
     ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+cW,y); ctx.stroke();
     ctx.textAlign = 'right'; ctx.fillText(Math.abs(v)<1?v.toFixed(2):v.toFixed(1), PAD.left-3, y+3);
   }
 
   // X axis labels
-  ctx.fillStyle = '#334d60'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = _labelColor(); ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
   if (isMonthly) {
     MONTHS.forEach((m, i) => {
       ctx.fillText(m, PAD.left + (i/12)*cW + cW/24, H - PAD.bottom + 11);
@@ -12354,7 +12553,7 @@ function _drawResidClim(sr, keys, k, isMonthly, serCol, PAD, W, H, ctx) {
   ctx.beginPath(); ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,PAD.top+cH); ctx.lineTo(PAD.left+cW,PAD.top+cH); ctx.stroke();
 
   // Title
-  ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
   ctx.fillText(`${(ravenOut.series[k].label||k)} · Climatological residuals (${isMonthly?'Monthly':'Daily DOY'})`, PAD.left+cW/2, PAD.top-6);
 
   return allRes;
@@ -12485,10 +12684,10 @@ function drawResidHeatmap() {
     ctx.stroke();
 
     // Grid + Y axis
-    ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace';
+    ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace';
     for(let t=0;t<=5;t++){
       const v=yMin+(yMax-yMin)*t/5, y=py(v);
-      ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+      ctx.strokeStyle=_gridColor(0.05); ctx.lineWidth=0.5;
       ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+cW,y); ctx.stroke();
       ctx.textAlign='right'; ctx.fillText(Math.abs(v)<1?v.toFixed(2):v.toFixed(1), PAD.left-3, y+3);
     }
@@ -12497,7 +12696,7 @@ function drawResidHeatmap() {
     const tickN=Math.min(8,n);
     for(let t=0;t<=tickN;t++){
       const i=Math.round(t/tickN*(n-1));
-      ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+      ctx.fillStyle=_labelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
       ctx.fillText(pts[i]?.label?.slice(0,10)||'', px(i), H-PAD.bottom+11);
     }
 
@@ -12506,17 +12705,17 @@ function drawResidHeatmap() {
     ctx.beginPath(); ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,PAD.top+cH); ctx.lineTo(PAD.left+cW,PAD.top+cH); ctx.stroke();
 
     // Labels
-    ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+    ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
     ctx.fillText('Residual = Sim − Obs (m³/s)', PAD.left+cW/2, H-4);
     ctx.fillText(`${sr.label||k} · ${isMonthly?'Monthly':'Daily'} residuals`, PAD.left+cW/2, PAD.top-6);
 
     // Legend
     ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
     const lx=PAD.left+8, ly=PAD.top+8;
-    ctx.fillStyle=serCol+'20'; ctx.fillRect(lx,ly,10,7); ctx.fillStyle='#5c7d96'; ctx.fillText('90%',lx+13,ly+6);
-    ctx.fillStyle=serCol+'40'; ctx.fillRect(lx+40,ly,10,7); ctx.fillStyle='#5c7d96'; ctx.fillText('IQR',lx+53,ly+6);
+    ctx.fillStyle=serCol+'20'; ctx.fillRect(lx,ly,10,7); ctx.fillStyle=_axisLabelColor(); ctx.fillText('90%',lx+13,ly+6);
+    ctx.fillStyle=serCol+'40'; ctx.fillRect(lx+40,ly,10,7); ctx.fillStyle=_axisLabelColor(); ctx.fillText('IQR',lx+53,ly+6);
     ctx.strokeStyle=serCol; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(lx+80,ly+4); ctx.lineTo(lx+92,ly+4); ctx.stroke();
-    ctx.fillStyle='#5c7d96'; ctx.fillText(isMonthly?'Median':'Residual',lx+95,ly+6);
+    ctx.fillStyle=_axisLabelColor(); ctx.fillText(isMonthly?'Median':'Residual',lx+95,ly+6);
 
     // Hover
     canvas.onmousemove = e => {
@@ -12653,17 +12852,17 @@ function drawHypsometry() {
     for(let t=0;t<=nT;t++){
       const elev=elevMin+(elevMax-elevMin)*t/nT;
       const y=py(elev);
-      ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+      ctx.strokeStyle=_gridColor(0.05); ctx.lineWidth=0.5;
       ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+cW,y); ctx.stroke();
-      ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
+      ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
       ctx.fillText(elev.toFixed(0)+'m', PAD.left-3, y+3);
     }
     // X axis ticks
     for(let t=0;t<=4;t++){
       const x=t/4;
-      ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+      ctx.strokeStyle=_gridColor(0.05); ctx.lineWidth=0.5;
       ctx.beginPath(); ctx.moveTo(px(x),PAD.top); ctx.lineTo(px(x),PAD.top+cH); ctx.stroke();
-      ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+      ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
       ctx.fillText((x*100).toFixed(0)+'%', px(x), H-4);
     }
 
@@ -12671,7 +12870,7 @@ function drawHypsometry() {
     ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=0.5;
     ctx.beginPath(); ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,PAD.top+cH); ctx.lineTo(PAD.left+cW,PAD.top+cH); ctx.stroke();
 
-    ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace';
+    ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace';
     ctx.textAlign='center'; ctx.fillText('Fraction of watershed area below elevation', PAD.left+cW/2, H-4+10);
     ctx.save(); ctx.translate(10,PAD.top+cH/2); ctx.rotate(-Math.PI/2);
     ctx.textAlign='center'; ctx.fillText('Elevation (m)', 0, 0); ctx.restore();
@@ -12739,17 +12938,17 @@ function drawAspectRose() {
     // Rings
     [0.25, 0.5, 0.75, 1].forEach(f => {
       ctx.beginPath(); ctx.arc(cx, cy, R * f, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 0.8; ctx.stroke();
+      ctx.strokeStyle = _gridColor(0.07); ctx.lineWidth = 0.8; ctx.stroke();
       // ring label
       const rv = (f * maxA / totalA * 100).toFixed(0);
-      ctx.fillStyle = '#334d60'; ctx.font = '7px IBM Plex Mono,monospace';
+      ctx.fillStyle = _labelColor(); ctx.font = '7px IBM Plex Mono,monospace';
       ctx.textAlign = 'left'; ctx.fillText(rv + '%', cx + R * f + 3, cy - 3);
     });
 
     // Spokes
     for (let s = 0; s < SECTORS; s++) {
       const a = (s * Math.PI * 2 / SECTORS) - Math.PI / 2;
-      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.6;
+      ctx.strokeStyle = _gridColor(0.06); ctx.lineWidth = 0.6;
       ctx.beginPath(); ctx.moveTo(cx, cy);
       ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.stroke();
     }
@@ -12766,7 +12965,7 @@ function drawAspectRose() {
       ctx.fillStyle = `rgba(0,${Math.round(160 + t * 95)},${Math.round(120 + t * 80)},${0.45 + t * 0.4})`;
       ctx.fill();
       // Thin border on each wedge
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 0.5; ctx.stroke();
+      ctx.strokeStyle = _gridColor(0.08); ctx.lineWidth = 0.5; ctx.stroke();
     });
 
     // Direction labels
@@ -12789,7 +12988,7 @@ function drawAspectRose() {
     // Centre donut hole + label
     ctx.beginPath(); ctx.arc(cx, cy, R * 0.22, 0, Math.PI * 2);
     ctx.fillStyle = 'var(--bg0,#080b0d)'; ctx.fill();
-    ctx.fillStyle = '#334d60'; ctx.textAlign = 'center';
+    ctx.fillStyle = _labelColor(); ctx.textAlign = 'center';
     ctx.font = `${Math.max(8, Math.min(11, R * 0.13))}px IBM Plex Mono,monospace`;
     ctx.fillText('Aspect', cx, cy - 4);
     ctx.font = '8px IBM Plex Mono,monospace';
@@ -12850,7 +13049,7 @@ function drawSlopeDist() {
     const cH  = H - PAD.top  - PAD.bottom;
 
     if (!hasSlope) {
-      ctx.fillStyle = '#334d60'; ctx.font = '11px IBM Plex Mono,monospace';
+      ctx.fillStyle = _labelColor(); ctx.font = '11px IBM Plex Mono,monospace';
       ctx.textAlign = 'center'; ctx.fillText('No slope data', W / 2, H / 2);
       ctx.restore(); return;
     }
@@ -12914,22 +13113,22 @@ function drawSlopeDist() {
     }
 
     // X axis ticks (slope °)
-    ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace';
+    ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace';
     const nXTicks = Math.min(6, BINS);
     for (let t = 0; t <= nXTicks; t++) {
       const sv = sMin + (t / nXTicks) * (sMax - sMin);
       const x  = PAD.left + (t / nXTicks) * cW;
-      ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.5;
+      ctx.strokeStyle = _gridColor(0.05); ctx.lineWidth = 0.5;
       ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + cH); ctx.stroke();
       ctx.textAlign = 'center'; ctx.fillText(sv.toFixed(1) + '°', x, H - PAD.bottom + 12);
     }
 
     // Left Y axis ticks (area fraction)
-    ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace';
+    ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace';
     for (let t = 0; t <= 4; t++) {
       const frac = t / 4;
       const y = PAD.top + cH - frac * cH;
-      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
+      ctx.strokeStyle = _gridColor(0.06); ctx.lineWidth = 0.5;
       ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y); ctx.stroke();
       ctx.textAlign = 'right'; ctx.fillText((frac * maxArea).toFixed(1), PAD.left - 4, y + 3);
     }
@@ -12944,7 +13143,7 @@ function drawSlopeDist() {
     }
 
     // Axis box
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 0.8;
+    ctx.strokeStyle = _diagonalColor(); ctx.lineWidth = 0.8;
     ctx.beginPath();
     ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, PAD.top + cH);
     ctx.lineTo(PAD.left + cW, PAD.top + cH);
@@ -12952,11 +13151,11 @@ function drawSlopeDist() {
     ctx.stroke();
 
     // Axis labels
-    ctx.fillStyle = '#5c7d96'; ctx.font = '9px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = _axisLabelColor(); ctx.font = '9px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
     ctx.fillText('Slope (°)', PAD.left + cW / 2, H - PAD.bottom + 26);
 
     ctx.save(); ctx.translate(13, PAD.top + cH / 2); ctx.rotate(-Math.PI / 2);
-    ctx.fillStyle = '#5c7d96'; ctx.textAlign = 'center';
+    ctx.fillStyle = _axisLabelColor(); ctx.textAlign = 'center';
     ctx.fillText('Area (km²)', 0, 0); ctx.restore();
 
     ctx.save(); ctx.translate(W - 8, PAD.top + cH / 2); ctx.rotate(Math.PI / 2);
@@ -12967,7 +13166,7 @@ function drawSlopeDist() {
     ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'left';
     const lx = PAD.left + 8, ly = PAD.top + 8;
     ctx.fillStyle = 'rgba(120,200,120,0.75)'; ctx.fillRect(lx, ly, 10, 8);
-    ctx.fillStyle = '#5c7d96'; ctx.fillText('Area / bin', lx + 13, ly + 7);
+    ctx.fillStyle = _axisLabelColor(); ctx.fillText('Area / bin', lx + 13, ly + 7);
     ctx.strokeStyle = '#f0a832'; ctx.lineWidth = 1.8;
     ctx.beginPath(); ctx.moveTo(lx + 80, ly + 4); ctx.lineTo(lx + 92, ly + 4); ctx.stroke();
     ctx.fillStyle = '#f0a832'; ctx.fillText('Cumul. %', lx + 95, ly + 7);
@@ -13022,7 +13221,7 @@ function drawParamDotChart() {
         const vMin=vals.reduce((a,b)=>b<a?b:a,Infinity), vMax=vals.reduce((a,b)=>b>a?b:a,-Infinity), vR=vMax-vMin||1;
         const cx=PAD.left+pi2*colW+colW/2;
         // Param label
-        ctx.fillStyle='#5c7d96'; ctx.font='7px IBM Plex Mono,monospace'; ctx.textAlign='center';
+        ctx.fillStyle=_axisLabelColor(); ctx.font='7px IBM Plex Mono,monospace'; ctx.textAlign='center';
         const lbl=p.length>8?p.slice(0,7)+'…':p;
         ctx.fillText(lbl, cx, PAD.top-4);
         // Axis line
@@ -13038,7 +13237,7 @@ function drawParamDotChart() {
           ctx.beginPath(); ctx.arc(cx,y,3.5,0,Math.PI*2); ctx.fill();
         });
         // Min/max labels
-        ctx.fillStyle='#334d60'; ctx.font='7px IBM Plex Mono,monospace'; ctx.textAlign='center';
+        ctx.fillStyle=_labelColor(); ctx.font='7px IBM Plex Mono,monospace'; ctx.textAlign='center';
         ctx.fillText(vMax<1?vMax.toFixed(3):vMax.toFixed(1), cx, PAD.top+8);
         ctx.fillText(vMin<1?vMin.toFixed(3):vMin.toFixed(1), cx, PAD.top+cH-1);
       });
@@ -13099,7 +13298,7 @@ function drawMetCompare() {
     const W=ctnr.offsetWidth||400, H=ctnr.offsetHeight||100;
     canvas.width=W*dpr; canvas.height=H*dpr; canvas.style.width=W+'px'; canvas.style.height=H+'px';
     const ctx=canvas.getContext('2d'); ctx.save(); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
-    ctx.fillStyle='#334d60'; ctx.font='11px IBM Plex Mono,monospace'; ctx.textAlign='center';
+    ctx.fillStyle=_labelColor(); ctx.font='11px IBM Plex Mono,monospace'; ctx.textAlign='center';
     ctx.fillText('Load 2 or more gauge time series to compare', W/2, H/2); ctx.restore(); return;
   }
 
@@ -13123,7 +13322,7 @@ function drawMetCompare() {
   ctx.clearRect(0,0,W,H);
 
   if (!series.length) {
-    ctx.fillStyle='#334d60'; ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center';
+    ctx.fillStyle=_labelColor(); ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center';
     ctx.fillText('All gauges muted — click a gauge chip above to show it', W/2, H/2);
     ctx.restore(); return;
   }
@@ -13151,7 +13350,7 @@ function drawMetCompare() {
   const pname=(metState.cmpParam||'').toUpperCase();
   if((pname.includes('TEMP')||pname==='T_AVE'||pname==='T_MIN'||pname==='T_MAX')&&vMin<0&&vMax>0){
     const y0=py(0);
-    ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+    ctx.strokeStyle=_diagonalColor(); ctx.lineWidth=1; ctx.setLineDash([5,4]);
     ctx.beginPath(); ctx.moveTo(ML,y0); ctx.lineTo(ML+plotW,y0); ctx.stroke(); ctx.setLineDash([]);
   }
 
@@ -13182,10 +13381,10 @@ function drawMetCompare() {
   });
 
   // Y axis ticks + grid
-  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace';
   for(let t=0;t<=4;t++){
     const v=vMin+(vMax-vMin)*t/4, y=py(v);
-    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+    ctx.strokeStyle=_gridColor(0.05); ctx.lineWidth=0.5;
     ctx.beginPath(); ctx.moveTo(ML,y); ctx.lineTo(ML+plotW,y); ctx.stroke();
     ctx.textAlign='right'; ctx.fillText(Math.abs(v)<1?v.toFixed(2):v.toFixed(1), ML-3, y+3);
   }
@@ -13194,7 +13393,7 @@ function drawMetCompare() {
   const tickN=Math.min(6,n);
   for(let t=0;t<=tickN;t++){
     const xi=Math.round(t/tickN*(n-1));
-    ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+    ctx.fillStyle=_labelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
     ctx.fillText((sortedDates[xi]||'').slice(0,10), iToX(xi), H-MB+12);
   }
 
@@ -13214,7 +13413,7 @@ function drawMetCompare() {
   // Y label
   const units=allParamSet.get(metState.cmpParam)||'';
   ctx.save(); ctx.translate(10,MT+plotH/2); ctx.rotate(-Math.PI/2);
-  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
   ctx.fillText(metState.cmpParam+(units?' ('+units+')':''), 0, 0); ctx.restore();
 
   ctx.restore();
@@ -13708,7 +13907,7 @@ function drawWaterBalance() {
 
   const years = Object.keys(byYear).map(Number).sort((a,b)=>a-b);
   if (years.length < 2) {
-    ctx.fillStyle='#334d60'; ctx.font='11px IBM Plex Mono,monospace'; ctx.textAlign='center';
+    ctx.fillStyle=_labelColor(); ctx.font='11px IBM Plex Mono,monospace'; ctx.textAlign='center';
     ctx.fillText('Need at least 2 years of data for water balance', W/2, H/2);
     ctx.restore(); return;
   }
@@ -13749,9 +13948,9 @@ function drawWaterBalance() {
   const nTy = 5;
   for (let t=0; t<=nTy; t++) {
     const v = yMax * t/nTy, y = py(v);
-    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+    ctx.strokeStyle=_gridColor(0.05); ctx.lineWidth=0.5;
     ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+cW,y); ctx.stroke();
-    ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
+    ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
     const lbl = v>=1000?(v/1000).toFixed(1)+'k':v.toFixed(0);
     ctx.fillText(lbl, PAD.left-4, y+3);
   }
@@ -13812,13 +14011,13 @@ function drawWaterBalance() {
   }
 
   // X axis labels
-  ctx.fillStyle='#334d60'; ctx.font='9px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_labelColor(); ctx.font='9px IBM Plex Mono,monospace'; ctx.textAlign='center';
   rows.forEach((r, i) => {
     ctx.fillText(r.yr, bx(i), H-PAD.bottom+14);
   });
 
   // Axes
-  ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=0.8;
+  ctx.strokeStyle=_diagonalColor(); ctx.lineWidth=0.8;
   ctx.beginPath();
   ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,PAD.top+cH); ctx.lineTo(PAD.left+cW,PAD.top+cH);
   ctx.moveTo(PAD.left+cW,PAD.top); ctx.lineTo(PAD.left+cW,PAD.top+cH);
@@ -13826,11 +14025,11 @@ function drawWaterBalance() {
 
   // Y label
   ctx.save(); ctx.translate(14, PAD.top+cH/2); ctx.rotate(-Math.PI/2);
-  ctx.fillStyle='#5c7d96'; ctx.font='9px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='9px IBM Plex Mono,monospace'; ctx.textAlign='center';
   ctx.fillText('Annual total (m³/s · days)', 0, 0); ctx.restore();
 
   // Title
-  ctx.fillStyle='#5c7d96'; ctx.font='9px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='9px IBM Plex Mono,monospace'; ctx.textAlign='center';
   ctx.fillText((sr.label||k) + ' — Annual Water Balance', PAD.left+cW/2, PAD.top-10);
 
   // Legend
@@ -13848,7 +14047,7 @@ function drawWaterBalance() {
     } else {
       ctx.fillStyle=item.col; ctx.fillRect(lx,PAD.top-14,12,8);
     }
-    ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
+    ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
     ctx.fillText(item.label, lx+16, PAD.top-7);
     lx += 80;
   });
@@ -14440,7 +14639,7 @@ function drawAnnualClimatology() {
   }
 
   if (!seriesData.length) {
-    ctx.fillStyle = '#334d60'; ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = _labelColor(); ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
     ctx.fillText('No data loaded', W / 2, H / 2);
     ctx.restore(); return;
   }
@@ -14470,18 +14669,18 @@ function drawAnnualClimatology() {
   ctx.setLineDash([]);
   for (let t = 0; t <= 4; t++) {
     const yv = yMin + (yMax - yMin) * t / 4, y = py(yv);
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
+    ctx.strokeStyle = _gridColor(0.06); ctx.lineWidth = 0.5;
     ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y); ctx.stroke();
-    ctx.fillStyle = '#334d60'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'right';
+    ctx.fillStyle = _labelColor(); ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'right';
     ctx.fillText(yv >= 1000 ? (yv/1000).toFixed(1)+'k' : yv.toFixed(yv < 1 ? 2 : 1), PAD.left - 3, y + 3);
   }
 
   // X grid + labels
-  ctx.fillStyle = '#334d60'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = _labelColor(); ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
   if (isMonthly) {
     MONTHS.forEach((m, i) => {
       const x = PAD.left + (i / 11) * cW;
-      ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.5;
+      ctx.strokeStyle = _gridColor(0.05); ctx.lineWidth = 0.5;
       ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + cH); ctx.stroke();
       ctx.fillText(m, x, H - PAD.bottom + 12);
     });
@@ -14489,7 +14688,7 @@ function drawAnnualClimatology() {
     const monthStarts = [0,31,59,90,120,151,181,212,243,273,304,334];
     MONTHS.forEach((m, i) => {
       const x = PAD.left + (monthStarts[i] / 365) * cW;
-      ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.5;
+      ctx.strokeStyle = _gridColor(0.05); ctx.lineWidth = 0.5;
       ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + cH); ctx.stroke();
       ctx.fillText(m, Math.min(x + cW / 24, PAD.left + cW - 10), H - PAD.bottom + 12);
     });
@@ -14501,7 +14700,7 @@ function drawAnnualClimatology() {
 
   // Y label
   ctx.save(); ctx.translate(12, PAD.top + cH / 2); ctx.rotate(-Math.PI / 2);
-  ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
   ctx.fillText((seriesData[0]?.sim ? ravenOut.series[hydroState.activeKeys[0]]?.units || 'm³/s' : 'm³/s'), 0, 0);
   ctx.restore();
 
@@ -14566,7 +14765,7 @@ function drawAnnualClimatology() {
   ctx.restore(); // end clip
 
   // Title
-  ctx.fillStyle = '#5c7d96'; ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = _axisLabelColor(); ctx.font = '8px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
   const nYears = new Set(ravenOut.dates.map(d => d.slice(0,4))).size;
   const statLabel = useMean ? 'Mean' : 'Median';
   ctx.fillText(`Annual climatology · ${statLabel} ± ${showEnv ? 'IQR & 5–95%' : 'no envelope'} · ${nYears} years`, PAD.left + cW / 2, PAD.top - 8);
@@ -14676,7 +14875,7 @@ function drawFDCBias() {
   }
 
   if (!biasLines.length) {
-    ctx.fillStyle = '#334d60'; ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = _labelColor(); ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
     ctx.fillText('No paired sim/obs data — load output with observations', W/2, H/2);
     ctx.restore(); return;
   }
@@ -14696,7 +14895,7 @@ function drawFDCBias() {
 
   // Zero line
   const y0 = toY(0);
-  ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1; ctx.setLineDash([5,4]);
+  ctx.strokeStyle = _crosshairColor(); ctx.lineWidth = 1; ctx.setLineDash([5,4]);
   ctx.beginPath(); ctx.moveTo(PAD.left, y0); ctx.lineTo(PAD.left+cW, y0); ctx.stroke();
   ctx.setLineDash([]);
   ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = '8px IBM Plex Mono,monospace';
@@ -14717,18 +14916,18 @@ function drawFDCBias() {
   const nTy = 6;
   for (let t=0; t<=nTy; t++) {
     const v = yMin + (yMax-yMin)*t/nTy, y = toY(v);
-    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+    ctx.strokeStyle=_gridColor(0.05); ctx.lineWidth=0.5;
     ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+cW,y); ctx.stroke();
-    ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
+    ctx.fillStyle=_labelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
     ctx.fillText(v.toFixed(0)+'%', PAD.left-3, y+3);
   }
 
   // Grid X
   const xTicks = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0];
-  ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_labelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
   for (const p of xTicks) {
     const x = toX(p);
-    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+    ctx.strokeStyle=_gridColor(0.05); ctx.lineWidth=0.5;
     ctx.beginPath(); ctx.moveTo(x,PAD.top); ctx.lineTo(x,PAD.top+cH); ctx.stroke();
     ctx.fillText(Math.round(p*100)+'%', x, H-PAD.bottom+12);
   }
@@ -14754,13 +14953,13 @@ function drawFDCBias() {
 
   // Labels
   ctx.save(); ctx.translate(13, PAD.top+cH/2); ctx.rotate(-Math.PI/2);
-  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
   ctx.fillText('Relative bias  (sim−obs)/obs  %', 0, 0); ctx.restore();
-  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
   ctx.fillText('Exceedance probability', PAD.left+cW/2, H-4);
 
   // Title
-  ctx.fillStyle='#5c7d96'; ctx.textAlign='center';
+  ctx.fillStyle=_axisLabelColor(); ctx.textAlign='center';
   ctx.fillText('FDC Bias — Simulated minus Observed by exceedance probability', PAD.left+cW/2, PAD.top-8);
 
   // Legend
@@ -14863,7 +15062,7 @@ function drawMetBoxWhisker() {
   // Zero line for temperature
   if (vMin<0&&vMax>0) {
     const y0=toY(0);
-    ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.strokeStyle=_diagonalColor(); ctx.lineWidth=1; ctx.setLineDash([4,4]);
     ctx.beginPath(); ctx.moveTo(ML,y0); ctx.lineTo(ML+plotW,y0); ctx.stroke();
     ctx.setLineDash([]);
   }
@@ -14872,9 +15071,9 @@ function drawMetBoxWhisker() {
   const nTy=5;
   for(let t=0;t<=nTy;t++){
     const v=vMin+(vMax-vMin)*t/nTy, y=toY(v);
-    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+    ctx.strokeStyle=_gridColor(0.05); ctx.lineWidth=0.5;
     ctx.beginPath(); ctx.moveTo(ML,y); ctx.lineTo(ML+plotW,y); ctx.stroke();
-    ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
+    ctx.fillStyle=_labelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='right';
     const lbl=Math.abs(v)<1?v.toFixed(2):v.toFixed(1);
     ctx.fillText(lbl, ML-3, y+3);
   }
@@ -14913,7 +15112,7 @@ function drawMetBoxWhisker() {
   });
 
   // X axis
-  ctx.fillStyle='#334d60'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_labelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
   MONTHS.forEach((mo,mi)=>{ ctx.fillText(mo, ML+mi*bw+bw/2, logH-MB+13); });
 
   // Axes border
@@ -14922,11 +15121,11 @@ function drawMetBoxWhisker() {
 
   // Y axis label
   ctx.save(); ctx.translate(11,MT+plotH/2); ctx.rotate(-Math.PI/2);
-  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
   ctx.fillText(pname+(unit?' ('+unit+')':''), 0, 0); ctx.restore();
 
   // Title
-  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
   ctx.fillText(d.gaugeId+' · '+pname+' · Monthly distribution', ML+plotW/2, MT-10);
 
   // Legend
@@ -14938,7 +15137,7 @@ function drawMetBoxWhisker() {
     else if(type==='line'){ ctx.strokeStyle=stroke; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(lx,MT-12); ctx.lineTo(lx+10,MT-12); ctx.stroke(); }
     else if(type==='dot'){ ctx.fillStyle=fill; ctx.beginPath(); ctx.arc(lx+5,MT-12,2.5,0,Math.PI*2); ctx.fill(); }
     else { ctx.strokeStyle=stroke; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(lx+5,MT-17); ctx.lineTo(lx+5,MT-7); ctx.stroke(); }
-    ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
+    ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='left';
     ctx.fillText(lbl, lx+13, MT-9); lx+=70;
   });
 
@@ -14988,9 +15187,9 @@ function drawMetPTDist() {
   const tempPi   = d.params.findIndex(isTemp);
 
   if (precipPi < 0 || tempPi < 0) {
-    ctx.fillStyle = '#334d60'; ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = _labelColor(); ctx.font = '10px IBM Plex Mono,monospace'; ctx.textAlign = 'center';
     ctx.fillText('Need both a precipitation and a temperature parameter', logW/2, logH/2-8);
-    ctx.fillStyle='#5c7d96'; ctx.font='9px IBM Plex Mono,monospace';
+    ctx.fillStyle=_axisLabelColor(); ctx.font='9px IBM Plex Mono,monospace';
     ctx.fillText('(detected param names: '+d.params.join(', ')+')', logW/2, logH/2+8);
     ctx.restore(); return;
   }
@@ -15008,7 +15207,7 @@ function drawMetPTDist() {
   }
 
   if (!pts.length) {
-    ctx.fillStyle='#334d60'; ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center';
+    ctx.fillStyle=_labelColor(); ctx.font='10px IBM Plex Mono,monospace'; ctx.textAlign='center';
     ctx.fillText('No valid P+T pairs in this date range', logW/2, logH/2);
     ctx.restore(); return;
   }
@@ -15080,16 +15279,16 @@ function drawMetPTDist() {
   ctx.font='8px IBM Plex Mono,monospace';
   for(let t=0;t<=nTticks;t++){
     const tv=tMin+(tMax-tMin)*t/nTticks, x=toX(tv);
-    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+    ctx.strokeStyle=_gridColor(0.05); ctx.lineWidth=0.5;
     ctx.beginPath(); ctx.moveTo(x,MT); ctx.lineTo(x,MT+plotH); ctx.stroke();
-    ctx.fillStyle='#334d60'; ctx.textAlign='center';
+    ctx.fillStyle=_labelColor(); ctx.textAlign='center';
     ctx.fillText(tv.toFixed(0)+'°', x, logH-MB+12);
   }
   for(let t=0;t<=nPticks;t++){
     const pv=pMin+(pMax-pMin)*t/nPticks, y=toY(pv);
-    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+    ctx.strokeStyle=_gridColor(0.05); ctx.lineWidth=0.5;
     ctx.beginPath(); ctx.moveTo(ML,y); ctx.lineTo(ML+plotW,y); ctx.stroke();
-    ctx.fillStyle='#334d60'; ctx.textAlign='right';
+    ctx.fillStyle=_labelColor(); ctx.textAlign='right';
     ctx.fillText(pv<1?pv.toFixed(2):pv.toFixed(1), ML-3, y+3);
   }
 
@@ -15097,7 +15296,7 @@ function drawMetPTDist() {
   ctx.beginPath(); ctx.moveTo(ML,MT); ctx.lineTo(ML,MT+plotH); ctx.lineTo(ML+plotW,MT+plotH); ctx.stroke();
 
   // Axis labels
-  ctx.fillStyle='#5c7d96'; ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=_axisLabelColor(); ctx.font='8px IBM Plex Mono,monospace'; ctx.textAlign='center';
   ctx.fillText('Temperature ('+d.params[tempPi]+')  °C', ML+plotW/2, logH-4);
   ctx.save(); ctx.translate(11,MT+plotH/2); ctx.rotate(-Math.PI/2);
   ctx.fillText('Precipitation ('+d.params[precipPi]+')  mm/d', 0, 0); ctx.restore();
@@ -15105,7 +15304,7 @@ function drawMetPTDist() {
   // Title + stats
   const coldRain = pts.filter(([t,p])=>t<0&&p>0).length;
   const pctColdRain = (coldRain/pts.length*100).toFixed(1);
-  ctx.fillStyle='#5c7d96'; ctx.textAlign='center';
+  ctx.fillStyle=_axisLabelColor(); ctx.textAlign='center';
   ctx.fillText(`${d.gaugeId} · P–T joint distribution (${pts.length} days) · ${pctColdRain}% rain/snow at T<0°C`, ML+plotW/2, MT-10);
 
   ctx.restore();
@@ -15133,8 +15332,17 @@ function drawMetPTDist() {
 window.drawMetPTDist = drawMetPTDist;
 
 function toast(msg,type='ok') {
+  const container = document.getElementById('toasts');
+  if (!container) return;
+  // Prevent duplicate messages within short timeframe
+  const existing = container.querySelectorAll('.toast');
+  for (const ex of existing) { if (ex.textContent === msg) return; }
+  // Cap visible toasts at 5 — remove oldest
+  if (existing.length >= 5) existing[0].remove();
   const el=document.createElement('div'); el.className='toast '+type; el.textContent=msg;
-  document.getElementById('toasts').appendChild(el);
+  // ARIA: announce to screen readers
+  el.setAttribute('role','status'); el.setAttribute('aria-live','polite');
+  container.appendChild(el);
   setTimeout(()=>el.remove(),3200);
 }
 window.toast=toast;
@@ -15289,6 +15497,23 @@ window.toast=toast;
 })();
 
 // ══════════════════════════════════════════════════════════════════════════════
+// GLOBAL RESIZE — debounced redraw of all visible canvases
+// ══════════════════════════════════════════════════════════════════════════════
+let _resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    if (window.map) map.invalidateSize();
+    if (typeof redrawActiveTab === 'function' && hydroState?.activeKeys?.length) {
+      redrawActiveTab();
+    }
+    if (typeof drawMetChart === 'function' && document.getElementById('met-panel')?.classList.contains('open')) {
+      drawMetChart();
+    }
+  }, 150);
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 // DRAG & DROP
 // ══════════════════════════════════════════════════════════════════════════════
 document.addEventListener('dragover',e=>{e.preventDefault();document.getElementById('dz').classList.add('on');});
@@ -15309,7 +15534,7 @@ window.addEventListener('load', function() {
 });
 </script>
 <!-- CALIBRATION WIZARD MODAL -->
-<div id="cal-modal" onclick="if(event.target===this)closeCalModal()">
+<div id="cal-modal" onclick="if(event.target===this)closeCalModal()" role="dialog" aria-modal="true" aria-labelledby="cal-hdr-title">
   <div id="cal-box">
     <div id="cal-hdr">
       <span id="cal-hdr-title">⚙ Calibration Template Generator</span>
