@@ -307,14 +307,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);color:var
 .mt-btn{width:28px;height:28px;background:var(--bg2);border:1px solid var(--border2);color:var(--text1);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:var(--r);transition:all .1s;font-size:12px;user-select:none}
 .mt-btn:hover{background:var(--bg4);color:var(--accent)}
 .mt-btn.on{background:var(--accent3);color:#000;border-color:var(--accent)}
-#map-legend{position:absolute;bottom:16px;left:10px;background:var(--overlay-bg2);border:1px solid var(--border);padding:8px 10px;border-radius:var(--r);z-index:500;min-width:110px}
+#map-legend{position:absolute;top:10px;right:10px;background:var(--overlay-bg2);border:1px solid var(--border);padding:8px 10px;border-radius:var(--r);z-index:500;min-width:110px;max-height:calc(100% - 80px);overflow-y:auto;transition:right .18s ease}
 .leg-head{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
 .leg-row{display:flex;align-items:center;gap:6px;margin:3px 0}
 .leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .leg-label{font-size:9px;color:var(--text2)}
 
 /* ── PANEL ── */
-#panel{width:var(--panel-w);background:var(--bg1);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+#panel{width:var(--panel-w);background:var(--bg1);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;min-width:0}
 #panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;gap:8px}
 .ph-title{font-size:11px;font-weight:600;color:var(--text0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ph-sub{font-size:9px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -323,11 +323,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);color:var
 .ptab{padding:7px 12px;font-size:9px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;white-space:nowrap;text-transform:uppercase;letter-spacing:.07em;user-select:none}
 .ptab:hover{color:var(--text1)}
 .ptab.on{color:var(--accent);border-bottom-color:var(--accent)}
-#panel-body{flex:1;overflow-y:auto;padding:12px 13px}
+#panel-body{flex:1;overflow-y:auto;padding:10px 10px}
 
 /* ── FORM ── */
-.f-row{display:flex;align-items:center;gap:7px;margin-bottom:7px}
-.f-row label{width:130px;flex-shrink:0;color:var(--text2);font-size:9px;text-transform:uppercase;letter-spacing:.06em}
+.f-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;min-width:0}
+.f-row label{width:120px;flex-shrink:0;color:var(--text2);font-size:9px;text-transform:uppercase;letter-spacing:.06em;line-height:1.3}
 .f-row label.wide{width:100%}
 .f-row.col{flex-direction:column;align-items:flex-start}
 .f-row.col label{width:100%;margin-bottom:3px}
@@ -346,7 +346,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.6}
 .hint{color:var(--text3);font-size:9px;margin-top:-4px;margin-bottom:6px;font-style:italic}
 
 /* ── TABLES ── */
-.t-wrap{overflow-x:auto;margin-bottom:10px;border:1px solid var(--border);border-radius:var(--r)}
+.t-wrap{overflow-x:auto;margin-bottom:10px;border:1px solid var(--border);border-radius:var(--r);min-width:0;width:100%;box-sizing:border-box}
 table.rv{width:100%;border-collapse:collapse;font-size:10px}
 table.rv th{background:var(--bg2);color:var(--text3);font-size:8px;letter-spacing:.09em;text-transform:uppercase;padding:5px 7px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;white-space:nowrap}
 table.rv td{padding:3px 7px;border-bottom:1px solid var(--border);color:var(--text1);vertical-align:middle}
@@ -361,8 +361,8 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 .del-btn:hover{color:var(--err);background:rgba(232,80,80,.12)}
 
 /* ── PROCESS CHAIN ── */
-.proc-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;overflow:hidden}
-.proc-hdr{display:flex;align-items:center;gap:6px;padding:5px 9px;cursor:pointer;transition:background .1s;user-select:none}
+.proc-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px}
+.proc-hdr{display:flex;align-items:center;gap:6px;padding:5px 9px;cursor:pointer;transition:background .1s;user-select:none;border-radius:var(--r) var(--r) 0 0}
 .proc-hdr:hover{background:var(--bg3)}
 .proc-drag{color:var(--text3);font-size:10px;flex-shrink:0}
 .proc-type{color:var(--accent);font-size:10px;font-weight:500;min-width:120px}
@@ -370,7 +370,8 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 .proc-flow{color:var(--text3);font-size:9px;white-space:nowrap}
 .proc-cond{background:rgba(0,228,180,.1);border:1px solid var(--accent3);color:var(--accent);font-size:8px;padding:1px 4px;border-radius:5px;white-space:nowrap}
 .proc-lateral{background:rgba(77,168,255,.1);border:1px solid var(--blue2);color:var(--blue);font-size:8px;padding:1px 4px;border-radius:5px}
-.proc-body{display:none;padding:8px 9px;border-top:1px solid var(--border);background:var(--bg1)}
+.proc-body{display:none;padding:8px 9px;border-top:1px solid var(--border);background:var(--bg1);min-width:0;overflow:visible}
+.proc-body input[type=text],.proc-body input[type=number],.proc-body select{max-width:100%;box-sizing:border-box}
 .proc-body.open{display:block}
 .proc-body .f-row label{width:70px;font-size:9px}
 .cond-chip{display:inline-flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);padding:2px 6px;border-radius:3px;font-size:9px;color:var(--text2);margin:2px 2px 2px 0}
@@ -719,7 +720,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
   position:fixed;
   top:50%;
   transform:translateY(-50%);
-  z-index:9000;
+  z-index:10000;
   width:16px; height:44px;
   background:var(--bg4);
   border:1px solid var(--border3);
@@ -927,7 +928,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
   </div>
   <div class="tb-actions">
     <button class="btn" onclick="newModel()" title="Start a blank model from scratch" style="background:var(--accent);color:#000;font-weight:600"><i>✦</i> New Model</button>
-    <label class="btn" style="cursor:pointer"><i>📂</i> Import<input type="file" id="file-in" multiple accept=".rvi,.rvh,.rvp,.rvt,.rvc,.rvm,.rvl,.rve,.json" style="display:none" onchange="loadFiles(this.files)"></label>
+    <label class="btn" style="cursor:pointer"><i>📂</i> Import<input type="file" id="file-in" multiple accept=".rvi,.rvh,.rvp,.rvt,.rvc,.rvm,.rvl,.rve" style="display:none" onchange="loadFiles(this.files)"></label>
     <button class="btn" onclick="showValidation()"><i>✓</i> Validate</button>
     <button class="btn pri" id="btn-export" onclick="exportZip()"><i>⬇</i> Export ZIP</button>
     <div class="theme-picker-wrap" id="theme-picker-wrap">
@@ -3100,6 +3101,7 @@ function refreshLegend() {
   el.innerHTML = [...seen].map(name =>
     `<div class="leg-row"><div class="leg-dot" style="background:${LU_COLOR(name)}"></div><span class="leg-label">${escH(name)}</span></div>`
   ).join('');
+  if (window._updateLegendOffset) _updateLegendOffset();
 }
 
 function refreshMap() {
@@ -3909,12 +3911,14 @@ function toggleConnPanel() {
     connState.active = false;
     if (btn) btn.classList.remove('on');
     clearConnectivity();
+    if (window._updateLegendOffset) _updateLegendOffset();
   } else {
     connState.active = true;
     if (btn) btn.classList.add('on');
     document.getElementById('conn-panel').classList.add('open');
     // Hook into subbasin layer clicks
     applyConnClickHandlers();
+    if (window._updateLegendOffset) _updateLegendOffset();
   }
 }
 window.toggleConnPanel = toggleConnPanel;
@@ -12687,6 +12691,7 @@ const metState = {
   hoverIdx:   null,
   tab:        'ts',
   hmapParam:  undefined,
+  bwkParam:   undefined, // selected param index for box-whisker
   cmpParam:   null,       // param name to compare across gauges
   cmpMuted:   new Set(),  // gauge IDs muted in compare view
 };
@@ -12796,7 +12801,42 @@ function setMetTab(tab) {
   if (tab === 'cmp') { const cw = document.getElementById('met-cmp-wrap'); if(cw) cw.style.display = 'flex'; }
   if (tab === 'ts')   setTimeout(drawMetChart,      20);
   if (tab === 'clim') setTimeout(drawMetClim,       20);
-  if (tab === 'bwk')  setTimeout(drawMetBoxWhisker, 20);
+  if (tab === 'bwk') {
+    const d2 = metState.gaugeId ? metGaugeData[metState.gaugeId] : null;
+    const bwkW = document.getElementById('met-bwk-wrap');
+    if (d2 && bwkW) {
+      const isPrecipP = p => { const u=p.toUpperCase(); return u.includes('PRECIP')||u.includes('RAIN')||u.includes('SNOW'); };
+      const vis2 = d2.params.map((p,pi)=>({p,pi})).filter(({pi})=>!metState.mutedParams.has(pi));
+      let bwkSel = document.getElementById('met-bwk-paramsel');
+      if (!bwkSel) {
+        bwkSel = document.createElement('div');
+        bwkSel.id = 'met-bwk-paramsel';
+        bwkSel.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:9px;color:var(--text2);flex-shrink:0;border-bottom:1px solid var(--border);background:var(--overlay-bg2);flex-wrap:wrap';
+        bwkW.insertBefore(bwkSel, bwkW.firstChild);
+      }
+      bwkSel.style.display = vis2.length > 1 ? '' : 'none';
+      if (vis2.length > 1) {
+        // Default: first non-precip param, or first param
+        if (metState.bwkParam === undefined || metState.bwkParam === null) {
+          const nonPrec = vis2.find(({p}) => !isPrecipP(p));
+          metState.bwkParam = nonPrec ? nonPrec.pi : vis2[0].pi;
+        }
+        bwkSel.innerHTML = '<span style="color:var(--text3);font-size:8px">PARAM:</span>' +
+          vis2.map(({p,pi}) => {
+            const isActive = pi === metState.bwkParam;
+            const paramCol = MET_COLORS[pi % MET_COLORS.length];
+            return `<span onclick="metState.bwkParam=${pi};setMetTab('bwk')" title="${escH(p)}"
+              style="cursor:pointer;padding:2px 9px;border-radius:8px;font-size:9px;
+              border:1px solid ${isActive?paramCol:paramCol+'60'};
+              color:${isActive?'var(--bg0)':paramCol};
+              background:${isActive?paramCol:'transparent'};
+              font-weight:${isActive?'600':'400'};
+              transition:all .12s">${escH(p)}</span>`;
+          }).join('');
+      }
+    }
+    setTimeout(drawMetBoxWhisker, 20);
+  }
   if (tab === 'ptd')  setTimeout(drawMetPTDist,     20);
   if (tab === 'hmap') {
     // Inject param selector above heatmap if multiple visible params
@@ -12900,44 +12940,97 @@ function drawMetClim() {
     ctx.beginPath(); ctx.moveTo(x,MT); ctx.lineTo(x,MT+plotH); ctx.stroke();
   });
 
-  // ── RIGHT AXIS: Precipitation bars ──────────────────────────────────────────
-  precipParams.forEach(({pi}, idx2) => {
-    const col   = MET_COLORS[pi % MET_COLORS.length];
-    const byDOY = _metBuildDOY(d, pi);
-    const doys  = Array.from({length:366},(_,i)=>i+1);
-    const medVals = doys.map(doy => _pct(byDOY[doy], 50));
-    const hi975   = doys.map(doy => _pct(byDOY[doy], 97.5));
+  // ── RIGHT AXIS: Precipitation bars — shared scale across all precip params ───
+  if (precipParams.length) {
+    // Compute shared max across ALL precip params first
+    let precipMax = 0.001;
+    const precipDataByPi = {};
+    precipParams.forEach(({pi}) => {
+      const byDOY = _metBuildDOY(d, pi);
+      const doys  = Array.from({length:366},(_,i)=>i+1);
+      const medVals = doys.map(doy => _pct(byDOY[doy], 50));
+      const p75Vals = doys.map(doy => _pct(byDOY[doy], 75));
+      precipDataByPi[pi] = { medVals, p75Vals };
+      // Scale to p75 max — bars show medians, scale captures upper quartile clearly
+      const localMax = p75Vals.filter(v=>!isNaN(v)).reduce((a,b)=>b>a?b:a, 0);
+      if (localMax > precipMax) precipMax = localMax;
+    });
+    // Round vMax up to a nice number so axis ticks are clean
+    const vMin = 0;
+    let vMax = precipMax * 1.25;
+    // Round to nearest nice tick: 0.5, 1, 2, 5, 10, 20, 50 etc.
+    const niceStep = (() => {
+      const raw = vMax / 5;
+      const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+      const norm = raw / mag;
+      const nice = norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10;
+      return nice * mag;
+    })();
+    vMax = niceStep * Math.ceil(vMax / niceStep);
+    const precipToY = v => MT + plotH - ((v - vMin) / (vMax - vMin)) * plotH;
 
-    const validMeds = medVals.filter(v=>!isNaN(v));
-    if (!validMeds.length) return;
-    let vMin = 0;
-    let vMax = hi975.filter(v=>!isNaN(v)).reduce((a,b)=>b>a?b:a, 0.001);
-    vMax *= 1.1;
+    // Draw bars for each precip param (stacked offsets if multiple)
+    const bwBase = Math.max(1.5, plotW / 366 * 3);
+    const nP = precipParams.length;
+    precipParams.forEach(({pi}, idx2) => {
+      const col = MET_COLORS[pi % MET_COLORS.length];
+      const { medVals, p75Vals } = precipDataByPi[pi];
+      const offset = nP > 1 ? (idx2 - (nP-1)/2) * bwBase * 0.8 : 0;
+      // Draw p75 bar (lighter, behind)
+      ctx.fillStyle = col + '38';
+      for (let i = 0; i < 366; i++) {
+        const v = p75Vals[i]; if (isNaN(v) || v <= 0) continue;
+        const x = doyToX(i + 1) + offset;
+        const bh = (v / vMax) * plotH;
+        ctx.fillRect(x - bwBase/2, MT + plotH - bh, bwBase, bh);
+      }
+      // Draw median bar (solid, in front)
+      ctx.fillStyle = col + '90';
+      for (let i = 0; i < 366; i++) {
+        const v = medVals[i]; if (isNaN(v) || v <= 0) continue;
+        const x = doyToX(i + 1) + offset;
+        const bh = (v / vMax) * plotH;
+        ctx.fillRect(x - bwBase/2, MT + plotH - bh, bwBase, bh);
+      }
+    });
 
-    const toY = v => MT + plotH - ((v-vMin)/(vMax-vMin))*plotH;
-
-    // Draw bars
-    const bw = Math.max(1, plotW/366 * 3);
-    ctx.fillStyle = col + '70';
-    for (let i=0; i<366; i++) {
-      const v = medVals[i]; if (isNaN(v)||v<=0) continue;
-      const x = doyToX(i+1);
-      const bh = ((v-vMin)/(vMax-vMin))*plotH;
-      ctx.fillRect(x-bw/2, MT+plotH-bh, bw, bh);
+    // Right Y axis — single axis for all precip (label with units of first param)
+    const firstPi = precipParams[0].pi;
+    const nT = 5;
+    ctx.fillStyle = _axisLabelColor();
+    ctx.font = '8px IBM Plex Mono,monospace';
+    for (let t = 0; t <= nT; t++) {
+      const v = vMin + (vMax - vMin) * t / nT;
+      const y = precipToY(v);
+      ctx.textAlign = 'left';
+      ctx.fillText(v < 1 ? v.toFixed(2) : v.toFixed(1), ML + plotW + 4, y + 3);
     }
-
-    // Right Y axis ticks
-    ctx.fillStyle = col; ctx.font = '8px IBM Plex Mono,monospace';
-    const nT=4;
-    for(let t=0; t<=nT; t++){
-      const v=vMin+(vMax-vMin)*t/nT, y=toY(v);
-      ctx.textAlign='left'; ctx.fillText(Math.abs(v)<1?v.toFixed(2):v.toFixed(1), ML+plotW+4, y+3);
-    }
-    // Right axis label
-    ctx.save(); ctx.translate(logW-12, MT+plotH/2); ctx.rotate(Math.PI/2);
-    ctx.textAlign='center'; ctx.fillText(d.params[pi]+(d.units[pi]?' ('+d.units[pi]+')':''), 0, 0);
+    // Right axis label (Precip / mm)
+    const precipUnit = d.units[firstPi] || '';
+    const rightLabel = 'Precip' + (precipUnit ? ' (' + precipUnit + ')' : '');
+    ctx.save();
+    ctx.translate(logW - 10, MT + plotH / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = _axisLabelColor();
+    ctx.fillText(rightLabel, 0, 0);
     ctx.restore();
-  });
+
+    // Small colour legend dots for each precip param if multiple
+    if (nP > 1) {
+      let lx = ML + plotW - nP * 72;
+      precipParams.forEach(({pi, p}) => {
+        const col = MET_COLORS[pi % MET_COLORS.length];
+        ctx.fillStyle = col + '80';
+        ctx.fillRect(lx, MT + 4, 10, 8);
+        ctx.fillStyle = _axisLabelColor();
+        ctx.font = '8px IBM Plex Mono,monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(p, lx + 13, MT + 11);
+        lx += 72;
+      });
+    }
+  }
 
   // ── LEFT AXIS: Non-precip line params ────────────────────────────────────────
   otherParams.forEach(({pi}, idx2) => {
@@ -17038,9 +17131,13 @@ function drawMetBoxWhisker() {
   const ML=52, MR=16, MT=28, MB=36;
   const plotW=logW-ML-MR, plotH=logH-MT-MB;
 
-  // Process first visible param (non-precip preferred)
+  // Use selected param (from selector bar) or default to first non-precip
   const isPrecip = p => { const u=p.toUpperCase(); return u.includes('PRECIP')||u.includes('RAIN')||u.includes('SNOW'); };
-  const target = visParams.find(({p})=>!isPrecip(p)) || visParams[0];
+  const selectedPi = metState.bwkParam;
+  const target = (selectedPi !== undefined && selectedPi !== null && visParams.find(({pi})=>pi===selectedPi))
+    ? visParams.find(({pi})=>pi===selectedPi)
+    : (visParams.find(({p})=>!isPrecip(p)) || visParams[0]);
+  if (!target) { ctx.restore(); return; }
   const { pi, p: pname, unit } = target;
   const col = MET_COLORS[pi % MET_COLORS.length];
 
@@ -17407,8 +17504,32 @@ window.toast=toast;
     }
 
     // Invalidate map size so it fills the new space
-    setTimeout(() => { if (window.map) map.invalidateSize(); }, 200);
+    setTimeout(() => {
+      if (window.map) map.invalidateSize();
+      _updateLegendOffset();
+    }, 200);
   }
+  // Keep map-legend right offset aligned with panel edge
+  function _updateLegendOffset() {
+    const leg = document.getElementById('map-legend');
+    if (!leg) return;
+    // legend is inside map-wrap (position:absolute), so right:10px is relative to map-wrap right edge
+    // The conn-panel and subset-panel are also absolute inside map-wrap — no adjustment needed
+    // Just ensure it doesn't overlap with the right-side map panels when they're open
+    const connOpen   = document.getElementById('conn-panel')?.classList.contains('open');
+    const subsetOpen = document.getElementById('subset-panel')?.classList.contains('open');
+    const playerOpen = document.getElementById('player-legend')?.classList.contains('open');
+    const diagOpen   = document.getElementById('diag-legend')?.style.display !== 'none';
+    // Stack from right: conn-panel is 220px wide, subset-panel is 260px wide, both at right:10px
+    // Legend should sit to the left of whichever panels are open
+    let rightOffset = 10;
+    if (connOpen)   rightOffset = Math.max(rightOffset, 240);
+    if (subsetOpen) rightOffset = Math.max(rightOffset, 280);
+    if (playerOpen) rightOffset = Math.max(rightOffset, 150);
+    leg.style.right = rightOffset + 'px';
+  }
+  window._updateLegendOffset = _updateLegendOffset;
+
 
   // ── Toggle functions ───────────────────────────────────────────────────────
   window.toggleSidebar = function() {
@@ -17528,7 +17649,19 @@ window.addEventListener('resize', () => {
 // ══════════════════════════════════════════════════════════════════════════════
 document.addEventListener('dragover',e=>{e.preventDefault();document.getElementById('dz').classList.add('on');});
 document.addEventListener('dragleave',e=>{if(!e.relatedTarget||e.relatedTarget===document.body)document.getElementById('dz').classList.remove('on');});
-document.addEventListener('drop',async e=>{e.preventDefault();document.getElementById('dz').classList.remove('on');await loadFiles(e.dataTransfer.files);});
+document.addEventListener('drop',async e=>{
+  e.preventDefault();
+  document.getElementById('dz').classList.remove('on');
+  // Filter to Raven file types only (GeoJSON/JSON handled by dedicated buttons)
+  const ALLOWED = new Set(['rvi','rvh','rvp','rvt','rvc','rvm','rvl','rve']);
+  const rvFiles = [...e.dataTransfer.files].filter(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    return ALLOWED.has(ext);
+  });
+  const skipped = e.dataTransfer.files.length - rvFiles.length;
+  if (skipped > 0) toast(`${skipped} non-.rv* file(s) skipped — use dedicated GeoJSON/Output import buttons`, 'warn');
+  if (rvFiles.length) await loadFiles(rvFiles);
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SPATIAL SUBSETTING TOOL
