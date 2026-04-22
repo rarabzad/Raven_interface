@@ -229,26 +229,69 @@ server <- function(input, output, session) {
       return(raven_path)
     }
 
-    send_status("Downloading Raven executable from GitHub...")
+    # Fallback: download the binary bundle from GitHub Release
+    send_status("Downloading Raven binary bundle from GitHub Release...")
+    www_dir <- file.path(getwd(), "www")
+    dir.create(www_dir, recursive = TRUE, showWarnings = FALSE)
     dir.create(WORK_BASE, recursive = TRUE, showWarnings = FALSE)
-    dest <- file.path(WORK_BASE, "Raven.exe")
 
-    url <- "https://github.com/rarabzad/Raven_interface/raw/main/Raven.exe"
+    bundle_url <- "https://github.com/rarabzad/Raven_interface/releases/download/v1.0/raven-binaries.zip"
+    tmp_zip <- file.path(tempdir(), "raven-binaries.zip")
+    cat("[RAVEN-EXEC] Downloading bundle from:", bundle_url, "\n")
+
     tryCatch({
-      download.file(url, dest, mode = "wb", quiet = TRUE)
-      Sys.chmod(dest, mode = "0755")
-      send_status("Raven executable downloaded and ready.")
-      return(dest)
-    }, error = function(e) {
-      for (alt_name in c("raven", "Raven", "RavenHydroFramework")) {
-        alt_url <- paste0("https://github.com/rarabzad/Raven_interface/raw/main/", alt_name)
-        tryCatch({
-          download.file(alt_url, dest, mode = "wb", quiet = TRUE)
-          Sys.chmod(dest, mode = "0755")
-          return(dest)
-        }, error = function(e2) NULL)
+      # Use libcurl method to follow GitHub's 302 redirect
+      download.file(bundle_url, tmp_zip, mode = "wb", quiet = FALSE, method = "libcurl")
+      cat("[RAVEN-EXEC] Download complete, size:", file.size(tmp_zip), "bytes\n")
+
+      if (!file.exists(tmp_zip) || file.size(tmp_zip) < 1000) {
+        stop("Downloaded file is too small or missing — check the Release URL.")
       }
-      stop("Could not download Raven executable. Please upload it manually or check the GitHub URL.")
+
+      send_status("Extracting Raven bundle...")
+      unzip(tmp_zip, exdir = www_dir, overwrite = TRUE)
+      unlink(tmp_zip)
+
+      # Set permissions
+      exe_path <- file.path(www_dir, "Raven_linux.exe")
+      sh_path  <- file.path(www_dir, "run_raven.sh")
+      if (file.exists(exe_path)) Sys.chmod(exe_path, mode = "0755")
+      if (file.exists(sh_path))  Sys.chmod(sh_path, mode = "0755")
+
+      send_status("Raven bundle downloaded and ready.")
+      cat("[RAVEN-EXEC] Bundle extracted to", www_dir, "\n")
+      cat("[RAVEN-EXEC] Files:", paste(list.files(www_dir), collapse = ", "), "\n")
+
+      # Now find the exe again
+      raven_path <- find_raven_exe()
+      if (!is.null(raven_path) && file.exists(raven_path)) {
+        return(raven_path)
+      }
+      stop("Bundle extracted but executable not found.")
+    }, error = function(e) {
+      # Try system curl as fallback (more reliable for redirects)
+      cat("[RAVEN-EXEC] download.file failed, trying system curl...\n")
+      curl_result <- tryCatch({
+        system2("curl", args = c("-L", "-o", tmp_zip, bundle_url),
+                stdout = TRUE, stderr = TRUE)
+        if (file.exists(tmp_zip) && file.size(tmp_zip) > 1000) {
+          unzip(tmp_zip, exdir = www_dir, overwrite = TRUE)
+          unlink(tmp_zip)
+          exe_path <- file.path(www_dir, "Raven_linux.exe")
+          sh_path  <- file.path(www_dir, "run_raven.sh")
+          if (file.exists(exe_path)) Sys.chmod(exe_path, mode = "0755")
+          if (file.exists(sh_path))  Sys.chmod(sh_path, mode = "0755")
+          cat("[RAVEN-EXEC] curl download + extract succeeded\n")
+          raven_path <- find_raven_exe()
+          if (!is.null(raven_path)) return(raven_path)
+        }
+        NULL
+      }, error = function(e2) NULL)
+
+      if (!is.null(curl_result)) return(curl_result)
+
+      stop(paste("Could not download Raven bundle:", conditionMessage(e),
+                 "\nRun setup.sh or download raven-binaries.zip manually from GitHub Releases."))
     })
   }
 
