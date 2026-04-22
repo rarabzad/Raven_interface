@@ -648,6 +648,19 @@ server <- function(input, output, session) {
     # Diagnostics: log everything to R console
     cat("\n[RAVEN-EXEC] ═══════════════════════════════════════════\n")
     cat("[RAVEN-EXEC] OS:", .Platform$OS.type, Sys.info()["sysname"], "\n")
+
+    # Log system info to both R console and interface console
+    sys_info <- tryCatch({
+      glibc <- system("ldd --version 2>&1", intern = TRUE)[1]
+      os_pretty <- system("cat /etc/os-release 2>&1", intern = TRUE)
+      os_name <- grep("^PRETTY_NAME=", os_pretty, value = TRUE)
+      os_name <- sub("^PRETTY_NAME=", "", gsub('"', '', os_name))
+      list(glibc = glibc, os = os_name)
+    }, error = function(e) list(glibc = "unknown", os = "unknown"))
+    cat("[RAVEN-EXEC] System:", sys_info$os, "\n")
+    cat("[RAVEN-EXEC] glibc:", sys_info$glibc, "\n")
+    send_to_iframe(list(type = "run_console_line",
+                        line = paste("[System]", sys_info$os, "|", sys_info$glibc)))
     cat("[RAVEN-EXEC] Working dir:", dirs$main, "\n")
     cat("[RAVEN-EXEC] Raven launcher:", local_raven, "\n")
     cat("[RAVEN-EXEC] Is bundle:", is_bundle, "\n")
