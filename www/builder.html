@@ -3230,7 +3230,7 @@ function parseRVT(lines, S) {
       S.griddedForcings.push(gf);
     } else if (c==='StationForcing') {
       const {rows,next}=readBlock(lines,i,'StationForcing'); i=next;
-      const sf={name:t[1],forcingType:null,gaugeID:null,linearTransform:null,gridWeights:null,numStations:null,mapTo:null};
+      const sf={name:t[1],forcingType:null,gaugeID:null,linearTransform:null,gridWeights:null,numStations:null,mapTo:null,redirect:null};
       for(const r of rows){const rc=cmd(r);if(!rc)continue;
         if(rc==='ForcingType')sf.forcingType=r[1];
         else if(rc==='Gauge'||rc==='GaugeID')sf.gaugeID=r[1];
@@ -3242,6 +3242,7 @@ function parseRVT(lines, S) {
         else if(rc==='LinearTransform')sf.linearTransform={a:parseFloat(r[1]),b:parseFloat(r[2]||0)};
         else if(rc==='NumberStations')sf.numStations=parseInt(r[1]);
         else if(rc==='MapStationsTo')sf.mapTo=r[1]||'HRUS';
+        else if(rc==='RedirectToFile'){sf.redirect=r[1];S._redirects.push(r[1]);}
       }
       // Parse embedded GridWeights block if present
       const gwRow=rows.findIndex(r=>cmd(r)==='GridWeights');
@@ -4098,6 +4099,8 @@ function writeRVT(S) {
       L.push(`    :NumberStations ${sf.numStations||1}`);
       for(const row of sf.gridWeights) L.push(`    ${row.join(' ')}`);
       L.push(`  :EndGridWeights`);
+    } else if(sf.redirect) {
+      L.push(`  :RedirectToFile ${sf.redirect}`);
     }
     L.push(':EndStationForcing');
   }
