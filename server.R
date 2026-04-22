@@ -9,16 +9,11 @@ WORK_BASE <- file.path(tempdir(), "raven_work")
 
 server <- function(input, output, session) {
 
-  # ── Stop the app when browser session ends (tab closed, refresh, etc.) ─────
+  # ── Clean up when browser session ends ──────────────────────────────────────
+  # Note: stopApp() is NOT called — on hosted platforms (Connect Cloud) it would
+  # kill the app for all users. The platform manages app lifecycle automatically.
   session$onSessionEnded(function() {
-    cat("[RAVEN] Session ended — stopping app.\n")
-    stopApp()
-  })
-
-  # ── Stop the app when browser window closes ─────────────────────────────────
-  observeEvent(input$window_closing, {
-    cat("[RAVEN] Window closing detected — stopping app.\n")
-    stopApp()
+    cat("[RAVEN] Session ended.\n")
   })
 
   # ── Send message back to iframe ──────────────────────────────────────────────
@@ -126,6 +121,44 @@ server <- function(input, output, session) {
 
   # OS detection helper
   is_linux <- function() .Platform$OS.type == "unix"
+
+  # Check glibc compatibility — returns list(compatible, sys_ver, build_ver, message)
+  check_glibc_compat <- function() {
+    if (!is_linux()) return(list(compatible = TRUE))
+
+    # Get system glibc version
+    sys_glibc <- tryCatch({
+      out <- system("ldd --version 2>&1", intern = TRUE)[1]
+      m <- regmatches(out, regexpr("[0-9]+\\.[0-9]+$", out))
+      if (length(m) > 0) as.numeric(m) else NA
+    }, error = function(e) NA)
+
+    # Get build glibc version from build_info.txt
+    www_dir <- file.path(getwd(), "www")
+    info_file <- file.path(www_dir, "build_info.txt")
+    build_glibc <- tryCatch({
+      if (file.exists(info_file)) {
+        lines <- readLines(info_file)
+        gline <- grep("^glibc=", lines, value = TRUE)
+        if (length(gline) > 0) as.numeric(sub("^glibc=", "", gline[1])) else NA
+      } else NA
+    }, error = function(e) NA)
+
+    if (is.na(sys_glibc) || is.na(build_glibc)) {
+      return(list(compatible = TRUE, sys_ver = sys_glibc, build_ver = build_glibc,
+                  message = "Could not determine glibc versions — assuming compatible."))
+    }
+
+    if (sys_glibc >= build_glibc) {
+      return(list(compatible = TRUE, sys_ver = sys_glibc, build_ver = build_glibc,
+                  message = paste0("glibc OK: system ", sys_glibc, " >= build ", build_glibc)))
+    }
+
+    list(compatible = FALSE, sys_ver = sys_glibc, build_ver = build_glibc,
+         message = paste0("glibc MISMATCH: system has ", sys_glibc,
+                          " but binary needs >= ", build_glibc,
+                          ". Will recompile from source."))
+  }
 
   # Check if Raven executable is available
   check_raven_available <- function() {
@@ -589,6 +622,20 @@ server <- function(input, output, session) {
       }
     )
     if (is.null(raven_exe)) return()
+
+    # Check glibc compatibility on Linux
+    if (is_linux()) {
+      compat <- check_glibc_compat()
+      cat("[RAVEN-EXEC] glibc check:", compat$message, "\n")
+      send_to_iframe(list(type = "run_console_line", line = paste("[glibc]", compat$message)))
+
+      if (!compat$compatible) {
+        send_error(paste0("Binary incompatible: system glibc ", compat$sys_ver,
+                          " < required ", compat$build_ver,
+                          ". Recompile Raven using the Builder app on this system."))
+        return()
+      }
+    }
 
     # Copy Raven to the main directory — handle both single exe and Linux bundle
     is_bundle <- grepl("run_raven\\.sh$", raven_exe)
