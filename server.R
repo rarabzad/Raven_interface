@@ -487,9 +487,10 @@ server <- function(input, output, session) {
       content <- rv_contents[[ext]]
       if (!is.null(content) && nzchar(as.character(content))) {
         fpath <- file.path(dirs$main, paste0(model_name, ".", ext))
-        # CRITICAL: Write content exactly as-is, preserving all whitespace, 
-        # line endings, and formatting from the original rv* files
-        writeLines(as.character(content), fpath, useBytes = TRUE)
+        text <- as.character(content)
+        # Convert Windows backslash paths to forward slashes on Linux
+        if (is_linux()) text <- gsub("\\\\", "/", text)
+        writeLines(text, fpath, useBytes = TRUE)
       }
     }
 
@@ -538,6 +539,9 @@ server <- function(input, output, session) {
     rvt_content <- rv_contents[["rvt"]]
     if (!is.null(rvt_content) && nzchar(as.character(rvt_content))) {
       rvt_text <- as.character(rvt_content)
+
+      # Convert Windows-style backslash paths to forward slashes for Linux
+      rvt_text <- gsub("\\\\", "/", rvt_text)
 
       # Extract all :RedirectToFile paths — robust extraction without lookbehind
       redirect_matches <- character(0)
