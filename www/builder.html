@@ -3381,9 +3381,20 @@ function parseRVT(lines, S) {
     } else if (c==='GridWeights') {
       // :GridWeights NG NH then NG*NH values
       const {rows,next}=readBlock(lines,i,'GridWeights'); i=next;
+      const gwData=rows.filter(r=>!cmd(r)).map(r=>r.map(parseFloat));
       if(S.griddedForcings.length){
         const gf=S.griddedForcings[S.griddedForcings.length-1];
-        gf.gridWeights=rows.filter(r=>!cmd(r)).map(r=>r.map(parseFloat));
+        gf.gridWeights=gwData;
+      }
+      // Also assign to ALL stationForcings that have a matching redirect but no inline weights
+      if(S.stationForcings.length && gwData.length){
+        // Try matching by redirect basename vs the filename being parsed
+        for(const sf of S.stationForcings){
+          if(!sf.gridWeights || sf.gridWeights.length===0){
+            sf.gridWeights=gwData;
+            console.log('[GridWeights] Assigned', gwData.length, 'rows to stationForcing:', sf.name);
+          }
+        }
       }
     } else if (c==='MonthlyCriticalDischarge'||c==='MonthlyMaxDischarge'||
                c==='MonthlyNormalDischarge'||c==='MonthlyCriticalStorage'||
@@ -4093,14 +4104,14 @@ function writeRVT(S) {
     if(sf.timeShift!=null) L.push(`  :TimeShift          ${sf.timeShift}`);
     if(sf.deaccumulate) L.push(`  :Deaccumulate`);
     if(sf.linearTransform) L.push(`  :LinearTransform    ${sf.linearTransform.a} ${sf.linearTransform.b||0}`);
-    if(sf.gridWeights && sf.gridWeights.length>0){
+    if(sf.redirect) {
+      L.push(`  :RedirectToFile ${sf.redirect}`);
+    } else if(sf.gridWeights && sf.gridWeights.length>0){
       L.push(`  :GridWeights`);
       L.push(`    :NumberHRUs ${sf.gridWeights.length}`);
       L.push(`    :NumberStations ${sf.numStations||1}`);
       for(const row of sf.gridWeights) L.push(`    ${row.join(' ')}`);
       L.push(`  :EndGridWeights`);
-    } else if(sf.redirect) {
-      L.push(`  :RedirectToFile ${sf.redirect}`);
     }
     L.push(':EndStationForcing');
   }
@@ -4199,6 +4210,9 @@ const layerVis = { hru: true, gauge: true, sb: false, river: false, hruGeo: fals
 // Direct lookup: seriesKey → individual Leaflet feature layer, built during renderSubbasinLayer
 // Allows playerBuildLayerIndex to find layers without traversing Leaflet's nested structure
 const featureLayerMap  = {}; // { seriesKey: leafletLayer } — SubBasin polygons
+
+// NC station forcing → subbasin linkage (survives renderSubbasinLayer re-renders)
+let _ncForcingLink = null; // { basinStation: {sbId→stIdx}, ncClickData: {nc,dataVars,dates,...}, name }
 const hruFeatureLayerMap = {}; // { seriesKey: leafletLayer } — HRU polygons
 
 // Spatial data store
@@ -4860,6 +4874,19 @@ function importHRUGeoJSON() {
             layer.on('click', () => {
               if (serKey && ravenOut.loaded) {
                 toggleSeriesKey(serKey);  // open hydro panel
+              } else if (_ncForcingLink && _ncForcingLink.ncClickData) {
+                // Check if this HRU has NC forcing data
+                const hid = typeof hruId === 'string' ? parseInt(hruId) : Math.round(hruId);
+                if (_ncForcingLink.hruStation && _ncForcingLink.hruStation[hid] !== undefined) {
+                  const ncd = _ncForcingLink.ncClickData;
+                  const stIdx = _ncForcingLink.hruStation[hid];
+                  (async () => {
+                    try {
+                      const ts = await _extractStationTS(ncd.nc, stIdx, ncd.nStations, ncd.dates, ncd.dataVars);
+                      _openNcTimeSeries(`NC_HRU_${hid}`, ts.params, ts.units, ts.rows, ncd.dates);
+                    } catch(e) { console.warn('[NC click] error:', e); toast('Error reading NC data: ' + e.message, 'err'); }
+                  })();
+                }
               } else {
                 jumpHRU(parseInt(hruId)); // fallback: scroll .rvh table
               }
@@ -4872,6 +4899,8 @@ function importHRUGeoJSON() {
         // Auto-zoom to imported layer
         try { map.fitBounds(L.geoJSON(gj).getBounds(), {padding:[30,30]}); } catch(_e) {}
         if (typeof applyLayerStyles === 'function') applyLayerStyles();
+        // Apply NC forcing styling if NC was imported before HRU GeoJSON
+        if (_ncForcingLink) _applyNcForcingToHRULayer();
       }
     );
   });
@@ -8302,7 +8331,7 @@ function detectRvType(content, hintExt) {
   let checked = 0;
   const rvhSigs = /^:(SubBasins|HRUs|HRUGroup|SubBasinGroup|SubBasinProperties|Reservoir|PopulateHRUGroup)\b/i;
   const rvpSigs = /^:(SoilClasses|VegetationClasses|LandUseClasses|SoilProfiles|ChannelProfile|TrapezoidalChannel|SoilParameterList|LandUseParameterList|VegetationParameterList|GlobalParameter)\b/i;
-  const rvtSigs = /^:(Gauge|ObservationData|BasinInflowHydrograph|StationForcing|GriddedForcing|FlowDiversion)\b/i;
+  const rvtSigs = /^:(Gauge|ObservationData|BasinInflowHydrograph|StationForcing|GriddedForcing|FlowDiversion|GridWeights)\b/i;
   const rvcSigs = /^:(BasinInitialConditions|HRUInitialConditions|InitialReservoirStage|UniformInitialConditions|HRUStateVariableTable|BasinStateVariables|TimeStamp)\b/i;
   const rvmSigs = /^:(WaterDemand|ReservoirWaterDemand|ManagementGoal|ManagementConstraint|DefineDecisionVariable|DeclareDecisionVariable|DefineWorkflowVariable|LookbackDuration|NamedConstant|LookupTable|UserTimeSeries|DemandGroup|OverrideStageDischargeCurve|NonlinearVariable|LoopThrough)\b/i;
   const rveSigs = /^:(EnKFMode|OutputDirectoryFormat|SolutionRunName|EnsembleRVCFormat|ForcingPerturbation|AssimilatedState|AssimilateStreamflow|ObservationErrorModel)\b/i;
@@ -21745,7 +21774,7 @@ async function _processNetCDF(nc, filename, overrides) {
   const dims     = nc.dimensions;
   const varNames = nc.variables.map(v => v.name);
 
-  console.log('[NetCDF] File:', filename, 'overrides:', overrides);
+  console.log('[NetCDF] File:', filename, 'overrides:', JSON.stringify(overrides));
 
   let isStationBased, isGridBased;
   if (overrides.typeOverride === 'station') { isStationBased=true;  isGridBased=false; }
@@ -21832,7 +21861,49 @@ function _visualizeStationNetCDF(nc, filename, matchedGF, info, dates, overrides
     });
     const gfMatch = matchedGF || findByFile(S.griddedForcings);
     const sfMatch = findByFile(S.stationForcings);
+    console.log('[NC station] gfMatch:', !!gfMatch, 'sfMatch:', !!sfMatch,
+      'stationForcings:', S.stationForcings.length,
+      sfMatch ? {name:sfMatch.name, hasWeights:!!(sfMatch.gridWeights?.length), redirect:sfMatch.redirect} : 'none');
+
+    // If stationForcing matched but has redirect and no inline weights, try to load from _dataFiles
+    if (sfMatch && (!sfMatch.gridWeights || sfMatch.gridWeights.length === 0) && sfMatch.redirect) {
+      const gwBase = sfMatch.redirect.split(/[/\\]/).pop().toLowerCase();
+      console.log('[NC station] Looking for grid weights file:', gwBase, 'in _dataFiles:', (window._dataFiles||[]).map(f=>f.name));
+      const gwFile = (window._dataFiles||[]).find(df =>
+        df.name.toLowerCase() === gwBase || df.name.toLowerCase().replace(/\.txt$/,'') === gwBase.replace(/\.txt$/,''));
+      if (gwFile && gwFile.text_content) {
+        // Parse :GridWeights from the text content
+        try {
+          const gwLines = gwFile.text_content.split(/\n/).map(l => l.trim()).filter(Boolean);
+          const gwRows = [];
+          let inGW = false;
+          for (const gl of gwLines) {
+            if (/^:GridWeights\b/i.test(gl)) { inGW = true; continue; }
+            if (/^:EndGridWeights\b/i.test(gl)) { inGW = false; continue; }
+            if (inGW && !gl.startsWith(':') && !gl.startsWith('#')) {
+              gwRows.push(gl.split(/\s+/).map(parseFloat));
+            }
+          }
+          if (gwRows.length > 0) {
+            sfMatch.gridWeights = gwRows;
+            // Also assign to other stationForcings sharing the same redirect
+            for (const sf2 of S.stationForcings) {
+              if (sf2 !== sfMatch && sf2.redirect &&
+                  sf2.redirect.split(/[/\\]/).pop().toLowerCase() === gwBase &&
+                  (!sf2.gridWeights || sf2.gridWeights.length === 0)) {
+                sf2.gridWeights = gwRows;
+              }
+            }
+            info.push(`<span style="color:var(--ok)">Loaded grid weights from ${gwFile.name} (${gwRows.length} entries)</span>`);
+          }
+        } catch(e) { console.warn('[NC] Failed to parse grid weights from redirect:', e); }
+      }
+    }
+
     const matchWithWeights = [gfMatch, sfMatch].find(f => f?.gridWeights?.length);
+    console.log('[NC station] matchWithWeights:', !!matchWithWeights,
+      matchWithWeights ? {name:matchWithWeights.name, weights:matchWithWeights.gridWeights?.length} : 'none',
+      'HRUs with lat/lon:', S.hrus.filter(h=>h.lat&&h.lon).length);
 
     if (matchWithWeights) {
       // Grid weights found — highlight exactly those HRUs
@@ -22101,55 +22172,106 @@ async function _visualizeGridNetCDF(nc, filename, matchedGF, info, dates, overri
   _showNcLegend(info);
 }
 
-// Highlight HRUs from grid weights, with click → time series
+// Highlight HRU polygons matched by grid weights, with click → time series
 function _highlightForcingHRUs(gf, dataVars, info, mode, nc, dates, nStations, filename) {
   if (!gf?.gridWeights?.length) return;
-  const hruWeights={};
-  const hruStation={}; // hruId → station index (for station-based)
+
+  // Build HRU → station mapping directly from grid weights (no subbasin aggregation)
+  const hruStation = {};
   for (const row of gf.gridWeights) {
-    if (row.length>=3) {
-      const hruId=Math.round(row[0]), stationOrCell=Math.round(row[1]), w=row[2];
-      hruWeights[hruId]=(hruWeights[hruId]||0)+w;
-      if (!hruStation[hruId]) hruStation[hruId]=stationOrCell; // first/dominant station
+    if (row.length >= 3) {
+      const hruId = Math.round(row[0]), stIdx = Math.round(row[1]);
+      if (hruStation[hruId] === undefined) hruStation[hruId] = stIdx;
     }
   }
-  const forced=new Set(Object.keys(hruWeights).map(Number));
-  let placed=0;
 
+  // Store globally — HRU layer styling reads this
+  const ncClickData = (nc && dates?.length && dataVars?.length)
+    ? { nc, dataVars, dates, nStations: nStations || 1, filename }
+    : null;
+
+  _ncForcingLink = { hruStation, ncClickData, name: gf.name || gf.forcingType || 'Forcing' };
+
+  const nHRUs = Object.keys(hruStation).length;
+  info.push(`<span style="color:var(--ok)">✓ ${nHRUs} HRU(s) linked to forcing</span>`);
+  if (ncClickData) info.push(`<span style="color:var(--text3);font-size:8px">Click any highlighted HRU polygon to view station time series</span>`);
+
+  // Apply to HRU layer if it exists
+  _applyNcForcingToHRULayer();
+}
+
+// Apply NC forcing styling + click handlers to HRU polygons
+function _applyNcForcingToHRULayer() {
+  if (!_ncForcingLink || !hruGeoLyr) return;
+  const { hruStation, ncClickData } = _ncForcingLink;
+  const hruIdField = geodata.hruIdField;
+  if (!hruIdField) return;
+
+  // Build SubBasin → station index map from grid weights + S.hrus
+  // (for dissolved GeoJSON where HRU_ID doesn't match grid weights exactly)
+  const subBasinStation = {};
   for (const h of S.hrus) {
-    if (!h.lat||!h.lon||!forced.has(h.id)) continue;
-    const weight=hruWeights[h.id]||0;
-    const stIdx=hruStation[h.id]||0;
-    const m=L.circleMarker([h.lat,h.lon],{
-      radius:Math.max(5,Math.min(12,4+weight*8)),
-      fillColor:'#f0a832',color:'#fff',weight:1.5,
-      fillOpacity:Math.min(0.9,0.4+weight*0.5),
-    });
-    m.bindTooltip(
-      `<b>HRU ${h.id}</b><div class="row">Weight: ${weight.toFixed(4)}</div>` +
-      `<div class="row">Forcing: ${gf.name||''} (${gf.forcingType||''})</div>` +
-      (nc&&dates?.length?`<div class="row" style="color:var(--text3);font-size:9px">Click to view time series</div>`:''),
-      {sticky:true}
-    );
-    // Click → show time series if nc data available
-    if (nc && dates?.length && dataVars?.length) {
-      const _si=stIdx, _nc=nc, _dv=dataVars, _dt=dates, _ns=nStations||1, _fn=filename, _hid=h.id;
-      m.on('click', async () => {
-        const ts=await _extractStationTS(_nc,_si,_ns,_dt,_dv);
-        _openNcTimeSeries(`NC_HRU_${_hid}`,ts.params,ts.units,ts.rows,_dt);
-      });
+    if (hruStation[h.id] !== undefined && h.basinId) {
+      if (subBasinStation[h.basinId] === undefined) subBasinStation[h.basinId] = hruStation[h.id];
     }
-    m.addTo(ncLyr);
-    placed++;
   }
 
-  if (placed>0) {
-    try { map.fitBounds(ncLyr.getBounds(), {padding:[40,40]}); } catch(_e) {}
-    info.push(`<span style="color:var(--ok)">✓ ${placed} HRU(s) highlighted from grid weights</span>`);
-    if (nc&&dates?.length) info.push(`<span style="color:var(--text3);font-size:8px">Click a marker to view its time series</span>`);
-  } else if (forced.size>0) {
-    info.push(`<span style="color:var(--warn)">Found ${forced.size} HRU ID(s) in weights but no lat/lon match in .rvh</span>`);
+  let matched = 0;
+  // hruGeoLyr is a LayerGroup containing a L.geoJSON group — iterate all leaf layers
+  const allLayers = [];
+  hruGeoLyr.eachLayer(group => {
+    if (group.eachLayer) group.eachLayer(l => allLayers.push(l));
+    else allLayers.push(group);
+  });
+
+  for (const layer of allLayers) {
+    const p = layer.feature?.properties || {};
+    const hruIdRaw = p[hruIdField];
+
+    // Try direct HRU_ID match first
+    let stIdx = undefined;
+    if (hruIdRaw !== null && hruIdRaw !== undefined) {
+      const hruId = typeof hruIdRaw === 'string' ? parseInt(hruIdRaw) : Math.round(hruIdRaw);
+      if (!isNaN(hruId) && hruStation[hruId] !== undefined) stIdx = hruStation[hruId];
+    }
+
+    // Fallback: match by SubId field in the GeoJSON properties
+    if (stIdx === undefined) {
+      const subIdRaw = p['SubId'] || p['subid'] || p['SUBID'] || p['SubBasin_ID'];
+      if (subIdRaw !== null && subIdRaw !== undefined) {
+        const subId = parseInt(subIdRaw);
+        if (!isNaN(subId) && subBasinStation[subId] !== undefined) stIdx = subBasinStation[subId];
+      }
+    }
+
+    if (stIdx === undefined) continue;
+
+    // Style: amber border for NC-linked HRUs
+    layer.setStyle({
+      color: '#f0a832',
+      weight: 2.2,
+      fillOpacity: 0.30,
+    });
+    matched++;
+
+    // Click → NC time series
+    if (ncClickData) {
+      if (layer._ncClickHandler) layer.off('click', layer._ncClickHandler);
+      const _stIdx = stIdx;
+      const _hruId = hruIdRaw;
+      layer._ncClickHandler = async () => {
+        try {
+          const ts = await _extractStationTS(ncClickData.nc, _stIdx, ncClickData.nStations, ncClickData.dates, ncClickData.dataVars);
+          _openNcTimeSeries(`NC_HRU_${_hruId}`, ts.params, ts.units, ts.rows, ncClickData.dates);
+        } catch(e) {
+          console.warn('[NC click] error:', e);
+          toast('Error reading NC data: ' + e.message, 'err');
+        }
+      };
+      layer.on('click', layer._ncClickHandler);
+    }
   }
+  console.log('[NC forcing] Styled', matched, 'of', allLayers.length, 'HRU polygons');
 }
 
 function _addNcStationMarker(lat, lon, label, stIdx, dataVars, dates, nStations, nc, filename) {
@@ -22609,6 +22731,23 @@ window.visualizeStationForcingHRUs = visualizeStationForcingHRUs;
       const idx = _dataFiles.findIndex(f => f.name === orf.name);
       if (idx >= 0) _dataFiles.splice(idx, 1);
       _dataFiles.push({ name: orf.name, category: 'main', text_content: orf.content });
+    }
+
+    // Add any redirect files (grid weights, etc.) from _fileRegistry that aren't already in _dataFiles
+    for (const rpath of (S._redirects || [])) {
+      const rbase = rpath.split(/[/\\]/).pop();
+      if (!rbase) continue;
+      // Skip if already in _dataFiles
+      if (_dataFiles.some(f => f.name.toLowerCase() === rbase.toLowerCase())) continue;
+      // Search _fileRegistry for matching content
+      for (const type of Object.keys(_fileRegistry || {})) {
+        for (const [fname, content] of Object.entries(_fileRegistry[type] || {})) {
+          if (fname.split(/[/\\]/).pop().toLowerCase() === rbase.toLowerCase() && content) {
+            _dataFiles.push({ name: rbase, category: 'main', text_content: content });
+            appendConsole('  + redirect file: ' + rbase);
+          }
+        }
+      }
     }
     for (const [ext, content] of Object.entries(rv_contents)) {
       if (content) appendConsole('  .' + ext + ': ' + content.length + ' chars');
