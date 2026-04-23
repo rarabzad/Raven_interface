@@ -2991,6 +2991,17 @@ function parseRVP(lines, S) {
     } else if (c==='SeasonalCanopyHeight') {
       // :SeasonalCanopyHeight vegClass m1 m2 ... m12
       S.seasonalHeight.push({vegClass:t[1], months:t.slice(2,14).map(num)});
+    } else if (c==='SeasonalRelativeLAI') {
+      // :SeasonalRelativeLAI block — same data as SeasonalCanopyLAI
+      const {rows,next}=readBlock(lines,i,'SeasonalRelativeLAI'); i=next;
+      for(const r of rows){ if(!cmd(r)&&r.length>=13) S.seasonalLAI.push({vegClass:r[0], months:r.slice(1,13).map(num)}); }
+    } else if (c==='SeasonalRelativeHeight') {
+      const {rows,next}=readBlock(lines,i,'SeasonalRelativeHeight'); i=next;
+      for(const r of rows){ if(!cmd(r)&&r.length>=13) S.seasonalHeight.push({vegClass:r[0], months:r.slice(1,13).map(num)}); }
+    } else if (c==='AvgAnnualRunoff'||c==='AnnualAvgRunoff') {
+      S.sim.avgAnnualRunoff=parseFloat(t[1]);
+    } else if (c==='AvgAnnualSnow') {
+      S.sim.avgAnnualSnow=parseFloat(t[1]);
     } else if (c==='RedirectToFile') {
       if(t[1]) S._redirects.push(t[1]);
     }
@@ -4603,6 +4614,10 @@ function importSubbasinGeoJSON() {
   });
 }
 window.importSubbasinGeoJSON = importSubbasinGeoJSON;
+window.fitBounds = fitBounds;
+window.setMapMode = setMapMode;
+window.refreshMap = refreshMap;
+window.renderSubbasinLayer = renderSubbasinLayer;
 
 function renderSubbasinLayer() {
   if (!sbLyr || !geodata.sb) return;
@@ -7586,6 +7601,41 @@ const PARAM_REGISTRY = {
   MAX_SWE_SURFACE:{cls:'GLOBAL',units:'[mm]',def:15,min:0,max:200},
   SNOW_ROUGHNESS:{cls:'GLOBAL',units:'[mm]',def:0.2,min:0,max:null},
   SNOW_TEMPERATURE:{cls:'GLOBAL',units:'[C]',def:0.0,min:-7,max:7},
+  // Physical global parameters (Table A.6)
+  AVG_ANNUAL_RUNOFF:{cls:'GLOBAL',units:'[mm]',def:500,min:0,max:1000},
+  ADIABATIC_LAPSE:{cls:'GLOBAL',units:'[C/km]',def:6.5,min:0,max:7},
+  WET_ADIABATIC_LAPSE:{cls:'GLOBAL',units:'[C/km]',def:4.0,min:0,max:7},
+  PRECIP_LAPSE:{cls:'GLOBAL',units:'[mm/d/km]',def:0,min:0,max:100},
+  RAINSNOW_TEMP:{cls:'GLOBAL',units:'[C]',def:0.0,min:-1,max:1},
+  RAINSNOW_DELTA:{cls:'GLOBAL',units:'[C]',def:2.0,min:0,max:4},
+  SNOW_SWI_MIN:{cls:'GLOBAL',units:'[0..1]',def:0.04,min:0.04,max:0.05},
+  SNOW_SWI_MAX:{cls:'GLOBAL',units:'[0..1]',def:0.1,min:0.05,max:0.15},
+  AVG_ANNUAL_SNOW:{cls:'GLOBAL',units:'[mm]',def:50,min:0,max:100},
+  MAX_SNOW_ALBEDO:{cls:'GLOBAL',units:'[0..1]',def:0.95,min:0,max:1},
+  MIN_SNOW_ALBEDO:{cls:'GLOBAL',units:'[0..1]',def:0.3,min:0,max:1},
+  BARE_GROUND_ALBEDO:{cls:'GLOBAL',units:'[0..1]',def:0.25,min:0.1,max:0.4},
+  // Conceptual/Numerical model global params
+  MAX_REACH_SEGLENGTH:{cls:'GLOBAL',units:'[km]',def:null,min:0,max:null},
+  AIRSNOW_COEFF:{cls:'GLOBAL',units:'[1/d]',def:null,min:0,max:null},
+  UBC_EXPOSURE_FACT:{cls:'GLOBAL',units:'[0..1]',def:null,min:0,max:1},
+  UBC_CLOUD_PENET:{cls:'GLOBAL',units:'[0..1]',def:null,min:0,max:1},
+  UBC_LW_FOREST_FACT:{cls:'GLOBAL',units:'[mm/d/K]',def:null,min:null,max:null},
+  UBC_ALBASE:{cls:'GLOBAL',units:'[-]',def:0.65,min:0,max:1},
+  UBC_ALBREC:{cls:'GLOBAL',units:'[1/d]',def:0.9,min:0,max:null},
+  UBC_ALBSNW:{cls:'GLOBAL',units:'[mm]',def:15,min:0,max:null},
+  ALB_DECAY_COLD:{cls:'GLOBAL',units:'[1/d]',def:0.008,min:0,max:null},
+  ALB_DECAY_MELT:{cls:'GLOBAL',units:'[1/d]',def:0.12,min:0,max:null},
+  SNOWFALL_ALBTHRESH:{cls:'GLOBAL',units:'[mm/d]',def:10,min:0,max:null},
+  UBC_MAX_CUM_MELT:{cls:'GLOBAL',units:'[mm]',def:4000,min:0,max:null},
+  SWI_REDUCT_COEFF:{cls:'GLOBAL',units:'[1/mm]',def:0.02,min:0,max:null},
+  MOHYSE_PET_COEFF:{cls:'GLOBAL',units:'[-]',def:1.0,min:null,max:null},
+  // Assimilation / algorithmic global params
+  ASSIMILATION_FACT:{cls:'GLOBAL',units:'[0..1]',def:1.0,min:0,max:1},
+  ASSIM_TIME_DECAY:{cls:'GLOBAL',units:'[1/d]',def:0.2,min:0,max:null},
+  ASSIM_UPSTREAM_DECAY:{cls:'GLOBAL',units:'[1/km]',def:0.1,min:0,max:null},
+  RESERVOIR_RELAX:{cls:'GLOBAL',units:'[0..1]',def:0.4,min:0,max:1},
+  GAMMA_SHAPE_MULTIPLIER:{cls:'GLOBAL',units:'[-]',def:1.0,min:null,max:null},
+  TIME_TO_PEAK_MULTIPLIER:{cls:'GLOBAL',units:'[-]',def:1.0,min:null,max:null},
   TOPMODEL_LAMBDA:{cls:'TERRAIN',units:'[m]',def:5,min:1,max:10},
   KSAT_STD_DEVIATION:{cls:'SOIL',units:'[log(mm/d)]',def:0,min:0,max:null},
   SAC_PERC_EXPON:{cls:'SOIL',units:'[-]',def:3,min:null,max:null},
@@ -7936,7 +7986,13 @@ function showAddGlobalParam() {
   modal.innerHTML=`
     <div class="proc-modal-box">
       <h3>Add Global Parameter</h3>
-      <div class="pm-section"><label>Parameter</label><select id="gpm-name">${opts}</select></div>
+      <div class="pm-section"><label>Parameter</label>
+        <select id="gpm-name" onchange="if(this.value==='__CUSTOM__'){document.getElementById('gpm-custom').style.display='block';document.getElementById('gpm-custom').focus()}else{document.getElementById('gpm-custom').style.display='none';var p=window._PARAM_REGISTRY_REF&&window._PARAM_REGISTRY_REF[this.value];if(p&&p.def!=null)document.getElementById('gpm-val').value=p.def}">
+          ${opts}
+          <option value="__CUSTOM__">— Custom (type name below) —</option>
+        </select>
+        <input id="gpm-custom" type="text" placeholder="Type custom parameter name" style="display:none;margin-top:4px">
+      </div>
       <div class="pm-section"><label>Value</label><input id="gpm-val" type="number" step="any"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
         <button class="btn" onclick="document.getElementById('gp-modal').remove()">Cancel</button>
@@ -7944,19 +8000,20 @@ function showAddGlobalParam() {
       </div>
     </div>`;
   document.body.appendChild(modal);
+  window._PARAM_REGISTRY_REF = PARAM_REGISTRY;
   modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
   // Pre-fill default
-  document.getElementById('gpm-name').addEventListener('change', function() {
-    const p = PARAM_REGISTRY[this.value];
-    if (p && p.def != null) document.getElementById('gpm-val').value = p.def;
-  });
   const firstP = PARAM_REGISTRY[globals[0]?.[0]];
   if (firstP && firstP.def != null) document.getElementById('gpm-val').value = firstP.def;
 }
 window.showAddGlobalParam = showAddGlobalParam;
 
 function gpModalCommit() {
-  const name = document.getElementById('gpm-name').value;
+  let name = document.getElementById('gpm-name').value;
+  if (name === '__CUSTOM__') {
+    name = (document.getElementById('gpm-custom').value || '').trim().toUpperCase();
+    if (!name) { toast('Enter a parameter name', 'warn'); return; }
+  }
   const val  = parseFloat(document.getElementById('gpm-val').value);
   S.globalParams[name] = isNaN(val) ? -9999 : val;
   document.getElementById('gp-modal').remove();
@@ -9239,7 +9296,7 @@ document.addEventListener('click', e => {
   const td = e.target.closest('td.id');
   if (!td) return;
   const val = td.textContent.trim();
-  navigator.clipboard?.writeText(val).then(() => {
+  _clipCopy(val).then(() => {
     td.classList.add('copied');
     setTimeout(() => td.classList.remove('copied'), 600);
   }).catch(() => {});
@@ -9558,6 +9615,7 @@ function activatePtab(id) {
 
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+window.escH = escH;
 function frow(label, input, hint) {
   return `<div class="f-row"><label title="${hint||''}">${label}</label>${input}</div>`;
 }
@@ -9576,6 +9634,7 @@ function renderRVI() {
   tabs(TABS,_lastTab.rvi||'sim',id=>{ _lastTab.rvi=id; activatePtab(id); rviTab(id); });
   rviTab(_lastTab.rvi||'sim');
 }
+window.renderRVI = renderRVI;
 
 function rviTab(id) {
   activatePtab(id);
@@ -9859,6 +9918,7 @@ function rviTab(id) {
 }
 
 // ── Output tab helpers ────────────────────────────────────────────────────────
+window.rviTab = rviTab;
 window.toggleMetric = function(m) {
   const idx = S.evalMetrics.indexOf(m);
   if (idx >= 0) S.evalMetrics.splice(idx, 1);
@@ -10045,6 +10105,7 @@ function _cleanupEmptyGroups() {
     S.processes.some(p => p.groupId === g.id)
   );
 }
+window._cleanupEmptyGroups = _cleanupEmptyGroups;
 const _openProcs = new Set();
 window.toggleProc=(id)=>{
   const el=document.getElementById(id);
@@ -11178,14 +11239,13 @@ function rvhRenameSBGroup(oldName, newName) {
 }
 window.rvhRenameSBGroup = rvhRenameSBGroup;
 
-function rvpAddGPO() {
+window.rvpAddGPO = function rvpAddGPO() {
   if (!S.globalParamOverrides) S.globalParamOverrides = [];
   S.globalParamOverrides.push({param:'', group:'', value:0});
   rvpTab('global');
-}
-window.rvpAddGPO = rvpAddGPO;
+};
 
-function rvpAddSeasonal(type) {
+window.rvpAddSeasonal = function rvpAddSeasonal(type) {
   if (type==='lai') {
     if (!S.seasonalLAI) S.seasonalLAI = [];
     const vegName = S.vegClasses.length ? S.vegClasses[0].name : 'FOREST';
@@ -11196,8 +11256,7 @@ function rvpAddSeasonal(type) {
     S.seasonalHeight.push({vegClass:vegName, months:[1,1,1,1,1,1,1,1,1,1,1,1]});
   }
   rvpTab('global');
-}
-window.rvpAddSeasonal = rvpAddSeasonal;
+};
 
 function rvpAddTransient() {
   if (!S.transientParams) S.transientParams = [];
@@ -13555,11 +13614,37 @@ function previewFile() {
   document.getElementById('modal-bg').classList.add('open');
 }
 
+// Clipboard helper with fallback for iframes/insecure contexts
+function _clipCopy(text) {
+  return new Promise((resolve, reject) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(resolve).catch(() => {
+        _clipFallback(text) ? resolve() : reject();
+      });
+    } else {
+      _clipFallback(text) ? resolve() : reject();
+    }
+  });
+}
+function _clipFallback(text) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch(e) { return false; }
+}
+
 function modalCopyText() {
   const btn = document.getElementById('modal-copy');
   const text = btn?._previewText || document.querySelector('#modal-body pre')?.textContent || '';
-  navigator.clipboard?.writeText(text).then(() => {
-    toast('File text copied to clipboard', 'ok');
+  _clipCopy(text).then(() => {
+    toast('Copied to clipboard', 'ok');
     if (btn) { const orig = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(()=>btn.textContent=orig, 1500); }
   }).catch(() => toast('Clipboard unavailable — select all text manually', 'warn'));
 }
@@ -18322,10 +18407,10 @@ overview: `
     <ul style="margin:0;padding-left:18px;line-height:2">
       <li>Import and edit all Raven file types (.rvi, .rvh, .rvp, .rvt, .rvc, .rvm, .rve)</li>
       <li>Import observation time series (regular &amp; irregular) and view them on the map</li>
-      <li>Import multiple NetCDF forcing files with layer switching</li>
-      <li>Visualise subbasins, HRUs and gauge stations on an interactive map</li>
-      <li>Load model output CSV and inspect hydrographs, residuals, diagnostics</li>
-      <li>Execute Raven models with real-time console streaming (Shiny deployment)</li>
+      <li>Import multiple NetCDF forcing files (gridded &amp; station-based) with grid weight matching</li>
+      <li>Visualise subbasins, HRU polygons and gauge stations on an interactive map</li>
+      <li>Load model output CSV and inspect hydrographs, residuals, diagnostics with bias adjustment</li>
+      <li>Execute Raven models on Linux/Windows with real-time console streaming (Shiny deployment)</li>
       <li>Generate calibration templates for Ostrich / SPOTPY / DDS</li>
       <li>Export a ZIP of all edited files ready to run with Raven</li>
     </ul>
@@ -18395,15 +18480,27 @@ import: `
   <li>Each file opens a configuration modal for variable selection, lat/lon overrides, and grid type</li>
   <li>Each imported file gets its own map layer with a unique colour</li>
   <li>The <strong>NetCDF Layers</strong> panel on the map lets you switch active layers, toggle visibility, and remove individual files</li>
-  <li>Supports both NetCDF-3 (classic) and NetCDF-4/HDF5 formats</li>
+  <li>Supports both NetCDF-3 (classic) and NetCDF-4/HDF5 formats (zlib-compressed chunks supported)</li>
   <li>Use the <strong>Forcings dropdown</strong> in the sidebar to quickly select and visualize forcing coverage</li>
+</ul>
+
+<h3 style="color:var(--text1);font-size:13px;margin:16px 0 8px">Station-based NetCDF &amp; Grid Weights</h3>
+<p>For models using <code>:StationForcing</code> with <code>:RedirectToFile</code> pointing to a grid weights file:</p>
+<ul style="padding-left:18px;line-height:2;font-size:10px">
+  <li><strong>Import order doesn't matter</strong> — grid weights, NC files, rv* files, and GeoJSON can be imported in any order. Matching happens dynamically as each file arrives.</li>
+  <li>Import the grid weights <code>.txt</code> file via <strong>📂 Import</strong> — it's auto-detected as rvt-type content and parsed</li>
+  <li>Grid weights are assigned to all <code>:StationForcing</code> blocks that reference the same file</li>
+  <li>When importing a station-based NC file, select <strong>Station-based</strong> grid type, leave lat/lon as <em>— none —</em></li>
+  <li>Matched HRU polygons are highlighted with an <strong>amber border</strong> — click any polygon to view the station time series</li>
+  <li>Matching uses direct HRU_ID lookup first, then falls back to SubId matching (for dissolved/aggregated GeoJSON polygons)</li>
+  <li>NC files are automatically included in the execution payload — no need to add them separately via Data Files</li>
 </ul>
 
 <h3 style="color:var(--text1);font-size:13px;margin:16px 0 8px">Spatial data (GeoJSON)</h3>
 <ul style="padding-left:18px;line-height:2;font-size:10px">
   <li><strong>Subbasin polygons</strong> — sidebar <em>⊕ Subbasin GeoJSON</em>. A field-mapper lets you choose which property holds the SubId. Once linked, clicking a polygon opens the hydrograph or observation panel.</li>
   <li><strong>River network</strong> — sidebar <em>〜 River GeoJSON</em>. Rendered as blue lines.</li>
-  <li><strong>HRU polygons</strong> — sidebar <em>◉ HRU GeoJSON</em>. Coloured by land-use class.</li>
+  <li><strong>HRU polygons</strong> — sidebar <em>◉ HRU GeoJSON</em>. Coloured by land-use class. When station-based NetCDF forcing is imported, matched HRU polygons get amber borders and click-to-view station time series. Matching works for both individual HRU IDs and dissolved polygons (via SubId fallback).</li>
 </ul>
 
 <h3 style="color:var(--text1);font-size:13px;margin:16px 0 8px">Raven output CSV</h3>
@@ -18433,6 +18530,12 @@ map: `
 
 <h3 style="color:var(--text1);font-size:13px;margin:16px 0 8px">Clicking subbasin polygons</h3>
 <p>With output loaded and polygons matched, clicking a subbasin polygon adds it to the hydrograph panel (slides up from map bottom). Multiple polygons can be selected for comparison. If no output is loaded but observation data exists for that basin, clicking opens the observation time series chart instead.</p>
+
+<h3 style="color:var(--text1);font-size:13px;margin:16px 0 8px">Clicking HRU polygons (NetCDF forcing)</h3>
+<p>When station-based NetCDF forcing is imported with matching grid weights, HRU polygons are highlighted with amber borders. Clicking any highlighted HRU polygon shows the <strong>station time series</strong> from the NC file for that specific HRU's assigned station. Each HRU maps directly to its own station index from the grid weights — no subbasin-level aggregation is assumed.</p>
+
+<h3 style="color:var(--text1);font-size:13px;margin:16px 0 8px">Output file switcher</h3>
+<p>When multiple output files are loaded, a <strong>dropdown switcher</strong> appears at the top centre of the map, allowing you to switch between different output CSVs (Hydrographs, WatershedStorage, custom outputs). The same switcher is available in the sidebar output pills.</p>
 
 <h3 style="color:var(--text1);font-size:13px;margin:16px 0 8px">Observation highlighting</h3>
 <p>When observation .rvt files are loaded, basins with observation data are automatically highlighted:</p>
@@ -18477,7 +18580,7 @@ panels: `
 
   <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #f0a832;border-radius:6px;padding:12px 16px">
     <div style="font-weight:700;color:var(--text1);margin-bottom:6px;font-size:12px">⚗ .rvp — Parameter Editor  <code style="font-size:9px;opacity:.6">key 3</code></div>
-    <p style="margin:0;font-size:10px">Soil / Vegetation / Land-use class tables · Soil profile horizon editor · Stratigraphic profile visualiser (colour by class / depth / layer index) · Channel profile editor with cross-section preview · Global parameter list · Soil/Veg/LU parameter blocks (add/remove classes) · <strong>Parameter Distribution</strong> dot-strip chart for outlier detection</p>
+    <p style="margin:0;font-size:10px">Soil / Vegetation / Land-use class tables · Soil profile horizon editor · Stratigraphic profile visualiser (colour by class / depth / layer index) · Channel profile editor with cross-section preview · <strong>Global parameters</strong> (all 39 Raven v4.1 parameters + custom parameter entry) · Global parameter overrides (per subbasin group) · <strong>Seasonal Canopy Tables</strong> (LAI &amp; Height, monthly values per vegetation class — supports <code>:SeasonalRelativeLAI</code> and <code>:SeasonalCanopyLAI</code> block formats) · Transient parameters · Soil/Veg/LU parameter blocks (add/remove classes) · <strong>Parameter Distribution</strong> dot-strip chart for outlier detection · <code>:AvgAnnualRunoff</code> parsed from both .rvi and .rvp files</p>
   </div>
 
   <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #b06aff;border-radius:6px;padding:12px 16px">
@@ -18507,15 +18610,21 @@ output: `
 <h3 style="color:var(--text1);font-size:13px;margin:0 0 8px">Model execution (Shiny deployment)</h3>
 <p>When deployed on Posit Cloud as a Shiny app, the interface can execute Raven directly:</p>
 <ol style="padding-left:18px;font-size:10px;line-height:2.2">
-  <li>Load your model files (rv*, .nc, observation .rvt)</li>
+  <li>Load your model files (rv*, .nc, grid weights .txt, observation .rvt)</li>
   <li>Click <strong>✓ Validate</strong> in the toolbar — checks for required files and fields</li>
   <li>Click <strong>▶ Execute Model</strong> — sends model to the Shiny server for execution</li>
   <li>The <strong>Execution Console</strong> opens showing real-time Raven stdout output</li>
-  <li>Progress bar tracks simulation percentage from Raven's output messages</li>
+  <li>Progress bar tracks simulation percentage from Raven's date output</li>
   <li>On completion, all output CSV files are auto-imported into the viewer</li>
 </ol>
 <div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:10px;margin:8px 0">
-  <strong>Folder structure:</strong> The server organizes files as: <code>main/</code> (rv* files + executable), <code>main/timeseries/forcings/</code> (.nc and forcing data), <code>main/timeseries/observations/</code> (obs data), <code>output/</code> (Raven results). FileNameNC paths are automatically adjusted for local execution.
+  <strong>Folder structure:</strong> The server organizes files as: <code>main/</code> (rv* files + executable), <code>main/timeseries/forcings/</code> (.nc and forcing data), <code>main/timeseries/observations/</code> (obs data), <code>output/</code> (Raven results). FileNameNC and RedirectToFile paths are automatically adjusted for local execution.
+</div>
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:10px;margin:8px 0">
+  <strong>Dual-platform:</strong> Raven executables are bundled for both <strong>Linux</strong> (glibc 2.35+) and <strong>Windows</strong>. The server auto-detects the platform and uses the correct binary. On Connect Cloud, the binary is automatically downloaded from a GitHub Release on first run.
+</div>
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:10px;margin:8px 0">
+  <strong>NetCDF models:</strong> NC files imported via <strong>📂 Import</strong> are automatically included in the execution payload (base64-encoded, category: nc). Grid weights files referenced by <code>:RedirectToFile</code> inside <code>:StationForcing</code> blocks are also included. Windows-style backslash paths (<code>data_obs\file.rvt</code>) are automatically converted to forward slashes for Linux execution.
 </div>
 
 <h3 style="color:var(--text1);font-size:13px;margin:16px 0 8px">Hydrograph panel</h3>
@@ -18523,7 +18632,7 @@ output: `
 
 <h3 style="color:var(--text1);font-size:13px;margin:8px 0 8px">Hydrograph panel tabs</h3>
 <div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:10px;line-height:2.2">
-  <strong style="color:var(--accent)">Time Series</strong> — Simulated (solid) and observed (dashed) hydrograph. Zoom by scroll, pan by drag. NSE / KGE badges update to the visible window. Precipitation bars shown at top.<br>
+  <strong style="color:var(--accent)">Time Series</strong> — Simulated (solid) and observed (dashed) hydrograph. Zoom by scroll, pan by drag. NSE / KGE badges update to the visible window. Precipitation bars shown at top. <strong>μ= bias adjustment</strong> button shifts simulated series so its mean matches observed mean.<br>
   <strong style="color:var(--accent)">Flow Duration</strong> — Exceedance probability curves for sim + obs, with log-scale toggle and crosshair.<br>
   <strong style="color:var(--accent)">Flow Dur. Bias</strong> — Percent bias across flow exceedance quantiles.<br>
   <strong style="color:var(--accent)">Climatology</strong> — Day-of-year median ± percentile envelope for sim and obs. Toggle between daily/monthly.<br>
@@ -18579,7 +18688,8 @@ shortcuts: `
 <table style="width:100%;border-collapse:collapse;font-size:11px">
   <tr><td style="padding:5px 10px 5px 0;color:var(--accent);font-family:var(--mono);white-space:nowrap">Scroll</td><td style="padding:5px 0;color:var(--text2)">Zoom map</td></tr>
   <tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px 5px 0;color:var(--accent);font-family:var(--mono)">Drag</td><td style="padding:5px 0;color:var(--text2)">Pan map</td></tr>
-  <tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px 5px 0;color:var(--accent);font-family:var(--mono)">Click polygon</td><td style="padding:5px 0;color:var(--text2)">View hydrograph / observation time series</td></tr>
+  <tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px 5px 0;color:var(--accent);font-family:var(--mono)">Click polygon</td><td style="padding:5px 0;color:var(--text2)">View hydrograph / observation / NC time series</td></tr>
+  <tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px 5px 0;color:var(--accent);font-family:var(--mono)">Click HRU polygon</td><td style="padding:5px 0;color:var(--text2)">View station forcing time series (when NC linked)</td></tr>
   <tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px 5px 0;color:var(--accent);font-family:var(--mono)">Click gauge ◇</td><td style="padding:5px 0;color:var(--text2)">View met time series</td></tr>
   <tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px 5px 0;color:var(--accent);font-family:var(--mono)">Click NC marker</td><td style="padding:5px 0;color:var(--text2)">View NetCDF time series at that grid cell/station</td></tr>
 </table>
@@ -18619,8 +18729,10 @@ about: `
     <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#4da8ff);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:28px;font-weight:700;color:#000">R</div>
     <div style="font-size:16px;font-weight:700;color:var(--text1);margin-bottom:4px">Rezgar Arabzadeh</div>
     <div style="font-size:10px;color:var(--text3);margin-bottom:16px;line-height:1.6">
+      PhD Candidate, Civil Engineering — Water<br>
       Department of Civil and Environmental Engineering<br>
-      University of Waterloo
+      University of Waterloo<br>
+      <span style="font-size:9px;color:var(--text3);opacity:.7">April 2026</span>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
       <a href="mailto:rarabzad@uwaterloo.ca"
@@ -18646,14 +18758,16 @@ about: `
     <h3 style="color:var(--text1);font-size:13px;margin:14px 0 8px">Key capabilities</h3>
     <ul style="padding-left:18px;font-size:10px;line-height:1.8;margin:0 0 14px">
       <li>Edit all rv* file types with structured form editors</li>
-      <li>Interactive map with subbasin polygons, HRU scatter, gauge markers, NetCDF grid/station layers</li>
+      <li>Interactive map with subbasin polygons, HRU polygons, gauge markers, NetCDF grid/station layers</li>
       <li>Multi-NetCDF layer support with switching, visibility toggles, and time series extraction</li>
+      <li>Station-based NetCDF forcing with grid weights — order-independent import, HRU polygon click-to-timeseries</li>
       <li>Observation time series visualization (regular &amp; irregular) matched to map features</li>
-      <li>Hydrograph viewer with 10+ analysis tabs (FDC, scatter, climatology, residuals, diagnostics, etc.)</li>
+      <li>Hydrograph viewer with 10+ analysis tabs (FDC, scatter, climatology, residuals, diagnostics, bias adjustment, etc.)</li>
       <li>Spatial animation player for custom output time series</li>
-      <li>Raven model execution with real-time console streaming (Shiny deployment)</li>
+      <li>Dual-platform Raven execution (Linux/Windows) with real-time console streaming (Shiny deployment)</li>
+      <li>Full Raven v4.1 global parameter list (39 parameters + custom entry) with default values and ranges</li>
       <li>Calibration template generator (Ostrich / SPOTPY / DDS)</li>
-      <li>Unified import: single button handles .rv*, .nc, .csv, .txt, .dat files</li>
+      <li>Unified import: single button handles .rv*, .nc, .csv, .txt, .dat files in any order</li>
     </ul>
 
     <h3 style="color:var(--text1);font-size:13px;margin:0 0 8px">Resources</h3>
@@ -23029,7 +23143,7 @@ window.visualizeStationForcingHRUs = visualizeStationForcingHRUs;
 
   window.copyOutputContent = function() {
     const text = document.getElementById('output-viewer-content').textContent;
-    navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard', 'ok'))
+    _clipCopy(text).then(() => toast('Copied to clipboard', 'ok'))
       .catch(() => toast('Clipboard unavailable', 'warn'));
   };
 
