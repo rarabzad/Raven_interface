@@ -16033,7 +16033,13 @@ function drawMetChart() {
     }
     if (!isFinite(mn)) { mn = 0; mx = 1; }
     const pad = Math.max((mx - mn) * 0.08, 0.5);
-    return { min: mn - pad, max: mx + pad };
+    mn -= pad; mx += pad;
+    // Clamp to non-negative for variables that can't be negative
+    const pUp = (p||'').toUpperCase();
+    const isNonNeg = /PRECIP|RAIN|SNOW|SWE|FLOW|DISCHARGE|RUNOFF|PET|AET|EVAP|HUMIDITY|WIND|RADIA|ALBEDO|LAI|STORAGE|DEPTH|PRESSURE|PRES/.test(pUp)
+                  && !/TEMP|DELTA|BIAS|DEVIATION|ANOMAL/.test(pUp);
+    if (isNonNeg && mn < 0) mn = 0;
+    return { min: mn, max: mx };
   });
 
   // Draw each visible param
@@ -21319,6 +21325,19 @@ function switchNcLayer(layerId) {
   _ncActiveId = layerId;
   // Point the global _ncDataStore to this layer's data so click handlers work
   _ncDataStore = entry.dataStore;
+  // Update _ncForcingLink so HRU polygon clicks use the active NC layer's data
+  if (_ncForcingLink && entry.dataStore) {
+    const ds = entry.dataStore;
+    if (ds.nc && ds.dates && ds.dataVars) {
+      _ncForcingLink.ncClickData = {
+        nc: ds.nc,
+        dataVars: ds.dataVars,
+        dates: ds.dates,
+        nStations: ds.nStations || 1,
+        filename: ds.filename || entry.filename
+      };
+    }
+  }
   // Ensure it's visible
   if (!entry.visible) {
     entry.visible = true;
@@ -22368,22 +22387,22 @@ function _applyNcForcingToHRULayer() {
     });
     matched++;
 
-    // Click → NC time series
-    if (ncClickData) {
-      if (layer._ncClickHandler) layer.off('click', layer._ncClickHandler);
-      const _stIdx = stIdx;
-      const _hruId = hruIdRaw;
-      layer._ncClickHandler = async () => {
-        try {
-          const ts = await _extractStationTS(ncClickData.nc, _stIdx, ncClickData.nStations, ncClickData.dates, ncClickData.dataVars);
-          _openNcTimeSeries(`NC_HRU_${_hruId}`, ts.params, ts.units, ts.rows, ncClickData.dates);
-        } catch(e) {
-          console.warn('[NC click] error:', e);
-          toast('Error reading NC data: ' + e.message, 'err');
-        }
-      };
-      layer.on('click', layer._ncClickHandler);
-    }
+    // Click → NC time series (reads _ncForcingLink at click time, not from closure)
+    if (layer._ncClickHandler) layer.off('click', layer._ncClickHandler);
+    const _stIdx = stIdx;
+    const _hruId = hruIdRaw;
+    layer._ncClickHandler = async () => {
+      const ncd = _ncForcingLink?.ncClickData;
+      if (!ncd) { console.warn('[NC click] no ncClickData'); return; }
+      try {
+        const ts = await _extractStationTS(ncd.nc, _stIdx, ncd.nStations, ncd.dates, ncd.dataVars);
+        _openNcTimeSeries(`NC_HRU_${_hruId}`, ts.params, ts.units, ts.rows, ncd.dates);
+      } catch(e) {
+        console.warn('[NC click] error:', e);
+        toast('Error reading NC data: ' + e.message, 'err');
+      }
+    };
+    layer.on('click', layer._ncClickHandler);
   }
   console.log('[NC forcing] Styled', matched, 'of', allLayers.length, 'HRU polygons');
 }
