@@ -2702,6 +2702,8 @@ function mkStore() {
       _raw:[],
     },
     _aliases:new Map(),_redirects:[],rvtRedirects:[],obsBasinIds:[],_raw:[],_errors:[],
+    // Generic passthrough: unrecognized commands preserved per file type
+    _passthrough:{rvi:[],rvp:[],rvh:[],rvt:[],rvc:[],rvm:[],rve:[]},
     processGroups:[],  // [{id,comment,method,weights:[]}] — for :ProcessGroup/:EndProcessGroup CALCULATE_WTS
     evalMetrics:[],evalPeriods:[],
     luParams:[],vegParams:[],
@@ -2718,8 +2720,10 @@ function parseRVI(lines, S) {
     'CapillaryRise','Baseflow','Interflow','SnowBalance','SnowRefreeze','SnowMelt',
     'SnowSqueeze','SnowAlbedoEvolve','SnowTempEvolve','Sublimation','BlowingSnow',
     'GlacierMelt','GlacierRelease','GlacierInfiltration','Abstraction','DepressionOverflow',
-    'Seepage','LakeRelease','Flush','LateralFlush','Split','Overflow','Convolution',
-    'Recharge','Exchangeflow','CropHeatUnitEvolve','Convolve','CanopySublimation','HyporheicLayer','LateralEquilibrate','SoilBalance','ProcessGroup']);
+    'Seepage','LakeRelease','Flush','LateralFlush','LateralDivert','Split','Overflow','Convolution',
+    'Recharge','Exchangeflow','CropHeatUnitEvolve','Convolve','CanopySublimation','HyporheicLayer',
+    'LateralEquilibrate','SoilBalance','ProcessGroup','SnowRedistribute','LakeFreeze',
+    'Redirect','StateOverride']);
   let i=0;
   while (i < lines.length) {
     const t=tokenize(lines[i]); i++;
@@ -2832,7 +2836,8 @@ function parseRVI(lines, S) {
       case 'RelativeHumidityMethod':  s.relHumid=ta[1]; break;
       // Lapse rates and corrections (shorthand — equivalent to GlobalParameter)
       case 'AdiabaticLapseRate':       s.adiabaticLapse=parseFloat(ta[1]); break;
-      case 'WetAdiabaticLapseRate':    s.wetAdiabaticLapse=parseFloat(ta[1]); s.wetAdiabaticA0PPTP=parseFloat(ta[2]||0); break;
+      case 'WetAdiabaticLapseRate': case 'WetAdiabaticLapse':
+        s.wetAdiabaticLapse=parseFloat(ta[1]); s.wetAdiabaticA0PPTP=parseFloat(ta[2]||0); break;
       case 'PrecipitationLapseRate':   s.precipLapse=parseFloat(ta[1]); break;
       case 'IrreducibleSnowSaturation':s.snowSWI=parseFloat(ta[1]); break;
       case 'TemperatureCorrection':    s.tempCorrection=parseFloat(ta[1]); break;
@@ -2878,6 +2883,13 @@ function parseRVI(lines, S) {
       }
       // Output/run control
       case 'OutputDirectory':      s.outputDir=ta[1]; break;
+      case 'rvtFilename': case 'rvt_Filename':
+        s.rvtFilename=ta[1]; break;
+      case 'rvp_Filename':         s.rvpFilename=ta[1]; break;
+      case 'rvh_Filename':         s.rvhFilename=ta[1]; break;
+      case 'rvc_Filename':         s.rvcFilename=ta[1]; break;
+      case 'rvl_Filename':         s.rvlFilename=ta[1]; break;
+      case 'rve_Filename':         s.rveFilename=ta[1]; break;
       case 'MajorOutputInterval':  s.majorOutputInterval=ta[1]; break;
       case 'OutputDump':           s.outputDump=ta.slice(1).join(' '); break;
       case 'RandomSeed':           s.randomSeed=parseInt(ta[1]); break;
@@ -2900,8 +2912,60 @@ function parseRVI(lines, S) {
       case 'WriteMassBalanceFile': case 'WriteForcingFunctions':
       case 'WriteLocalFlows': case 'WriteWaterLevels': case 'DebugMode': case 'SilentMode':
       case 'NoisyMode': case 'SuppressOutput': case 'WriteSubbasinFile': case 'WriteExhaustiveMB':
-      case 'WriteMassLoadings':
+      case 'WriteMassLoadings': case 'EndPause': case 'WriteInterpolationWeights':
+      case 'WriteNetReservoirInflows': case 'WriteDemandFile': case 'WriteReservoirMBFile':
+      case 'WriteWatershedStorage': case 'WriteNetCDFFormat': case 'WriteEnsimFormat':
+      case 'NetCDFUseBasinFullname':
         S.flags[c] = true; break;
+      // Transport simulation
+      case 'Transport':
+        if(!S.transport) S.transport=[];
+        S.transport.push(ta[1]||'TRACER');
+        break;
+      // Geochemical processes block (like HydrologicProcesses)
+      case 'EnsembleMode':
+        s.ensembleMode = ta[1]; s.ensembleSize = parseInt(ta[2]||1);
+        break;
+      case 'AggregatedVariable':
+        if(!S.aggregatedVars) S.aggregatedVars=[];
+        S.aggregatedVars.push({var:ta[1]||'', group:ta[2]||''});
+        break;
+      case 'GeochemicalProcesses': {
+        if(!S.geochemProcesses) S.geochemProcesses=[];
+        const gpLines=[];
+        while(i<lines.length){
+          const gt=tokenize(lines[i]); i++;
+          const gc=cmd(gt);
+          if(gc==='EndGeochemicalProcesses') break;
+          if(gc) gpLines.push(lines[i-1]);
+        }
+        S.geochemProcesses = gpLines;
+        break;
+      }
+      // v4.1 method commands
+      case 'LWIncomingMethod':          s.lwIncoming=ta[1]; break;
+      case 'TimeOfConcentrationMethod': s.timeOfConc=ta[1]; break;
+      case 'RunMode':                   s.runMode=ta[1]; break;
+      // Conditional blocks — store raw
+      case 'IfModeEquals': case 'EndIfModeEquals':
+        S._passthrough.rvi.push(lines[i-1]); break;
+      default:
+        // Passthrough: preserve unrecognized commands as raw lines
+        if (c && c[0] === c[0].toUpperCase()) {
+          const rawLine = lines[i-1];
+          // Check if it starts a block (has :End variant)
+          const endTag = 'End'+c;
+          let blockLines = [rawLine];
+          while(i < lines.length) {
+            const nt = tokenize(lines[i]);
+            blockLines.push(lines[i]); i++;
+            if (cmd(nt) === endTag) break;
+            if (cmd(nt) && cmd(nt) !== c && !lines[i-1].startsWith(' ') && !lines[i-1].startsWith('\t')) { i--; blockLines.pop(); break; }
+          }
+          if (blockLines.length === 1) S._passthrough.rvi.push(rawLine);
+          else S._passthrough.rvi.push(blockLines.join('\n'));
+        }
+        break;
     }
   }
 }
@@ -3002,8 +3066,42 @@ function parseRVP(lines, S) {
       S.sim.avgAnnualRunoff=parseFloat(t[1]);
     } else if (c==='AvgAnnualSnow') {
       S.sim.avgAnnualSnow=parseFloat(t[1]);
+    } else if (c==='AquiferClasses') {
+      const {rows,next}=readBlock(lines,i,'AquiferClasses'); i=next;
+      if(!S.aquiferClasses) S.aquiferClasses=[];
+      for(const r of rows){if(!cmd(r)&&r.length>0) S.aquiferClasses.push({name:r[0]});}
+    } else if (c==='AquiferParameterList') {
+      const {rows,next}=readBlock(lines,i,'AquiferParameterList'); i=next;
+      if(!S.aquiferParams) S.aquiferParams=[];
+      S.aquiferParams.push(parseParamList(rows,'AQUIFER'));
+    } else if (c==='TerrainParameterList') {
+      const {rows,next}=readBlock(lines,i,'TerrainParameterList'); i=next;
+      S.terrainParams = S.terrainParams||[];
+      S.terrainParams.push(parseParamList(rows,'TERRAIN'));
+    } else if (c==='GeochemEquilibrium'||c==='GeochemDecay'||c==='GeochemTransformation'||c==='GeochemSorption') {
+      // Geochemistry blocks — store structured
+      if(!S.geochemistry) S.geochemistry=[];
+      const {rows,next}=readBlock(lines,i,c); i=next;
+      S.geochemistry.push({type:c, args:t.slice(1), rows:rows.map(r=>r.join(' '))});
+    } else if (c==='StoichiometricRatio'||c==='StochiometricRatio') {
+      // :StoichiometricRatio constituent1 constituent2 ratio
+      if(!S.stoichRatios) S.stoichRatios=[];
+      S.stoichRatios.push({c1:t[1]||'', c2:t[2]||'', ratio:parseFloat(t[3]||1)});
     } else if (c==='RedirectToFile') {
       if(t[1]) S._redirects.push(t[1]);
+    } else if (c && c[0]===c[0].toUpperCase()) {
+      // Passthrough: unrecognized RVP command — preserve raw
+      const rawLine = lines[i-1];
+      const endTag = 'End'+c;
+      let blockLines = [rawLine];
+      let foundEnd = false;
+      while(i < lines.length) {
+        const nt = tokenize(lines[i]);
+        if (cmd(nt) === endTag) { blockLines.push(lines[i]); i++; foundEnd=true; break; }
+        if (cmd(nt) && !lines[i].match(/^\s/) && cmd(nt)!==c) break;
+        blockLines.push(lines[i]); i++;
+      }
+      S._passthrough.rvp.push(blockLines.join('\n'));
     }
   }
 }
@@ -3058,10 +3156,10 @@ function parseRVH(lines, S) {
         }
       }
       S.hruGroups[name].members=mem;
-    } else if (c==='PopulateHRUGroup') {
+    } else if (c==='PopulateHRUGroup'||c==='RepopulateHRUGroup') {
       const name=t[1];
       if(!S.hruGroups[name])S.hruGroups[name]={name,members:[],disabled:false};
-      S.hruGroups[name].auto={base:t[3],cond:t[4],data:t[5]};
+      S.hruGroups[name].auto={base:t[3],cond:t[4],data:t[5],type:c};
     } else if (c==='SubBasinGroup') {
       const name=t[1]; const {rows,next}=readBlock(lines,i,'SubBasinGroup'); i=next;
       const mem=[];
@@ -3185,6 +3283,34 @@ function parseRVH(lines, S) {
       S.reservoirs.push(res);
     } else if (c==='RedirectToFile') {
       if(t[1]) S._redirects.push(t[1]);
+    } else if (c==='IntersectHRUGroups'||c==='MergeHRUGroups') {
+      // :IntersectHRUGroups newGrp grp1 grp2 ...
+      if(!S.hruGroupOps) S.hruGroupOps=[];
+      S.hruGroupOps.push({type:c, raw:lines[i-1]});
+    } else if (c==='IntersectSubBasinGroups'||c==='MergeSubBasinGroups') {
+      if(!S.sbGroupOps) S.sbGroupOps=[];
+      S.sbGroupOps.push({type:c, raw:lines[i-1]});
+    } else if (c==='GroupLandUseChange'||c==='GroupVegetationChange') {
+      // Group-based class changes
+      if(!S.liveChanges) S.liveChanges=[];
+      S.liveChanges.push({type:c, args:t.slice(1), raw:lines[i-1]});
+      // :PopulateSBGroup groupName UPSTREAM_OF sbid | ALL
+      S._passthrough.rvh.push(lines[i-1]);
+    } else if (c==='DisableSubBasinGroup') {
+      S._passthrough.rvh.push(lines[i-1]);
+    } else if (c==='SpecifyGaugeForHRU') {
+      S._passthrough.rvh.push(lines[i-1]);
+    } else if (c && c[0]===c[0].toUpperCase()) {
+      const rawLine = lines[i-1];
+      const endTag = 'End'+c;
+      let blockLines = [rawLine];
+      while(i < lines.length) {
+        const nt = tokenize(lines[i]);
+        if (cmd(nt)===endTag) { blockLines.push(lines[i]); i++; break; }
+        if (cmd(nt) && !lines[i].match(/^\s/) && cmd(nt)!==c) break;
+        blockLines.push(lines[i]); i++;
+      }
+      S._passthrough.rvh.push(blockLines.join('\n'));
     }
   }
 }
@@ -3204,13 +3330,47 @@ function parseRVT(lines, S) {
           case 'Elevation':g.elev=parseFloat(r[1]);break;case 'RainCorrection':g.rainCorr=parseFloat(r[1]);break;
           case 'SnowCorrection':g.snowCorr=parseFloat(r[1]);break;
           case 'RedirectToFile':if(r[1]){g.redirect=r[1];S._redirects.push(r[1]);}break;
-          case 'Data':g.data.push({type:r[1],units:r[2]||''});break;
+          case 'Data':{
+            const dEntry={type:r[1],units:r[2]||'',readNC:null,annualCycle:null,rawLines:[]};
+            // Scan forward in rows for sub-commands until we hit another top-level Gauge command
+            let di=rows.indexOf(r)+1;
+            while(di<rows.length){
+              const dr=rows[di]; const drc=cmd(dr);
+              if(drc==='ReadFromNetCDF'){
+                dEntry.readNC={};
+                di++;
+                while(di<rows.length){
+                  const nr=rows[di]; const nrc=cmd(nr);
+                  if(nrc==='EndReadFromNetCDF') break;
+                  if(nrc==='FileNameNC') dEntry.readNC.fileNC=nr[1];
+                  else if(nrc==='VarNameNC') dEntry.readNC.varNC=nr[1];
+                  else if(nrc==='DimNamesNC') dEntry.readNC.dimNames=nr.slice(1).join(' ');
+                  else if(nrc==='StationIdx') dEntry.readNC.stationIdx=parseInt(nr[1]);
+                  di++;
+                }
+              } else if(drc==='AnnualCycle'){
+                dEntry.annualCycle=dr.slice(1,13).map(parseFloat);
+              } else if(drc==='EndData'||drc==='Data'||
+                        drc==='Latitude'||drc==='Longitude'||drc==='Elevation'||
+                        drc==='RedirectToFile'||drc==='MeasurementHeight'||
+                        drc==='MonthlyAveEvaporation'||drc==='MonthlyAveTemperature'||
+                        drc==='RainCorrection'||drc==='SnowCorrection'){
+                break; // hit next gauge-level command
+              } else {
+                dEntry.rawLines.push(dr.join(' '));
+              }
+              di++;
+            }
+            g.data.push(dEntry);
+            break;
+          }
           case 'MeasurementHeight': g.measHeight=parseFloat(r[1]);break;
           case 'MonthlyAveEvaporation': g.monthlyEvap=r.slice(1,13).map(parseFloat);break;
           case 'MonthlyAveTemperature': g.monthlyTemp=r.slice(1,13).map(parseFloat);break;
           case 'MonthlyMinTemperature': g.monthlyTmin=r.slice(1,13).map(parseFloat);break;
           case 'MonthlyMaxTemperature': g.monthlyTmax=r.slice(1,13).map(parseFloat);break;
           case 'TimeShift': g.timeShift=parseFloat(r[1]);break;
+          case 'EnsimTimeSeries': g.ensimTS=r[1]||'';break;
           case 'Deaccumulate': g.deaccumulate=true;break;
           case 'LinearTransform': g.linearTransform={a:parseFloat(r[1]),b:parseFloat(r[2]||0)};break;
         }}
@@ -3223,8 +3383,8 @@ function parseRVT(lines, S) {
       S.basinInflows.push({sbid:parseInt(t[1]),type:c.endsWith('2')?2:1,series:parseSeries(rows)});
     } else if (c==='FlowDiversion') {
       S.flowDivs.push({from:parseInt(t[1]),to:parseInt(t[2]),frac:parseFloat(t[3]),qmin:parseFloat(t[4])});
-    } else if (c==='GriddedForcing') {
-      const {rows,next}=readBlock(lines,i,'GriddedForcing'); i=next;
+    } else if (c==='GriddedForcing'||c==='GriddedForcings') {
+      const {rows,next}=readBlock(lines,i,c); i=next;
       const gf={name:t[1],forcingType:null,fileNC:null,varNC:null,dimNames:null,elevVarNC:null,startTime:null,periodEnding:false,chunkSize:null};
       for(const r of rows){const rc=cmd(r);if(!rc)continue;
         if(rc==='ForcingType')       gf.forcingType=r[1];
@@ -3416,7 +3576,7 @@ function parseRVT(lines, S) {
       S.reservoirTS[sbid][c]=t.slice(2,14).map(parseFloat);
     } else if (c==='SetStreamflow') {
       S.setStreamflows.push({sbid:parseInt(t[1]), q:parseFloat(t[2])});
-    } else if (c==='ExtraRVTFilename') {
+    } else if (c==='ExtraRVTFilename'||c==='ExtraRVTFile') {
       S.extraRVTFiles.push(t[1]);
     } else if (c==='IrrigationDemand') {
       // :IrrigationDemand SBID ... :EndIrrigationDemand
@@ -3428,6 +3588,57 @@ function parseRVT(lines, S) {
       if(!S.rvtRedirects) S.rvtRedirects=[];
       if(t[1]) S.rvtRedirects.push(t[1]);
       if(t[1]) S._redirects.push(t[1]);
+    } else if (c==='IrrigationDestination') {
+      // Sub-command of IrrigationDemand or standalone
+      if(!S.irrDestinations) S.irrDestinations=[];
+      S.irrDestinations.push({fromSB:parseInt(t[1]||0), toSB:parseInt(t[2]||0), frac:parseFloat(t[3]||1)});
+    } else if (c==='AnnualCycle'||c==='AnnualCycleStep'||c==='AnnualPattern'||c==='AnnualEvents'||c==='IrregularPattern') {
+      // Time series pattern blocks — store structured
+      if(!S.tsPatterns) S.tsPatterns=[];
+      const {rows,next}=readBlock(lines,i,c); i=next;
+      S.tsPatterns.push({type:c, args:t.slice(1), rows:rows.map(r=>r.join(' '))});
+    } else if (c==='MassLoading'||c==='StateOverride') {
+      if(!S.transportTS) S.transportTS=[];
+      const {rows,next}=readBlock(lines,i,c); i=next;
+      S.transportTS.push({type:c, args:t.slice(1), rows:rows.map(r=>r.join(' '))});
+    } else if (c==='FixedConcentration'||c==='FixedTemperature'||c==='ConstantConcentration'||c==='SpecifiedConcentration') {
+      // Transport boundary conditions — :FixedConcentration CONSTITUENT SV value {group}
+      if(!S.transportBC) S.transportBC=[];
+      S.transportBC.push({type:c, constituent:t[1]||'', sv:t[2]||'', value:parseFloat(t[3]||0), group:t[4]||''});
+    } else if (c==='FixedConcentrationTimeSeries'||c==='SpecifiedConcentrationTimeSeries') {
+      // Transport time series boundary conditions (block format)
+      if(!S.transportTS) S.transportTS=[];
+      const {rows,next}=readBlock(lines,i,c); i=next;
+      S.transportTS.push({type:c, args:t.slice(1), rows:rows.map(r=>r.join(' '))});
+    } else if (c==='ConstituentSource'||c==='ConcentrationTimeSeries'||c==='MassFluxTimeSeries'||c==='YearlyAverageConcentration'||c==='MassInfluxTimeSeries') {
+      // Transport time series blocks
+      if(!S.transportTS) S.transportTS=[];
+      const {rows,next}=readBlock(lines,i,c); i=next;
+      S.transportTS.push({type:c, args:t.slice(1), rows:rows.map(r=>r.join(' '))});
+    } else if (c==='SpecifiedInflowConcentration'||c==='SpecifiedInflowTemperature') {
+      // Transport inflow boundary condition blocks
+      if(!S.transportInflows) S.transportInflows=[];
+      const {rows,next}=readBlock(lines,i,c); i=next;
+      S.transportInflows.push({type:c, args:t.slice(1), rows:rows.map(r=>r.join(' '))});
+    } else if (c==='AssimilateReservoirStage'||c==='ReservoirDownstreamFlow') {
+      if(!S.assimilation) S.assimilation=[];
+      S.assimilation.push({type:c, args:t.slice(1), raw:lines[i-1]});
+    } else if (c==='LandUseChange'||c==='VegetationChange'||c==='HRUTypeChange') {
+      if(!S.liveChanges) S.liveChanges=[];
+      const {rows,next}=readBlock(lines,i,c); i=next;
+      S.liveChanges.push({type:c, args:t.slice(1), rows:rows.map(r=>r.join(' '))});
+    } else if (c && c[0]===c[0].toUpperCase()) {
+      // Passthrough: unrecognized RVT command
+      const rawLine = lines[i-1];
+      const endTag = 'End'+c;
+      let blockLines = [rawLine];
+      while(i < lines.length) {
+        const nt = tokenize(lines[i]);
+        if (cmd(nt)===endTag) { blockLines.push(lines[i]); i++; break; }
+        if (cmd(nt) && !lines[i].match(/^\s/) && cmd(nt)!==c) break;
+        blockLines.push(lines[i]); i++;
+      }
+      S._passthrough.rvt.push(blockLines.join('\n'));
     }
   }
 }
@@ -3502,6 +3713,12 @@ function parseRVC(lines, S) {
       const constitName=t[1]||'';
       const {rows,next}=readBlock(lines,i,'BasinTransportVariables'); i=next;
       ic.basinTransport.push({constituent:constitName, raw:rows.map(r=>r.join(' ')).join('\n')});
+    } else if (c==='InitialReservoirFlow'||c==='InitialReservoirStage') {
+      // Already handled for stage; flow is new
+      if(c==='InitialReservoirFlow') S._passthrough.rvc.push(lines[i-1]);
+    } else if (c && c[0]===c[0].toUpperCase()) {
+      // Passthrough: unrecognized RVC command
+      S._passthrough.rvc.push(lines[i-1]);
     }
   }
 }
@@ -3567,6 +3784,7 @@ function parseRVM(lines, S) {
           else if(rc==='DemandFlowFraction')dem.flowFraction=parseFloat(r[1]);
           else if(rc==='Penalty')dem.penalty=parseFloat(r[1]);
           else if(rc==='ReturnFraction')dem.returnFraction=parseFloat(r[1]);
+          else if(rc==='ReturnExpression')dem.returnExpression=r.slice(1).join(' ');
           else if(rc==='ReturnDestination')dem.returnDest=parseInt(r[1]);
           else if(rc==='DemandExpression')dem.expression=r.slice(1).join(' ');
           else if(rc==='ReturnTimeSeries'){const ts2=[];while(j<rows.length){const tr=rows[j];j++;if(cmd(tr)==='EndReturnTimeSeries')break;ts2.push(tr);}dem.returnTimeSeries=readAnnualCycle(ts2);}
@@ -3621,6 +3839,13 @@ function parseRVM(lines, S) {
         if (!M.sbGroupWeights) M.sbGroupWeights = [];
         M.sbGroupWeights.push({group:t[1]||'', weights:t.slice(2).map(parseFloat)}); break;
       }
+      default:
+        // Passthrough: unrecognized RVM command
+        if (c && c[0]===c[0].toUpperCase()) {
+          M._raw = M._raw||[];
+          M._raw.push(lines[i-1]);
+        }
+        break;
     }
   }
 }
@@ -3672,6 +3897,8 @@ function parseAll(texts, S) {
   if(texts.rvc){try{parseRVC(texts.rvc.split('\n'),S);}catch(e){S._errors.push({f:'rvc',e:e.message});}}
   if(texts.rvm){try{parseRVM(texts.rvm.split('\n'),S);}catch(e){S._errors.push({f:'rvm',e:e.message});}}
   if(texts.rve){try{parseRVE(texts.rve.split('\n'),S);}catch(e){S._errors.push({f:'rve',e:e.message});}}
+  // .rvl (live file) — store raw content for passthrough
+  if(texts.rvl){S._rvlRaw = texts.rvl;}
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -3711,8 +3938,7 @@ function writeRVI(S) {
   if(s.rechargeMethod) L.push(`:RechargeMethod            ${s.rechargeMethod}`);
   if(s.monthlyInterp) L.push(`:MonthlyInterpolationMethod ${s.monthlyInterp}`);
   if(s.outputDirFormat) L.push(`:OutputDirectoryFormat     ${s.outputDirFormat}`);
-  if(s.avgAnnualRunoff!=null) L.push(`:AvgAnnualRunoff           ${s.avgAnnualRunoff}`);
-  if(s.avgAnnualSnow!=null) L.push(`:AvgAnnualSnow             ${s.avgAnnualSnow}`);
+  // Note: AvgAnnualRunoff is written in writeRVP, not here
   // Blended method weights
   if(s.blendedPET&&s.blendedPET.length&&s.evap==='PET_BLENDED')
     L.push(':BlendedPETWeights       '+s.blendedPET.map(b=>`${b.method} ${b.weight}`).join(' '));
@@ -3722,12 +3948,30 @@ function writeRVI(S) {
   L.push(`:SoilModel           ${s.soilModel}${s.soilLayers>1?' '+s.soilLayers:''}\n`);
   // Additional scalar output-control fields
   if(s.outputDir)    L.push(`:OutputDirectory         ${s.outputDir}`);
+  if(s.rvtFilename)  L.push(`:rvtFilename             ${s.rvtFilename}`);
+  if(s.rvpFilename)  L.push(`:rvp_Filename            ${s.rvpFilename}`);
+  if(s.rvhFilename)  L.push(`:rvh_Filename            ${s.rvhFilename}`);
+  if(s.rvcFilename)  L.push(`:rvc_Filename            ${s.rvcFilename}`);
+  if(s.rvlFilename)  L.push(`:rvl_Filename            ${s.rvlFilename}`);
+  if(s.rveFilename)  L.push(`:rve_Filename            ${s.rveFilename}`);
   if(s.majorOutputInterval) L.push(`:MajorOutputInterval     ${s.majorOutputInterval}`);
   if(s.outputDump)   L.push(`:OutputDump              ${s.outputDump}`);
   if(s.randomSeed!=null) L.push(`:RandomSeed              ${s.randomSeed}`);
   if(s.aggregateDiag) L.push(`:AggregateDiagnostic     ${s.aggregateDiag}`);
   for(const f of Object.keys(S.flags).filter(k=>S.flags[k]))L.push(':'+f);
-  if(Object.keys(S.flags).length||s.outputDir||s.randomSeed!=null)L.push('');
+  // Transport commands
+  for(const tr of (S.transport||[])) L.push(`:Transport ${tr}`);
+  // EnsembleMode
+  if(s.ensembleMode) L.push(`:EnsembleMode             ${s.ensembleMode} ${s.ensembleSize||1}`);
+  // AggregatedVariable
+  for(const av of (S.aggregatedVars||[])) L.push(`:AggregatedVariable       ${av.var}${av.group?' '+av.group:''}`);
+  // GeochemicalProcesses block
+  if((S.geochemProcesses||[]).length){
+    L.push('\n:GeochemicalProcesses');
+    for(const gp of S.geochemProcesses) L.push(gp);
+    L.push(':EndGeochemicalProcesses');
+  }
+  if(Object.keys(S.flags).length||s.outputDir||s.randomSeed!=null||(S.transport||[]).length)L.push('');
   for(const a of S.aliases)L.push(`:Alias       ${a.alias.padEnd(22)} ${a.target}`);
   if(S.aliases.length)L.push('');
   const gn=Object.keys(S.hruGroups);
@@ -3779,6 +4023,12 @@ function writeRVI(S) {
     if(ep.cond && ep.thresh!=null && !isNaN(ep.thresh)) line+=` ${ep.cond} ${ep.thresh}`;
     L.push(line);
   }
+  // New v4.1 method commands
+  if(s.lwIncoming) L.push(`:LWIncomingMethod             ${s.lwIncoming}`);
+  if(s.timeOfConc) L.push(`:TimeOfConcentrationMethod    ${s.timeOfConc}`);
+  if(s.runMode)    L.push(`:RunMode                      ${s.runMode}`);
+  // Passthrough: unrecognized commands preserved from import
+  for(const raw of (S._passthrough.rvi||[])) L.push(raw);
   return L.join('\n')+'\n';
 }
 
@@ -3920,6 +4170,13 @@ function writeRVH(S) {
     for (const p of cv.pts) L.push(`${ns(p.h)}  ${ns(p.q)}`);
     L.push(':EndStageDischargeTable');
   }
+  // HRU group operations (Intersect/Merge)
+  for(const op of (S.hruGroupOps||[])) L.push(op.raw);
+  for(const op of (S.sbGroupOps||[])) L.push(op.raw);
+  // IrrigationDestination
+  for(const id of (S.irrDestinations||[])) L.push(`:IrrigationDestination ${id.fromSB} ${id.toSB} ${ns(id.frac)}`);
+  // Passthrough: unrecognized commands preserved from import
+  for(const raw of (S._passthrough.rvh||[])) L.push(raw);
   return L.join('\n')+'\n';
 }
 
@@ -3930,7 +4187,13 @@ function writeRVP(S) {
   if(S.vegClasses.length){L.push(':VegetationClasses, \n  :Attributes,        MAX_HT,       MAX_LAI, MAX_LEAF_COND, \n       :Units,             m,          none,      mm_per_s, ');for(const c of S.vegClasses)L.push(`  ${c.name.padEnd(14)}, ${ns(c.max_ht??0).padStart(10)}, ${ns(c.max_lai??0).padStart(12)}, ${ns(c.max_leaf_cond??0).padStart(12)},`);L.push(':EndVegetationClasses\n');}
   if(S.soilProfiles.length){L.push(':SoilProfiles');for(const p of S.soilProfiles){let r=`  ${p.name.padEnd(16)}, ${p.numLayers}`;for(const h of p.horizons)r+=`, ${h.cls}, ${ns(h.thick)}`;L.push(r+',');}L.push(':EndSoilProfiles\n');}
   const gk=Object.keys(S.globalParams);
-  if(gk.length){L.push('#-----------------------------------------------------------------\n# Global Parameters\n#-----------------------------------------------------------------');for(const k of gk)L.push(`:GlobalParameter        ${k.padEnd(24)} ${ns(S.globalParams[k])}`);L.push('');}
+  if(gk.length || S.sim.avgAnnualRunoff!=null || S.sim.avgAnnualSnow!=null){
+    L.push('#-----------------------------------------------------------------\n# Global Parameters\n#-----------------------------------------------------------------');
+    if(S.sim.avgAnnualRunoff!=null) L.push(`:AvgAnnualRunoff           ${S.sim.avgAnnualRunoff}`);
+    if(S.sim.avgAnnualSnow!=null) L.push(`:AvgAnnualSnow             ${S.sim.avgAnnualSnow}`);
+    for(const k of gk) L.push(`:GlobalParameter        ${k.padEnd(24)} ${ns(S.globalParams[k])}`);
+    L.push('');
+  }
   for(const pl of [...S.soilParams,...S.luParams,...S.vegParams]){
     const bn=pl.type==='SOIL'?'SoilParameterList':pl.type==='LU'?'LandUseParameterList':'VegetationParameterList';
     L.push(`\n:${bn}`);L.push(':Parameters , '+pl.params.join('  , ')+',');L.push('    :Units , '+(pl.units||[]).join('  , ')+',');
@@ -3948,13 +4211,21 @@ function writeRVP(S) {
   for(const go of (S.globalParamOverrides||[])){
     L.push(`:GlobalParameterOverride ${go.param} ${go.group} ${ns(go.value)}`);
   }
-  // SeasonalCanopyLAI
-  for(const sl of (S.seasonalLAI||[])){
-    L.push(`:SeasonalCanopyLAI ${sl.vegClass} ${(sl.months||[]).map(ns).join(' ')}`);
+  // SeasonalRelativeLAI (block format)
+  if ((S.seasonalLAI||[]).length > 0) {
+    L.push(`\n:SeasonalRelativeLAI`);
+    for(const sl of S.seasonalLAI){
+      L.push(`  ${sl.vegClass},  ${(sl.months||[]).map(ns).join(',  ')}`);
+    }
+    L.push(`:EndSeasonalRelativeLAI`);
   }
-  // SeasonalCanopyHeight
-  for(const sh of (S.seasonalHeight||[])){
-    L.push(`:SeasonalCanopyHeight ${sh.vegClass} ${(sh.months||[]).map(ns).join(' ')}`);
+  // SeasonalRelativeHeight (block format)
+  if ((S.seasonalHeight||[]).length > 0) {
+    L.push(`\n:SeasonalRelativeHeight`);
+    for(const sh of S.seasonalHeight){
+      L.push(`  ${sh.vegClass},  ${(sh.months||[]).map(ns).join(',  ')}`);
+    }
+    L.push(`:EndSeasonalRelativeHeight`);
   }
   // TransientParameter blocks
   for(const tp of (S.transientParams||[])){
@@ -3963,6 +4234,36 @@ function writeRVP(S) {
     for(const v of tp.values) L.push(ns(v));
     L.push(':EndTransientParameter');
   }
+  // AquiferClasses
+  if((S.aquiferClasses||[]).length){
+    L.push('\n:AquiferClasses\n  :Attributes\n  :Units');
+    for(const ac of S.aquiferClasses) L.push(`  ${ac.name},`);
+    L.push(':EndAquiferClasses');
+  }
+  // AquiferParameterList
+  for(const pl of (S.aquiferParams||[])){
+    L.push(`\n:AquiferParameterList`);L.push(':Parameters , '+pl.params.join('  , ')+',');L.push('    :Units , '+(pl.units||[]).join('  , ')+',');
+    for(const[cls,vals]of Object.entries(pl.rows||{}))L.push(`    ${cls.padEnd(16)}, ${vals.map(v=>String(v).padStart(16)).join(', ')},`);
+    L.push(`:EndAquiferParameterList`);
+  }
+  // TerrainParameterList
+  for(const pl of (S.terrainParams||[])){
+    L.push(`\n:TerrainParameterList`);L.push(':Parameters , '+pl.params.join('  , ')+',');L.push('    :Units , '+(pl.units||[]).join('  , ')+',');
+    for(const[cls,vals]of Object.entries(pl.rows||{}))L.push(`    ${cls.padEnd(16)}, ${vals.map(v=>String(v).padStart(16)).join(', ')},`);
+    L.push(`:EndTerrainParameterList`);
+  }
+  // Geochemistry blocks
+  for(const gc of (S.geochemistry||[])){
+    L.push(`\n:${gc.type} ${gc.args.join(' ')}`);
+    for(const row of gc.rows) L.push(`  ${row}`);
+    L.push(`:End${gc.type}`);
+  }
+  // StoichiometricRatio
+  for(const sr of (S.stoichRatios||[])){
+    L.push(`:StoichiometricRatio ${sr.c1} ${sr.c2} ${ns(sr.ratio)}`);
+  }
+  // Passthrough: unrecognized commands preserved from import
+  for(const raw of (S._passthrough.rvp||[])) L.push(raw);
   return L.join('\n')+'\n';
 }
 
@@ -4014,6 +4315,8 @@ function writeRVC(S) {
     L.push(bt.raw);
     L.push(':EndBasinTransportVariables');
   }
+  // Passthrough: unrecognized commands preserved from import
+  for(const raw of (S._passthrough.rvc||[])) L.push(raw);
   return L.join('\n')+'\n';
 }
 
@@ -4028,12 +4331,29 @@ function writeRVT(S) {
     if(g.rainCorr!==1)L.push(`\t:RainCorrection ${g.rainCorr}`);
     if(g.snowCorr!==1)L.push(`\t:SnowCorrection ${g.snowCorr}`);
     if(g.timeShift!=null)L.push(`\t:TimeShift ${g.timeShift}`);
+    if(g.ensimTS)L.push(`\t:EnsimTimeSeries ${g.ensimTS}`);
     if(g.deaccumulate)L.push(`\t:Deaccumulate`);
     if(g.linearTransform)L.push(`\t:LinearTransform ${g.linearTransform.a} ${g.linearTransform.b||0}`);
     if(g.monthlyTemp&&g.monthlyTemp.length===12) L.push(`\t:MonthlyAveTemperature ${g.monthlyTemp.map(ns).join(' ')}`);
     if(g.monthlyEvap&&g.monthlyEvap.length===12) L.push(`\t:MonthlyAveEvaporation ${g.monthlyEvap.map(ns).join(' ')}`);
     if(g.monthlyTmin&&g.monthlyTmin.length===12) L.push(`\t:MonthlyMinTemperature ${g.monthlyTmin.map(ns).join(' ')}`);
     if(g.monthlyTmax&&g.monthlyTmax.length===12) L.push(`\t:MonthlyMaxTemperature ${g.monthlyTmax.map(ns).join(' ')}`);
+    // Data blocks (inline values, ReadFromNetCDF, AnnualCycle)
+    for(const d of (g.data||[])){
+      L.push(`\t:Data ${d.type}${d.units?' '+d.units:''}`);
+      if(d.readNC){
+        L.push(`\t\t:ReadFromNetCDF`);
+        if(d.readNC.fileNC) L.push(`\t\t\t:FileNameNC ${d.readNC.fileNC}`);
+        if(d.readNC.varNC) L.push(`\t\t\t:VarNameNC ${d.readNC.varNC}`);
+        if(d.readNC.dimNames) L.push(`\t\t\t:DimNamesNC ${d.readNC.dimNames}`);
+        if(d.readNC.stationIdx!=null) L.push(`\t\t\t:StationIdx ${d.readNC.stationIdx}`);
+        L.push(`\t\t:EndReadFromNetCDF`);
+      } else if(d.annualCycle){
+        L.push(`\t\t:AnnualCycle ${d.annualCycle.map(ns).join(' ')}`);
+      }
+      for(const rl of (d.rawLines||[])) L.push(`\t\t${rl}`);
+      L.push(`\t:EndData`);
+    }
     if(g.redirect)L.push(`\t:RedirectToFile ${g.redirect}`);
     L.push(':EndGauge\n');
   }
@@ -4199,6 +4519,40 @@ function writeRVT(S) {
     if(id.series&&id.series.start) L.push(`${id.series.start} ${id.series.time||'00:00:00'} ${id.series.dt} ${id.series.n||0}`);
     L.push(':EndIrrigationDemand');
   }
+  // Time series pattern blocks (AnnualCycle, AnnualPattern, etc.)
+  for(const tp of (S.tsPatterns||[])){
+    L.push(`\n:${tp.type} ${tp.args.join(' ')}`);
+    for(const row of tp.rows) L.push(`  ${row}`);
+    L.push(`:End${tp.type}`);
+  }
+  // Transport boundary conditions
+  for(const bc of (S.transportBC||[])){
+    L.push(`:${bc.type} ${bc.constituent} ${bc.sv} ${ns(bc.value)}${bc.group?' '+bc.group:''}`);
+  }
+  // Transport time series blocks (MassLoading, StateOverride, ConstituentSource, etc.)
+  for(const ts of (S.transportTS||[])){
+    L.push(`\n:${ts.type} ${ts.args.join(' ')}`);
+    for(const row of ts.rows) L.push(`  ${row}`);
+    L.push(`:End${ts.type}`);
+  }
+  // Transport inflow specifications (SpecifiedInflowConcentration/Temperature)
+  for(const ti of (S.transportInflows||[])){
+    L.push(`\n:${ti.type} ${ti.args.join(' ')}`);
+    for(const row of ti.rows) L.push(`  ${row}`);
+    L.push(`:End${ti.type}`);
+  }
+  // Assimilation commands
+  for(const a of (S.assimilation||[])){
+    L.push(a.raw || `:${a.type} ${a.args.join(' ')}`);
+  }
+  // Live changes (LandUseChange, VegetationChange, HRUTypeChange)
+  for(const lc of (S.liveChanges||[])){
+    L.push(`\n:${lc.type} ${lc.args.join(' ')}`);
+    for(const row of lc.rows) L.push(`  ${row}`);
+    L.push(`:End${lc.type}`);
+  }
+  // Passthrough: unrecognized commands preserved from import
+  for(const raw of (S._passthrough.rvt||[])) L.push(raw);
   return L.join('\n')+'\n';
 }
 
@@ -10473,23 +10827,41 @@ function rvhTab(id) {
       return;
     }
     const sbIdSet = new Set(S.subbasins.map(s => s.id));
+    const usedIds = new Set(Object.keys(sp.rows||{}).map(s => parseInt(s)));
+    const nextSbId = S.subbasins.find(sb => !usedIds.has(sb.id))?.id ?? '';
     B.innerHTML = `
       <div class="s-hdr">
         <h3>SubBasin Properties (${Object.keys(sp.rows).length} basins · ${sp.params.length} params)</h3>
       </div>
       <div class="hint">Parameters applied per-basin, overriding global defaults</div>
       <div class="t-wrap"><table class="rv">
-        <tr><th>Basin ID</th>${sp.params.map(p => `<th>${escH(p)}</th>`).join('')}</tr>
-        <tr style="background:var(--bg2)"><td style="color:var(--text3);font-size:9px">Units</td>${(sp.units||[]).map(u => `<td style="color:var(--text3);font-size:9px">${escH(u||'—')}</td>`).join('')}</tr>
+        <tr><th>Basin ID</th>${sp.params.map(p => `<th>${escH(p)}</th>`).join('')}<th></th></tr>
+        <tr style="background:var(--bg2)"><td style="color:var(--text3);font-size:9px">Units</td>${(sp.units||[]).map(u => `<td style="color:var(--text3);font-size:9px">${escH(u||'—')}</td>`).join('')}<td></td></tr>
         ${Object.entries(sp.rows||{}).map(([sbid, vals], ri) => {
           const known = sbIdSet.has(parseInt(sbid));
           return `<tr>
             <td class="id" style="${known ? '' : 'color:var(--warn)'}" title="${known ? '' : 'Basin ID not found in SubBasins table'}">${escH(sbid)}${known ? '' : ' ⚠'}</td>
             ${vals.map((v, vi) => `<td><input type="number" step="0.01" value="${v}" style="width:72px"
               oninput="S.sbProps.rows['${escH(sbid)}'][${vi}]=parseFloat(this.value)"></td>`).join('')}
+            <td><button class="del-btn" onclick="delete S.sbProps.rows['${escH(sbid)}'];rvhTab('sbp')">✕</button></td>
           </tr>`;
         }).join('')}
-      </table></div>`;
+      </table></div>
+      <div class="s-hdr" style="margin-top:10px"><h3>Add Row</h3></div>
+      <div style="display:flex;align-items:flex-end;gap:6px;flex-wrap:wrap">
+        <label style="font-size:10px;color:var(--text2)">SubBasin ID
+          <input type="number" id="sbp-new-id" value="${nextSbId}" style="width:90px;display:block">
+        </label>
+        <button class="btn sm pri" onclick="rvhAddSBPropsRow()">+ Add Row</button>
+        <span class="hint" style="margin-left:auto">Adds row with default 0 values for all ${sp.params.length} parameters</span>
+      </div>
+      <div class="s-hdr" style="margin-top:10px"><h3>Add Parameter Column</h3></div>
+      <div style="display:flex;align-items:flex-end;gap:6px;flex-wrap:wrap">
+        <label style="font-size:10px;color:var(--text2)">Parameter Name
+          <input id="sbp-new-param" placeholder="e.g. MANNINGS_N" style="width:160px;display:block">
+        </label>
+        <button class="btn sm" onclick="rvhAddSBPropsParam()">+ Add Param</button>
+      </div>`;
   } else if (id==='res') {
     const addRes = () => {
       S.reservoirs.push({name:'NEW_RESERVOIR',sbid:null,hruid:null,type:'RESROUTE_STANDARD',weirCoeff:0.6,crestWidth:1.0,maxDepth:3.0,lakeArea:1000,minStage:null,maxStage:null,minFlow:null,maxFlow:null,maxQDelta:null,maxQDecrease:null,curves:[],structures:[]});
@@ -11033,6 +11405,27 @@ window.initSBProps = function(paramName) {
   rvhTab('sbp');
   toast(`Added SubBasin property: ${paramName}`, 'ok');
 };
+window.rvhAddSBPropsRow = function() {
+  if (!S.sbProps || !S.sbProps.params || !S.sbProps.params.length) {
+    toast('Initialize properties first by adding a parameter','warn'); return;
+  }
+  const idEl = document.getElementById('sbp-new-id');
+  const id = parseInt(idEl?.value);
+  if (isNaN(id)) { toast('Enter a valid SubBasin ID','warn'); return; }
+  if (S.sbProps.rows[id] !== undefined) { toast(`Basin ${id} already has properties`,'warn'); return; }
+  // Default values: 1.0 for CORR factors, GAMMA_SHAPE; 0 otherwise
+  S.sbProps.rows[id] = S.sbProps.params.map(p =>
+    (p.includes('CORR') || p==='GAMMA_SHAPE') ? 1.0 : 0.0);
+  rvhTab('sbp');
+};
+window.rvhAddSBPropsParam = function() {
+  if (!S.sbProps) S.sbProps = {params:[], units:[], rows:{}};
+  const el = document.getElementById('sbp-new-param');
+  const pname = (el?.value||'').trim().toUpperCase();
+  if (!pname) { toast('Enter a parameter name','warn'); return; }
+  if (S.sbProps.params.includes(pname)) { toast('Parameter already exists','warn'); return; }
+  initSBProps(pname);
+};
 window.addSB=()=>{const id=S.subbasins.length?S.subbasins.reduce((a,s)=>s.id>a?s.id:a,0)+1:1;S.subbasins.push({id,name:`SUB_${id}`,downId:-1,profile:`sub${id}profile`,reachLen:0,gauged:false,disabled:false});rvhTab('sb');};
 window.addHRU=()=>{const id=S.hrus.length?S.hrus.reduce((a,h)=>h.id>a?h.id:a,0)+1:1;S.hrus.push({id,area:1,elev:500,lat:0,lon:0,basinId:1,lu:'FOREST',veg:'FOREST',soilProf:'DEFAULT_P',aqProf:'[NONE]',terrainCls:'[NONE]',slope:5,aspect:90,hruType:'STANDARD',disabled:false});rvhTab('hru');};
 
@@ -11173,149 +11566,7 @@ function rvpTab(id) {
     window._cpDelPt   = (ci,pi)=>{ if(S.channelProfiles[ci].pts.length<=2){toast('Need at least 2 survey points','warn');return;} S.channelProfiles[ci].pts.splice(pi,1); rvpTab('chan'); requestAnimationFrame(()=>drawChannel(ci)); };
     window._cpAddZone = (ci)=>{ S.channelProfiles[ci].rough.push({x:0,n:0.035}); rvpTab('chan'); };
     window._cpDelZone = (ci,ri)=>{ if(S.channelProfiles[ci].rough.length<=1){toast('Need at least 1 roughness zone','warn');return;} S.channelProfiles[ci].rough.splice(ri,1); rvpTab('chan'); };
-    function rvhAddDynChange() {
-  if (!S.dynamicChanges) S.dynamicChanges = [];
-  S.dynamicChanges.push({type:'LandUseChange', group:'', newClass:'', date:''});
-  rvhTab('grps');
-}
-window.rvhAddDynChange = rvhAddDynChange;
-
-function rvhAddGroupOp() {
-  if (!S.groupOps) S.groupOps = [];
-  const type = document.getElementById('grp-op-type')?.value || 'MergeHRUGroups';
-  const op = {type};
-  if (type.includes('Merge') || type==='RepopulateHRUGroup') { op.dest=''; op.sources=[]; op.members=[]; }
-  else if (type.includes('Intersect')) { op.dest=''; op.src1=''; op.src2=''; }
-  else if (type.includes('Populate')) { op.group=''; op.base='SUBBASINS'; op.cond='IS_GREATER_THAN'; op.data='0'; }
-  else { op.group=''; }
-  S.groupOps.push(op);
-  rvhTab('grps');
-}
-window.rvhAddGroupOp = rvhAddGroupOp;
-
-function rvhAddHRUGroup() {
-  const name = 'HRU_GROUP_' + (Object.keys(S.hruGroups).length + 1);
-  S.hruGroups[name] = {name, members:[], disabled:false};
-  rvhTab('grps');
-  setTimeout(() => {
-    const el = document.getElementById('hg-' + name);
-    if (el) { el.classList.add('open'); _openProcs.add('hg-' + name); }
-  }, 20);
-}
-window.rvhAddHRUGroup = rvhAddHRUGroup;
-
-function rvhRenameHRUGroup(oldName, newName) {
-  newName = newName.trim().replace(/\s+/g,'_');
-  if (!newName || newName === oldName || S.hruGroups[newName]) return;
-  const g = S.hruGroups[oldName];
-  delete S.hruGroups[oldName];
-  S.hruGroups[newName] = {...g, name: newName};
-  _openProcs.delete('hg-' + oldName);
-  _openProcs.add('hg-' + newName);
-  rvhTab('grps');
-}
-window.rvhRenameHRUGroup = rvhRenameHRUGroup;
-
-function rvhAddSBGroup() {
-  const name = 'SB_GROUP_' + (Object.keys(S.sbGroups).length + 1);
-  S.sbGroups[name] = {name, members:[]};
-  rvhTab('sbg');
-  setTimeout(() => {
-    const el = document.getElementById('sbg-' + name);
-    if (el) { el.classList.add('open'); _openProcs.add('sbg-' + name); }
-  }, 20);
-}
-window.rvhAddSBGroup = rvhAddSBGroup;
-
-function rvhRenameSBGroup(oldName, newName) {
-  newName = newName.trim().replace(/\s+/g,'_');
-  if (!newName || newName === oldName || S.sbGroups[newName]) return;
-  const g = S.sbGroups[oldName];
-  delete S.sbGroups[oldName];
-  S.sbGroups[newName] = {...g, name: newName};
-  _openProcs.delete('sbg-' + oldName);
-  _openProcs.add('sbg-' + newName);
-  rvhTab('sbg');
-}
-window.rvhRenameSBGroup = rvhRenameSBGroup;
-
-window.rvpAddGPO = function rvpAddGPO() {
-  if (!S.globalParamOverrides) S.globalParamOverrides = [];
-  S.globalParamOverrides.push({param:'', group:'', value:0});
-  rvpTab('global');
-};
-
-window.rvpAddSeasonal = function rvpAddSeasonal(type) {
-  if (type==='lai') {
-    if (!S.seasonalLAI) S.seasonalLAI = [];
-    const vegName = S.vegClasses.length ? S.vegClasses[0].name : 'FOREST';
-    S.seasonalLAI.push({vegClass:vegName, months:[1,1,1,1,1,1,1,1,1,1,1,1]});
-  } else {
-    if (!S.seasonalHeight) S.seasonalHeight = [];
-    const vegName = S.vegClasses.length ? S.vegClasses[0].name : 'FOREST';
-    S.seasonalHeight.push({vegClass:vegName, months:[1,1,1,1,1,1,1,1,1,1,1,1]});
-  }
-  rvpTab('global');
-};
-
-function rvpAddTransient() {
-  if (!S.transientParams) S.transientParams = [];
-  S.transientParams.push({
-    paramName:'MELT_FACTOR', classType:'LANDUSE', className:'[DEFAULT]',
-    startDate: S.sim.startDate||'2000-01-01', startTime:'00:00:00',
-    interval:'1.0', values:[]
-  });
-  rvpTab('transient');
-}
-window.rvpAddTransient = rvpAddTransient;
-
-// ── RVT extras helpers ────────────────────────────────────────────────────────
-function rvtAddEnvMinFlow() {
-  if (!S.envMinFlows) S.envMinFlows = [];
-  const sbid = S.subbasins.length ? S.subbasins[0].id : 1;
-  S.envMinFlows.push({sbid, constant:0});
-  rvtTab('extras');
-}
-window.rvtAddEnvMinFlow = rvtAddEnvMinFlow;
-
-function rvtAddDivLookup() {
-  if (!S.flowDivLookups) S.flowDivLookups = [];
-  S.flowDivLookups.push({from:1, to:2, tableQ:[0, 10, 100], tableF:[0, 0.3, 0.3]});
-  rvtTab('extras');
-}
-window.rvtAddDivLookup = rvtAddDivLookup;
-
-function rvtAddSetStreamflow() {
-  if (!S.setStreamflows) S.setStreamflows = [];
-  const sbid = S.subbasins.length ? S.subbasins[0].id : 1;
-  S.setStreamflows.push({sbid, q:0});
-  rvtTab('extras');
-}
-window.rvtAddSetStreamflow = rvtAddSetStreamflow;
-
-function rvtAddExtraFile() {
-  if (!S.extraRVTFiles) S.extraRVTFiles = [];
-  S.extraRVTFiles.push('');
-  rvtTab('extras');
-}
-window.rvtAddExtraFile = rvtAddExtraFile;
-
-function rvmAddLoopVector() {
-  if (!S.rvm.loopVectors) S.rvm.loopVectors = [];
-  S.rvm.loopVectors.push({name:'MYVEC', values:['1','2','3']});
-  rvmTab('control');
-}
-window.rvmAddLoopVector = rvmAddLoopVector;
-
-function rvmAddSBWeights() {
-  if (!S.rvm.sbGroupWeights) S.rvm.sbGroupWeights = [];
-  const grpName = Object.keys(S.sbGroups||{})[0] || 'MY_SB_GROUP';
-  S.rvm.sbGroupWeights.push({group: grpName, weights: []});
-  rvmTab('control');
-}
-window.rvmAddSBWeights = rvmAddSBWeights;
-
-window._cpDelProf = (ci)=>{ if(!confirm(`Delete profile "${S.channelProfiles[ci].name}"?`))return; S.channelProfiles.splice(ci,1); rvpTab('chan'); };
+    window._cpDelProf = (ci)=>{ if(!confirm(`Delete profile "${S.channelProfiles[ci].name}"?`))return; S.channelProfiles.splice(ci,1); rvpTab('chan'); };
     B.innerHTML=`<div class="s-hdr"><h3>Channel Profiles (${S.channelProfiles.length})</h3><div class="s-hdr-acts"><button class="btn sm" onclick="(${addChan.toString()})()">+ Add Profile</button></div></div>`+
     S.channelProfiles.map((cp,ci)=>`<div class="proc-item" style="margin-bottom:6px">
       <div class="proc-hdr" onclick="toggleProc('ch${ci}');drawChannel(${ci})">
@@ -11411,6 +11662,136 @@ window._cpDelProf = (ci)=>{ if(!confirm(`Delete profile "${S.channelProfiles[ci]
   setTimeout(restoreOpenProcs, 0);
 }
 window.rvpTab=rvpTab;
+
+// ── RVH helpers (extracted from chan block) ──────────────────────────────────
+window.rvhAddDynChange = function rvhAddDynChange() {
+  if (!S.dynamicChanges) S.dynamicChanges = [];
+  S.dynamicChanges.push({type:'LandUseChange', group:'', newClass:'', date:''});
+  rvhTab('grps');
+};
+
+window.rvhAddGroupOp = function rvhAddGroupOp() {
+  if (!S.groupOps) S.groupOps = [];
+  const type = document.getElementById('grp-op-type')?.value || 'MergeHRUGroups';
+  const op = {type};
+  if (type.includes('Merge') || type==='RepopulateHRUGroup') { op.dest=''; op.sources=[]; op.members=[]; }
+  else if (type.includes('Intersect')) { op.dest=''; op.src1=''; op.src2=''; }
+  else if (type.includes('Populate')) { op.group=''; op.base='SUBBASINS'; op.cond='IS_GREATER_THAN'; op.data='0'; }
+  else { op.group=''; }
+  S.groupOps.push(op);
+  rvhTab('grps');
+};
+
+window.rvhAddHRUGroup = function rvhAddHRUGroup() {
+  const name = 'HRU_GROUP_' + (Object.keys(S.hruGroups).length + 1);
+  S.hruGroups[name] = {name, members:[], disabled:false};
+  rvhTab('grps');
+  setTimeout(() => {
+    const el = document.getElementById('hg-' + name);
+    if (el) { el.classList.add('open'); _openProcs.add('hg-' + name); }
+  }, 20);
+};
+
+window.rvhRenameHRUGroup = function rvhRenameHRUGroup(oldName, newName) {
+  newName = newName.trim().replace(/\s+/g,'_');
+  if (!newName || newName === oldName || S.hruGroups[newName]) return;
+  const g = S.hruGroups[oldName];
+  delete S.hruGroups[oldName];
+  S.hruGroups[newName] = {...g, name: newName};
+  _openProcs.delete('hg-' + oldName);
+  _openProcs.add('hg-' + newName);
+  rvhTab('grps');
+};
+
+window.rvhAddSBGroup = function rvhAddSBGroup() {
+  const name = 'SB_GROUP_' + (Object.keys(S.sbGroups).length + 1);
+  S.sbGroups[name] = {name, members:[]};
+  rvhTab('sbg');
+  setTimeout(() => {
+    const el = document.getElementById('sbg-' + name);
+    if (el) { el.classList.add('open'); _openProcs.add('sbg-' + name); }
+  }, 20);
+};
+
+window.rvhRenameSBGroup = function rvhRenameSBGroup(oldName, newName) {
+  newName = newName.trim().replace(/\s+/g,'_');
+  if (!newName || newName === oldName || S.sbGroups[newName]) return;
+  const g = S.sbGroups[oldName];
+  delete S.sbGroups[oldName];
+  S.sbGroups[newName] = {...g, name: newName};
+  _openProcs.delete('sbg-' + oldName);
+  _openProcs.add('sbg-' + newName);
+  rvhTab('sbg');
+};
+
+window.rvpAddGPO = function rvpAddGPO() {
+  if (!S.globalParamOverrides) S.globalParamOverrides = [];
+  S.globalParamOverrides.push({param:'', group:'', value:0});
+  rvpTab('global');
+};
+
+window.rvpAddSeasonal = function rvpAddSeasonal(type) {
+  if (type==='lai') {
+    if (!S.seasonalLAI) S.seasonalLAI = [];
+    const vegName = S.vegClasses.length ? S.vegClasses[0].name : 'FOREST';
+    S.seasonalLAI.push({vegClass:vegName, months:[1,1,1,1,1,1,1,1,1,1,1,1]});
+  } else {
+    if (!S.seasonalHeight) S.seasonalHeight = [];
+    const vegName = S.vegClasses.length ? S.vegClasses[0].name : 'FOREST';
+    S.seasonalHeight.push({vegClass:vegName, months:[1,1,1,1,1,1,1,1,1,1,1,1]});
+  }
+  rvpTab('global');
+};
+
+window.rvpAddTransient = function rvpAddTransient() {
+  if (!S.transientParams) S.transientParams = [];
+  S.transientParams.push({
+    paramName:'MELT_FACTOR', classType:'LANDUSE', className:'[DEFAULT]',
+    startDate: S.sim.startDate||'2000-01-01', startTime:'00:00:00',
+    interval:'1.0', values:[]
+  });
+  rvpTab('transient');
+};
+
+// ── RVT extras helpers ────────────────────────────────────────────────────────
+window.rvtAddEnvMinFlow = function rvtAddEnvMinFlow() {
+  if (!S.envMinFlows) S.envMinFlows = [];
+  const sbid = S.subbasins.length ? S.subbasins[0].id : 1;
+  S.envMinFlows.push({sbid, constant:0});
+  rvtTab('extras');
+};
+
+window.rvtAddDivLookup = function rvtAddDivLookup() {
+  if (!S.flowDivLookups) S.flowDivLookups = [];
+  S.flowDivLookups.push({from:1, to:2, tableQ:[0, 10, 100], tableF:[0, 0.3, 0.3]});
+  rvtTab('extras');
+};
+
+window.rvtAddSetStreamflow = function rvtAddSetStreamflow() {
+  if (!S.setStreamflows) S.setStreamflows = [];
+  const sbid = S.subbasins.length ? S.subbasins[0].id : 1;
+  S.setStreamflows.push({sbid, q:0});
+  rvtTab('extras');
+};
+
+window.rvtAddExtraFile = function rvtAddExtraFile() {
+  if (!S.extraRVTFiles) S.extraRVTFiles = [];
+  S.extraRVTFiles.push('');
+  rvtTab('extras');
+};
+
+window.rvmAddLoopVector = function rvmAddLoopVector() {
+  if (!S.rvm.loopVectors) S.rvm.loopVectors = [];
+  S.rvm.loopVectors.push({name:'MYVEC', values:['1','2','3']});
+  rvmTab('control');
+};
+
+window.rvmAddSBWeights = function rvmAddSBWeights() {
+  if (!S.rvm.sbGroupWeights) S.rvm.sbGroupWeights = [];
+  const grpName = Object.keys(S.sbGroups||{})[0] || 'MY_SB_GROUP';
+  S.rvm.sbGroupWeights.push({group: grpName, weights: []});
+  rvmTab('control');
+};
 
 function drawChannel(ci) {
   requestAnimationFrame(()=>{
@@ -12374,8 +12755,8 @@ function rvcTab(id) {
       const id = parseInt(document.getElementById('bq-new-id')?.value ?? nextSbId);
       const q  = parseFloat(document.getElementById('bq-new-q')?.value ?? 1);
       if (isNaN(id)) { toast('Enter a valid SubBasin ID','warn'); return; }
-      if (ic.basinQ[id] !== undefined) { toast(`Basin ${id} already has an initial Q`,'warn'); return; }
-      ic.basinQ[id] = isNaN(q) ? 1.0 : q;
+      if (S.ic.basinQ[id] !== undefined) { toast(`Basin ${id} already has an initial Q`,'warn'); return; }
+      S.ic.basinQ[id] = isNaN(q) ? 1.0 : q;
       rvcTab('bq');
     };
 
@@ -12435,7 +12816,7 @@ function rvcTab(id) {
       const val = parseFloat(document.getElementById('uic-new-val')?.value);
       if (!sv)    { toast('Enter a state variable name','warn'); return; }
       if (isNaN(val)) { toast('Enter a numeric value','warn'); return; }
-      ic.uniformICs.push({ sv, val });
+      S.ic.uniformICs.push({ sv, val });
       rvcTab('uic');
     };
 
@@ -12520,7 +12901,7 @@ function rvcTab(id) {
       const stage = parseFloat(document.getElementById('res-new-stage')?.value ?? 0);
       if (isNaN(sid))   { toast('Enter a valid SubBasin ID','warn'); return; }
       if (isNaN(stage)) { toast('Enter a numeric stage value','warn'); return; }
-      ic.resStages[sid] = stage;
+      S.ic.resStages[sid] = stage;
       rvcTab('res');
     };
 
@@ -12574,7 +12955,7 @@ function rvcTab(id) {
       const grp   = document.getElementById('n-new-grp')?.value?.trim() || null;
       if (!sv)    { toast('Enter a state variable name','warn'); return; }
       if (isNaN(val)) { toast('Enter a numeric value','warn'); return; }
-      ic.nudges.push({ type, sv, val, group: grp || null });
+      S.ic.nudges.push({ type, sv, val, group: grp || null });
       rvcTab('nudges');
     };
 
@@ -13667,6 +14048,8 @@ async function exportZip() {
   const zip=new JSZip();
   const files={rvi:writeRVI(S),rvh:writeRVH(S),rvp:writeRVP(S),rvt:writeRVT(S),rvc:writeRVC(S),rvm:writeRVM(S),rve:writeRVE(S)};
   for(const[ext,text]of Object.entries(files)){if(text&&text.trim().split('\n').length>5)zip.file(`${run}.${ext}`,text);}
+  // .rvl live file — raw passthrough
+  if(S._rvlRaw && S._rvlRaw.trim()) zip.file(`${run}.rvl`, S._rvlRaw);
   // Add observation redirect files generated by writeRVT
   for(const orf of (S._obsRedirectFiles||[])) zip.file(orf.name, orf.content);
   // Add all data files from _fileRegistry (forcing, obs, weights, etc.)
@@ -13746,6 +14129,7 @@ function writeRVM(S) {
     if (d.flowFraction !== null) L.push('  :DemandFlowFraction ' + d.flowFraction);
     if (d.penalty !== null)      L.push('  :Penalty ' + d.penalty);
     if (d.returnFraction !== null) L.push('  :ReturnFraction ' + d.returnFraction);
+    if (d.returnExpression) L.push('  :ReturnExpression ' + d.returnExpression);
     if (d.returnTimeSeries) writeTSSub('ReturnTimeSeries', d.returnTimeSeries, 'ReturnTimeSeries');
     if (d.returnDest !== null) L.push('  :ReturnDestination ' + d.returnDest);
     if (d.expression) L.push('  :DemandExpression ' + d.expression);
@@ -13808,6 +14192,10 @@ function writeRVM(S) {
   // ApplyManagementOptimization flag
   if (M.applyOptimization) L.push(':ApplyManagementOptimization');
 
+  // Passthrough: unrecognized commands preserved from import
+  for(const raw of (M._raw||[])) L.push(raw);
+  for(const raw of (S._passthrough.rvm||[])) L.push(raw);
+
   return L.join('\n') + '\n';
 }
 
@@ -13857,6 +14245,7 @@ function writeRVE(S) {
 
   // Preserve any unparsed raw lines
   for (const raw of (E._raw||[])) L.push(raw);
+  for (const raw of (S._passthrough.rve||[])) L.push(raw);
 
   return L.join('\n') + '\n';
 }
@@ -22673,6 +23062,8 @@ window.visualizeStationForcingHRUs = visualizeStationForcingHRUs;
     try { contents.rvc = writeRVC(S); } catch(e) { appendConsole('[WARN] writeRVC failed: ' + e.message); }
     try { contents.rvm = writeRVM(S); } catch(e) { /* rvm may not exist */ }
     try { const rveText = writeRVE(S); if (rveText && rveText.trim().split('\n').length > 5) contents.rve = rveText; } catch(e) { /* rve may not exist */ }
+    // .rvl live file — raw passthrough
+    if (S._rvlRaw && S._rvlRaw.trim()) contents.rvl = S._rvlRaw;
     return contents;
   }
 
