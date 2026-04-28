@@ -1858,6 +1858,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
   </div>
   <div class="tb-actions">
     <button class="btn" onclick="newModel()" title="Start a blank model from scratch" style="background:var(--accent);color:#000;font-weight:600"><i>✦</i> New Model</button>
+    <button class="btn" onclick="showTemplateGallery()" title="Load a pre-configured model template (HBV, GR4J, HMETS, etc.)"><i>📋</i> Templates</button>
     <label class="btn" style="cursor:pointer" title="Import any Raven files: rv* model files, .nc forcings, .csv outputs, observation rvt files"><i>📂</i> Import<input type="file" id="file-in" multiple accept=".rvi,.rvh,.rvp,.rvt,.rvc,.rvm,.rvl,.rve,.nc,.csv,.txt,.dat,.tb0" style="display:none" onchange="unifiedImport(this.files)"></label>
     <button class="btn" onclick="showValidation()"><i>✓</i> Validate</button>
     <button class="btn pri" id="btn-export" onclick="exportZip()"><i>⬇</i> Export ZIP</button>
@@ -2169,6 +2170,22 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
             <button id="nc-modal-ok" onclick="_ncModalConfirm()"
               style="background:var(--accent);border:none;color:#fff;border-radius:4px;padding:6px 18px;font-size:10px;font-weight:600;cursor:pointer">Visualize →</button>
           </div>
+        </div>
+      </div>
+
+      <!-- ── Model Template Gallery Modal ──────────────────────────── -->
+      <div id="tpl-modal-overlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.65);z-index:9500;align-items:center;justify-content:center">
+        <div style="background:var(--bg1);border-radius:8px;width:min(700px,90vw);max-height:85vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.5);border:1px solid var(--border)">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)">
+            <div style="font-size:13px;font-weight:600;color:var(--text1)">Model Template Gallery</div>
+            <button onclick="document.getElementById('tpl-modal-overlay').style.display='none'" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px">✕</button>
+          </div>
+          <div style="padding:12px 16px;font-size:10px;color:var(--text3)">
+            Select a model template to populate the RVI with pre-configured methods, processes, and soil model.
+            Your existing SubBasins, HRUs, gauges, and rvt data will be preserved.
+            Use <b>:CreateRVPTemplate</b> (in Output Flags) to auto-generate the matching .rvp file.
+          </div>
+          <div id="tpl-gallery" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:10px 16px 16px"></div>
         </div>
       </div>
 
@@ -2916,7 +2933,14 @@ function parseRVI(lines, S) {
       case 'WriteNetReservoirInflows': case 'WriteDemandFile': case 'WriteReservoirMBFile':
       case 'WriteWatershedStorage': case 'WriteNetCDFFormat': case 'WriteEnsimFormat':
       case 'NetCDFUseBasinFullname':
+      case 'DeltaresFEWSMode':
         S.flags[c] = true; break;
+      // FEWS integration file paths
+      case 'FEWSRunInfoFile':       s.fewsRunInfo=ta[1]; break;
+      case 'FEWSStateInfoFile':     s.fewsStateInfo=ta[1]; break;
+      case 'FEWSBasinStateInfoFile':s.fewsBasinStateInfo=ta[1]; break;
+      case 'FEWSParamInfoFile':     s.fewsParamInfo=ta[1]; break;
+      case 'FEWSManagementInfoFile':s.fewsManagementInfo=ta[1]; break;
       // Transport simulation
       case 'Transport':
         if(!S.transport) S.transport=[];
@@ -3954,6 +3978,12 @@ function writeRVI(S) {
   if(s.rvcFilename)  L.push(`:rvc_Filename            ${s.rvcFilename}`);
   if(s.rvlFilename)  L.push(`:rvl_Filename            ${s.rvlFilename}`);
   if(s.rveFilename)  L.push(`:rve_Filename            ${s.rveFilename}`);
+  // FEWS integration
+  if(s.fewsRunInfo)       L.push(`:FEWSRunInfoFile         ${s.fewsRunInfo}`);
+  if(s.fewsStateInfo)     L.push(`:FEWSStateInfoFile       ${s.fewsStateInfo}`);
+  if(s.fewsBasinStateInfo)L.push(`:FEWSBasinStateInfoFile  ${s.fewsBasinStateInfo}`);
+  if(s.fewsParamInfo)     L.push(`:FEWSParamInfoFile       ${s.fewsParamInfo}`);
+  if(s.fewsManagementInfo)L.push(`:FEWSManagementInfoFile  ${s.fewsManagementInfo}`);
   if(s.majorOutputInterval) L.push(`:MajorOutputInterval     ${s.majorOutputInterval}`);
   if(s.outputDump)   L.push(`:OutputDump              ${s.outputDump}`);
   if(s.randomSeed!=null) L.push(`:RandomSeed              ${s.randomSeed}`);
@@ -8020,6 +8050,525 @@ function newModel() {
 }
 window.newModel = newModel;
 
+// ══════════════════════════════════════════════════════════════════════════════
+// MODEL TEMPLATE GALLERY (Appendix F of Raven Manual v4.1)
+// ══════════════════════════════════════════════════════════════════════════════
+const MODEL_TEMPLATES = {
+  // F.1 — UBC Watershed Model v5
+  'UBCWM':{
+    desc:'UBC Watershed Model v5 emulation — 6-layer, forest-driven energy balance (Quick 1995)',
+    soil:'SOIL_MULTILAYER 6',
+    rvi:`:Method              ORDERED_SERIES
+:Interpolation       INTERP_NEAREST_NEIGHBOR
+:Routing             ROUTE_NONE
+:CatchmentRoute      ROUTE_DUMP
+:Evaporation         PET_MONTHLY_FACTOR
+:OW_Evaporation      PET_MONTHLY_FACTOR
+:SWRadiationMethod   SW_RAD_UBCWM
+:SWCloudCorrect      SW_CLOUD_CORR_UBCWM
+:SWCanopyCorrect     SW_CANOPY_CORR_UBCWM
+:LWRadiationMethod   LW_RAD_UBCWM
+:WindspeedMethod     WINDVEL_UBCWM
+:RainSnowFraction    RAINSNOW_UBCWM
+:PotentialMeltMethod POTMELT_UBCWM
+:OroTempCorrect      OROCORR_UBCWM
+:OroPrecipCorrect    OROCORR_UBCWM2
+:OroPETCorrect       OROCORR_UBCWM
+:CloudCoverMethod    CLOUDCOV_UBCWM
+:PrecipIceptFract    PRECIP_ICEPT_USER
+:MonthlyInterpolationMethod MONTHINT_LINEAR_21
+:SnapshotHydrograph`,
+    aliases:[{alias:'TOP_SOIL',target:'SOIL[0]'},{alias:'INT_SOIL',target:'SOIL[1]'},{alias:'SHALLOW_GW',target:'SOIL[2]'},{alias:'DEEP_GW',target:'SOIL[3]'},{alias:'INT_SOIL2',target:'SOIL[4]'},{alias:'INT_SOIL3',target:'SOIL[5]'}],
+    processes:[
+      {type:'SnowAlbedoEvolve',algo:'SNOALB_UBCWM',from:'SNOW',to:'SNOW'},
+      {type:'SnowBalance',algo:'SNOBAL_UBCWM',from:'MULTIPLE',to:'MULTIPLE'},
+      {type:'Flush',algo:'RAVEN_DEFAULT',from:'PONDED_WATER',to:'INT_SOIL2',cond:'HRU_TYPE IS GLACIER'},
+      {type:'GlacierMelt',algo:'GMELT_UBC',from:'GLACIER_ICE',to:'PONDED_WATER'},
+      {type:'Precipitation',algo:'PRECIP_RAVEN',from:'ATMOS_PRECIP',to:'MULTIPLE'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_UBC',from:'MULTIPLE',to:'ATMOSPHERE'},
+      {type:'Infiltration',algo:'INF_UBC',from:'PONDED_WATER',to:'MULTIPLE'},
+      {type:'Flush',algo:'RAVEN_DEFAULT',from:'SURFACE_WATER',to:'INT_SOIL2',cond:'HRU_TYPE IS_NOT LAKE'},
+      {type:'GlacierInfiltration',algo:'GINFIL_UBCWM',from:'PONDED_WATER',to:'MULTIPLE'},
+      {type:'Percolation',algo:'PERC_LINEAR_ANALYTIC',from:'INT_SOIL',to:'INT_SOIL2'},
+      {type:'Percolation',algo:'PERC_LINEAR_ANALYTIC',from:'INT_SOIL2',to:'INT_SOIL3'},
+      {type:'Baseflow',algo:'BASE_LINEAR',from:'INT_SOIL3',to:'SURFACE_WATER'},
+      {type:'Baseflow',algo:'BASE_LINEAR',from:'SHALLOW_GW',to:'SURFACE_WATER'},
+      {type:'Baseflow',algo:'BASE_LINEAR',from:'DEEP_GW',to:'SURFACE_WATER'},
+      {type:'GlacierRelease',algo:'GRELEASE_LINEAR',from:'GLACIER',to:'SURFACE_WATER'}
+    ]
+  },
+  // F.2 — HBV-EC
+  'HBV-EC':{
+    desc:'Environment Canada HBV-96 emulation — 3-layer with tri-convolution (Hamilton et al. 2000)',
+    soil:'SOIL_MULTILAYER 3',
+    rvi:`:Method              ORDERED_SERIES
+:Interpolation       INTERP_NEAREST_NEIGHBOR
+:Routing             ROUTE_NONE
+:CatchmentRoute      ROUTE_TRI_CONVOLUTION
+:Evaporation         PET_FROMMONTHLY
+:OW_Evaporation      PET_FROMMONTHLY
+:SWRadiationMethod   SW_RAD_DEFAULT
+:SWCloudCorrect      SW_CLOUD_CORR_NONE
+:SWCanopyCorrect     SW_CANOPY_CORR_NONE
+:LWRadiationMethod   LW_RAD_DEFAULT
+:RainSnowFraction    RAINSNOW_HBV
+:PotentialMeltMethod POTMELT_HBV
+:OroTempCorrect      OROCORR_HBV
+:OroPrecipCorrect    OROCORR_HBV
+:OroPETCorrect       OROCORR_HBV
+:CloudCoverMethod    CLOUDCOV_NONE
+:PrecipIceptFract    PRECIP_ICEPT_USER
+:MonthlyInterpolationMethod MONTHINT_LINEAR_21
+:LakeStorage         SLOW_RESERVOIR`,
+    aliases:[{alias:'FAST_RESERVOIR',target:'SOIL[1]'},{alias:'SLOW_RESERVOIR',target:'SOIL[2]'}],
+    processes:[
+      {type:'SnowRefreeze',algo:'FREEZE_DEGREE_DAY',from:'SNOW_LIQ',to:'SNOW'},
+      {type:'Precipitation',algo:'PRECIP_RAVEN',from:'ATMOS_PRECIP',to:'MULTIPLE'},
+      {type:'CanopyEvaporation',algo:'CANEVP_ALL',from:'CANOPY',to:'ATMOSPHERE'},
+      {type:'CanopySublimation',algo:'CANEVP_ALL',from:'CANOPY_SNOW',to:'ATMOSPHERE'},
+      {type:'SnowBalance',algo:'SNOBAL_SIMPLE_MELT',from:'SNOW',to:'SNOW_LIQ'},
+      {type:'Overflow',algo:'OVERFLOW_RAVEN',from:'SNOW_LIQ',to:'PONDED_WATER'},
+      {type:'Flush',algo:'RAVEN_DEFAULT',from:'PONDED_WATER',to:'GLACIER',cond:'HRU_TYPE IS GLACIER'},
+      {type:'GlacierMelt',algo:'GMELT_HBV',from:'GLACIER_ICE',to:'GLACIER'},
+      {type:'GlacierRelease',algo:'GRELEASE_HBV_EC',from:'GLACIER',to:'SURFACE_WATER'},
+      {type:'Infiltration',algo:'INF_HBV',from:'PONDED_WATER',to:'MULTIPLE'},
+      {type:'Flush',algo:'RAVEN_DEFAULT',from:'SURFACE_WATER',to:'FAST_RESERVOIR',cond:'HRU_TYPE IS_NOT GLACIER'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_HBV',from:'SOIL[0]',to:'ATMOSPHERE'},
+      {type:'CapillaryRise',algo:'CRISE_HBV',from:'FAST_RESERVOIR',to:'SOIL[0]'},
+      {type:'LakeEvaporation',algo:'LAKE_EVAP_BASIC',from:'SLOW_RESERVOIR',to:'ATMOSPHERE'},
+      {type:'Percolation',algo:'PERC_CONSTANT',from:'FAST_RESERVOIR',to:'SLOW_RESERVOIR'},
+      {type:'Baseflow',algo:'BASE_POWER_LAW',from:'FAST_RESERVOIR',to:'SURFACE_WATER'},
+      {type:'Baseflow',algo:'BASE_LINEAR',from:'SLOW_RESERVOIR',to:'SURFACE_WATER'},
+      {type:'LateralEquilibrate',algo:'RAVEN_DEFAULT',from:'FAST_RESERVOIR',to:'FAST_RESERVOIR'},
+      {type:'LateralEquilibrate',algo:'RAVEN_DEFAULT',from:'SLOW_RESERVOIR',to:'SLOW_RESERVOIR'}
+    ]
+  },
+  // F.3 — HBV-Light
+  'HBV-Light':{
+    desc:'HBV-Light emulation — simplified 3-layer HBV (Jansen, Wageningen University)',
+    soil:'SOIL_MULTILAYER 3',
+    rvi:`:Routing             ROUTE_NONE
+:CatchmentRoute      ROUTE_TRI_CONVOLUTION
+:Evaporation         PET_DATA
+:RainSnowFraction    RAINSNOW_HBV
+:PotentialMeltMethod POTMELT_DEGREE_DAY
+:OroTempCorrect      OROCORR_HBV
+:OroPrecipCorrect    OROCORR_HBV
+:OroPETCorrect       OROCORR_HBV
+:CloudCoverMethod    CLOUDCOV_NONE
+:PrecipIceptFract    PRECIP_ICEPT_USER`,
+    aliases:[{alias:'TOPSOIL',target:'SOIL[0]'},{alias:'FAST_RESERVOIR',target:'SOIL[1]'},{alias:'SLOW_RESERVOIR',target:'SOIL[2]'}],
+    processes:[
+      {type:'SnowRefreeze',algo:'FREEZE_DEGREE_DAY',from:'SNOW_LIQ',to:'SNOW'},
+      {type:'Precipitation',algo:'PRECIP_RAVEN',from:'ATMOS_PRECIP',to:'MULTIPLE'},
+      {type:'SnowBalance',algo:'SNOBAL_SIMPLE_MELT',from:'SNOW',to:'SNOW_LIQ'},
+      {type:'Overflow',algo:'OVERFLOW_RAVEN',from:'SNOW_LIQ',to:'PONDED_WATER'},
+      {type:'Infiltration',algo:'INF_HBV',from:'PONDED_WATER',to:'MULTIPLE'},
+      {type:'Flush',algo:'RAVEN_DEFAULT',from:'SURFACE_WATER',to:'FAST_RESERVOIR',cond:'HRU_TYPE IS_NOT LAKE'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_HBV',from:'TOPSOIL',to:'ATMOSPHERE'},
+      {type:'CapillaryRise',algo:'CRISE_HBV',from:'FAST_RESERVOIR',to:'TOPSOIL'},
+      {type:'Percolation',algo:'PERC_CONSTANT',from:'FAST_RESERVOIR',to:'SLOW_RESERVOIR'},
+      {type:'Baseflow',algo:'BASE_POWER_LAW',from:'FAST_RESERVOIR',to:'SURFACE_WATER'},
+      {type:'Baseflow',algo:'BASE_THRESH_POWER',from:'FAST_RESERVOIR',to:'SURFACE_WATER'},
+      {type:'Baseflow',algo:'BASE_LINEAR',from:'SLOW_RESERVOIR',to:'SURFACE_WATER'}
+    ]
+  },
+  // F.4 — GR4J
+  'GR4J':{
+    desc:'GR4J — French lumped 4-parameter daily model (Perrin et al. 2003)',
+    soil:'SOIL_MULTILAYER 4',
+    rvi:`:Interpolation       INTERP_NEAREST_NEIGHBOR
+:Routing             ROUTE_NONE
+:CatchmentRoute      ROUTE_DUMP
+:Evaporation         PET_DATA
+:RainSnowFraction    RAINSNOW_DINGMAN
+:PotentialMeltMethod POTMELT_DEGREE_DAY
+:OroTempCorrect      OROCORR_SIMPLELAPSE
+:OroPrecipCorrect    OROCORR_SIMPLELAPSE`,
+    aliases:[{alias:'PRODUCT_STORE',target:'SOIL[0]'},{alias:'ROUTING_STORE',target:'SOIL[1]'},{alias:'TEMP_STORE',target:'SOIL[2]'},{alias:'GW_STORE',target:'SOIL[3]'}],
+    processes:[
+      {type:'Precipitation',algo:'PRECIP_RAVEN',from:'ATMOS_PRECIP',to:'MULTIPLE'},
+      {type:'SnowTempEvolve',algo:'SNOTEMP_NEWTONS',from:'SNOW_TEMP',to:'SNOW_TEMP'},
+      {type:'SnowBalance',algo:'SNOBAL_CEMA_NEIGE',from:'SNOW',to:'PONDED_WATER'},
+      {type:'OpenWaterEvaporation',algo:'OPEN_WATER_EVAP',from:'PONDED_WATER',to:'ATMOSPHERE'},
+      {type:'Infiltration',algo:'INF_GR4J',from:'PONDED_WATER',to:'MULTIPLE'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_GR4J',from:'PRODUCT_STORE',to:'ATMOSPHERE'},
+      {type:'Percolation',algo:'PERC_GR4J',from:'PRODUCT_STORE',to:'TEMP_STORE'},
+      {type:'Flush',algo:'RAVEN_DEFAULT',from:'SURFACE_WATER',to:'TEMP_STORE'},
+      {type:'Split',algo:'RAVEN_DEFAULT',from:'TEMP_STORE',to:'CONVOLUTION[1]'},
+      {type:'Convolve',algo:'CONVOL_GR4J_1',from:'CONVOLUTION[0]',to:'ROUTING_STORE'},
+      {type:'Convolve',algo:'CONVOL_GR4J_2',from:'CONVOLUTION[1]',to:'TEMP_STORE'},
+      {type:'Percolation',algo:'PERC_GR4JEXCH',from:'ROUTING_STORE',to:'GW_STORE'},
+      {type:'Percolation',algo:'PERC_GR4JEXCH2',from:'TEMP_STORE',to:'GW_STORE'},
+      {type:'Flush',algo:'RAVEN_DEFAULT',from:'TEMP_STORE',to:'SURFACE_WATER'},
+      {type:'Baseflow',algo:'BASE_GR4J',from:'ROUTING_STORE',to:'SURFACE_WATER'}
+    ]
+  },
+  // F.5 — Canadian Shield
+  'Canadian Shield':{
+    desc:'Canadian Shield config — shallow soils atop rock with lakes and depression storage',
+    soil:'SOIL_MULTILAYER 3',
+    rvi:`:Interpolation       INTERP_NEAREST_NEIGHBOR
+:Routing             ROUTE_DIFFUSIVE_WAVE
+:CatchmentRoute      ROUTE_TRI_CONVOLUTION
+:Evaporation         PET_HARGREAVES_1985
+:OW_Evaporation      PET_HARGREAVES_1985
+:SWCanopyCorrect     SW_CANOPY_CORR_STATIC
+:RainSnowFraction    RAINSNOW_DINGMAN
+:PotentialMeltMethod POTMELT_DEGREE_DAY
+:PrecipIceptFract    PRECIP_ICEPT_LAI
+:MonthlyInterpolationMethod MONTHINT_LINEAR_MID
+:LakeStorage         LAKE_STORAGE`,
+    aliases:[],
+    processes:[
+      {type:'SnowRefreeze',algo:'FREEZE_DEGREE_DAY',from:'SNOW_LIQ',to:'SNOW'},
+      {type:'Precipitation',algo:'PRECIP_RAVEN',from:'ATMOS_PRECIP',to:'MULTIPLE'},
+      {type:'CanopyEvaporation',algo:'CANEVP_MAXIMUM',from:'CANOPY',to:'ATMOSPHERE'},
+      {type:'CanopySublimation',algo:'CANEVP_MAXIMUM',from:'CANOPY_SNOW',to:'ATMOSPHERE'},
+      {type:'SnowBalance',algo:'SNOBAL_TWO_LAYER',from:'MULTIPLE',to:'MULTIPLE'},
+      {type:'Abstraction',algo:'ABST_FILL',from:'PONDED_WATER',to:'DEPRESSION'},
+      {type:'OpenWaterEvaporation',algo:'OPEN_WATER_EVAP',from:'DEPRESSION',to:'ATMOSPHERE'},
+      {type:'Infiltration',algo:'INF_HBV',from:'PONDED_WATER',to:'MULTIPLE'},
+      {type:'LakeRelease',algo:'LAKEREL_LINEAR',from:'LAKE_STORAGE',to:'SURFACE_WATER'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_ROOT',from:'SOIL[0]',to:'ATMOSPHERE'},
+      {type:'Percolation',algo:'PERC_GAWSER_CONSTRAIN',from:'SOIL[0]',to:'SOIL[1]'},
+      {type:'Percolation',algo:'PERC_GAWSER_CONSTRAIN',from:'SOIL[1]',to:'SOIL[2]'},
+      {type:'Baseflow',algo:'BASE_THRESH_POWER',from:'SOIL[0]',to:'SURFACE_WATER'},
+      {type:'Baseflow',algo:'BASE_THRESH_POWER',from:'SOIL[1]',to:'SURFACE_WATER'},
+      {type:'Baseflow',algo:'BASE_THRESH_POWER',from:'SOIL[2]',to:'SURFACE_WATER'}
+    ]
+  },
+  // F.6 — MOHYSE
+  'MOHYSE':{
+    desc:'MOHYSE — simple educational model (UQÀM, Fortin & Turcotte 2006)',
+    soil:'SOIL_TWO_LAYER',
+    rvi:`:Routing             ROUTE_NONE
+:CatchmentRoute      ROUTE_GAMMA_CONVOLUTION
+:Evaporation         PET_MOHYSE
+:PotentialMeltMethod POTMELT_DEGREE_DAY
+:RainSnowFraction    RAINSNOW_DATA
+:DirectEvaporation`,
+    aliases:[],
+    processes:[
+      {type:'SoilEvaporation',algo:'SOILEVAP_LINEAR',from:'SOIL[0]',to:'ATMOSPHERE'},
+      {type:'SnowBalance',algo:'SNOBAL_SIMPLE_MELT',from:'SNOW',to:'PONDED_WATER'},
+      {type:'Precipitation',algo:'RAVEN_DEFAULT',from:'ATMOS_PRECIP',to:'MULTIPLE'},
+      {type:'Infiltration',algo:'INF_HBV',from:'PONDED_WATER',to:'SOIL[0]'},
+      {type:'Baseflow',algo:'BASE_LINEAR',from:'SOIL[0]',to:'SURFACE_WATER'},
+      {type:'Percolation',algo:'PERC_LINEAR',from:'SOIL[0]',to:'SOIL[1]'},
+      {type:'Baseflow',algo:'BASE_LINEAR',from:'SOIL[1]',to:'SURFACE_WATER'}
+    ]
+  },
+  // F.7 — HMETS
+  'HMETS':{
+    desc:'HMETS — cumulative melt factor model (ÉTS, Martel et al. 2017)',
+    soil:'SOIL_TWO_LAYER',
+    rvi:`:PotentialMeltMethod POTMELT_HMETS
+:RainSnowFraction    RAINSNOW_DATA
+:Evaporation         PET_OUDIN
+:CatchmentRoute      ROUTE_DUMP
+:Routing             ROUTE_NONE
+:AllowSoilOverfill`,
+    aliases:[],
+    processes:[
+      {type:'SnowBalance',algo:'SNOBAL_HMETS',from:'MULTIPLE',to:'MULTIPLE'},
+      {type:'Precipitation',algo:'RAVEN_DEFAULT',from:'ATMOS_PRECIP',to:'MULTIPLE'},
+      {type:'Infiltration',algo:'INF_HMETS',from:'PONDED_WATER',to:'MULTIPLE'},
+      {type:'Overflow',algo:'OVERFLOW_RAVEN',from:'SOIL[0]',to:'CONVOLUTION[1]'},
+      {type:'Baseflow',algo:'BASE_LINEAR',from:'SOIL[0]',to:'SURFACE_WATER'},
+      {type:'Percolation',algo:'PERC_LINEAR',from:'SOIL[0]',to:'SOIL[1]'},
+      {type:'Overflow',algo:'OVERFLOW_RAVEN',from:'SOIL[1]',to:'CONVOLUTION[1]'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_ALL',from:'SOIL[0]',to:'ATMOSPHERE'},
+      {type:'Convolve',algo:'CONVOL_GAMMA',from:'CONVOLUTION[0]',to:'SURFACE_WATER'},
+      {type:'Convolve',algo:'CONVOL_GAMMA_2',from:'CONVOLUTION[1]',to:'SURFACE_WATER'},
+      {type:'Baseflow',algo:'BASE_LINEAR',from:'SOIL[1]',to:'SURFACE_WATER'}
+    ]
+  },
+  // F.8 — HYPR
+  'HYPR':{
+    desc:'HYPR — revised HBV for Canadian Prairies (Ahmed et al. 2020)',
+    soil:'SOIL_MULTILAYER 3',
+    rvi:`:CatchmentRoute      ROUTE_TRI_CONVOLUTION
+:Evaporation         PET_FROMMONTHLY
+:OW_Evaporation      PET_FROMMONTHLY
+:SWRadiationMethod   SW_RAD_DEFAULT
+:LWRadiationMethod   LW_RAD_DEFAULT
+:RainSnowFraction    RAINSNOW_HBV
+:PotentialMeltMethod POTMELT_HBV
+:PrecipIceptFract    PRECIP_ICEPT_USER
+:MonthlyInterpolationMethod MONTHINT_LINEAR_21`,
+    aliases:[{alias:'FAST_RESERVOIR',target:'SOIL[1]'},{alias:'SLOW_RESERVOIR',target:'SOIL[2]'}],
+    processes:[
+      {type:'SnowRefreeze',algo:'FREEZE_DEGREE_DAY',from:'SNOW_LIQ',to:'SNOW'},
+      {type:'Precipitation',algo:'PRECIP_RAVEN',from:'ATMOS_PRECIP',to:'MULTIPLE'},
+      {type:'CanopyEvaporation',algo:'CANEVP_ALL',from:'CANOPY',to:'ATMOSPHERE'},
+      {type:'CanopySublimation',algo:'CANEVP_ALL',from:'CANOPY_SNOW',to:'ATMOSPHERE'},
+      {type:'SnowBalance',algo:'SNOBAL_SIMPLE_MELT',from:'SNOW',to:'PONDED_WATER'},
+      {type:'Infiltration',algo:'INF_HBV',from:'PONDED_WATER',to:'MULTIPLE'},
+      {type:'Flush',algo:'RAVEN_DEFAULT',from:'SURFACE_WATER',to:'PONDED_WATER'},
+      {type:'Abstraction',algo:'ABST_PDMROF',from:'PONDED_WATER',to:'DEPRESSION'},
+      {type:'Flush',algo:'RAVEN_DEFAULT',from:'SURFACE_WATER',to:'FAST_RESERVOIR'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_HYPR',from:'MULTIPLE',to:'ATMOSPHERE'},
+      {type:'Baseflow',algo:'BASE_LINEAR',from:'FAST_RESERVOIR',to:'SURFACE_WATER'},
+      {type:'Baseflow',algo:'BASE_THRESH_STOR',from:'FAST_RESERVOIR',to:'SURFACE_WATER'}
+    ]
+  },
+  // F.9 — HYMOD
+  'HYMOD':{
+    desc:'HYMOD — Probability Distributed Model (Moore 2007, Wagener et al. 2001)',
+    soil:'SOIL_MULTILAYER 2',
+    rvi:`:Routing             ROUTE_NONE
+:CatchmentRoute      ROUTE_RESERVOIR_SERIES
+:Evaporation         PET_HAMON
+:OW_Evaporation      PET_HAMON
+:SWRadiationMethod   SW_RAD_NONE
+:LWRadiationMethod   LW_RAD_NONE
+:CloudCoverMethod    CLOUDCOV_NONE
+:RainSnowFraction    RAINSNOW_THRESHOLD
+:PotentialMeltMethod POTMELT_DEGREE_DAY
+:PrecipIceptFract    PRECIP_ICEPT_NONE`,
+    aliases:[],
+    processes:[
+      {type:'Precipitation',algo:'PRECIP_RAVEN',from:'ATMOS_PRECIP',to:'MULTIPLE'},
+      {type:'SnowBalance',algo:'SNOBAL_SIMPLE_MELT',from:'SNOW',to:'PONDED_WATER'},
+      {type:'Infiltration',algo:'INF_PDM',from:'PONDED_WATER',to:'MULTIPLE'},
+      {type:'Flush',algo:'RAVEN_DEFAULT',from:'SURFACE_WATER',to:'SOIL[1]'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_PDM',from:'SOIL[0]',to:'ATMOSPHERE'},
+      {type:'Baseflow',algo:'BASE_LINEAR',from:'SOIL[1]',to:'SURFACE_WATER'}
+    ]
+  },
+  // F.10 — AWBM
+  'AWBM':{
+    desc:'Australian Water Balance Model — 4-compartment lumped (Boughton 2004)',
+    soil:'SOIL_MULTILAYER 4',
+    rvi:`:Routing             ROUTE_NONE
+:CatchmentRoute      ROUTE_DUMP
+:SWRadiationMethod   SW_RAD_NONE
+:LWRadiationMethod   LW_RAD_NONE
+:CloudCoverMethod    CLOUDCOV_NONE
+:PrecipIceptFract    PRECIP_ICEPT_NONE
+:Evaporation         PET_HAMON
+:RainSnowFraction    RAINSNOW_THRESHOLD
+:PotentialMeltMethod POTMELT_DEGREE_DAY`,
+    aliases:[],
+    processes:[
+      {type:'Precipitation',algo:'PRECIP_RAVEN',from:'ATMOS_PRECIP',to:'MULTIPLE'},
+      {type:'SnowBalance',algo:'SNOBAL_SIMPLE_MELT',from:'SNOW',to:'PONDED_WATER'},
+      {type:'Infiltration',algo:'INF_ABWM',from:'PONDED_WATER',to:'MULTIPLE'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_ABWM',from:'MULTIPLE',to:'ATMOSPHERE'},
+      {type:'Baseflow',algo:'BASE_LINEAR',from:'SOIL[3]',to:'SURFACE_WATER'}
+    ]
+  },
+  // F.11 — SAC-SMA
+  'SAC-SMA':{
+    desc:'Sacramento Soil Moisture Accounting — 7-layer lumped model (Burnash 1995)',
+    soil:'SOIL_MULTILAYER 7',
+    rvi:`:PotentialMeltMethod POTMELT_DEGREE_DAY
+:RainSnowFraction    RAINSNOW_DATA
+:Evaporation         PET_DATA
+:CatchmentRoute      ROUTE_DUMP
+:Routing             ROUTE_NONE`,
+    aliases:[{alias:'UZ_T',target:'SOIL[0]'},{alias:'UZ_F',target:'SOIL[1]'},{alias:'LZ_T',target:'SOIL[2]'},{alias:'LZ_PF',target:'SOIL[3]'},{alias:'LZ_PS',target:'SOIL[4]'}],
+    processes:[
+      {type:'SnowBalance',algo:'SNOBAL_SIMPLE_MELT',from:'SNOW',to:'PONDED_WATER'},
+      {type:'Precipitation',algo:'RAVEN_DEFAULT',from:'ATMOS_PRECIP',to:'MULTIPLE'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_SACSMA',from:'MULTIPLE',to:'ATMOSPHERE'},
+      {type:'SoilBalance',algo:'SOILBAL_SACSMA',from:'MULTIPLE',to:'MULTIPLE'},
+      {type:'OpenWaterEvaporation',algo:'OPEN_WATER_RIPARIAN',from:'SURFACE_WATER',to:'ATMOSPHERE'}
+    ]
+  },
+  // F.12 — Routing Only
+  'Routing Only':{
+    desc:'Routing-only — routes pre-computed runoff through channel/reservoir network',
+    soil:'SOIL_ONE_LAYER',
+    rvi:`:CatchmentRoute      ROUTE_GAMMA_CONVOLUTION
+:Routing             ROUTE_DIFFUSIVE_WAVE
+:PrecipIceptFract    PRECIP_ICEPT_NONE
+:PotentialMeltMethod POTMELT_NONE
+:SWRadiationMethod   SW_RAD_NONE
+:OW_Evaporation      PET_NONE`,
+    aliases:[],
+    processes:[
+      {type:'Precipitation',algo:'PRECIP_RAVEN',from:'ATMOS_PRECIP',to:'PONDED_WATER'},
+      {type:'Flush',algo:'RAVEN_DEFAULT',from:'PONDED_WATER',to:'SURFACE_WATER'}
+    ]
+  },
+  // F.13 — Blended v1
+  'Blended v1':{
+    desc:'Blended model v1 — multi-algorithm weighted ensemble (Mai et al. 2020)',
+    soil:'SOIL_MULTILAYER 3',
+    rvi:`:PotentialMeltMethod POTMELT_HMETS
+:RainSnowFraction    RAINSNOW_HBV
+:Evaporation         PET_OUDIN
+:CatchmentRoute      ROUTE_DUMP
+:Routing             ROUTE_NONE`,
+    aliases:[{alias:'DELAYED_RUNOFF',target:'CONVOLUTION[1]'}],
+    processes:[
+      {type:'Precipitation',algo:'RAVEN_DEFAULT',from:'ATMOS_PRECIP',to:'MULTIPLE'},
+      {type:'Infiltration',algo:'INF_HMETS',from:'PONDED_WATER',to:'MULTIPLE',groupId:'infil'},
+      {type:'Infiltration',algo:'INF_VIC_ARNO',from:'PONDED_WATER',to:'MULTIPLE',groupId:'infil'},
+      {type:'Infiltration',algo:'INF_HBV',from:'PONDED_WATER',to:'MULTIPLE',groupId:'infil'},
+      {type:'Overflow',algo:'OVERFLOW_RAVEN',from:'SOIL[0]',to:'DELAYED_RUNOFF'},
+      {type:'Baseflow',algo:'BASE_LINEAR_ANALYTIC',from:'SOIL[0]',to:'SURFACE_WATER',groupId:'quickflow'},
+      {type:'Baseflow',algo:'BASE_VIC',from:'SOIL[0]',to:'SURFACE_WATER',groupId:'quickflow'},
+      {type:'Baseflow',algo:'BASE_TOPMODEL',from:'SOIL[0]',to:'SURFACE_WATER',groupId:'quickflow'},
+      {type:'Percolation',algo:'PERC_LINEAR',from:'SOIL[0]',to:'SOIL[1]'},
+      {type:'Overflow',algo:'OVERFLOW_RAVEN',from:'SOIL[1]',to:'DELAYED_RUNOFF'},
+      {type:'Percolation',algo:'PERC_LINEAR',from:'SOIL[1]',to:'SOIL[2]'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_ALL',from:'SOIL[0]',to:'ATMOSPHERE',groupId:'evap'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_TOPMODEL',from:'SOIL[0]',to:'ATMOSPHERE',groupId:'evap'},
+      {type:'Convolve',algo:'CONVOL_GAMMA',from:'CONVOLUTION[0]',to:'SURFACE_WATER'},
+      {type:'Convolve',algo:'CONVOL_GAMMA_2',from:'DELAYED_RUNOFF',to:'SURFACE_WATER'},
+      {type:'Baseflow',algo:'BASE_LINEAR_ANALYTIC',from:'SOIL[1]',to:'SURFACE_WATER',groupId:'baseflow'},
+      {type:'Baseflow',algo:'BASE_POWER_LAW',from:'SOIL[1]',to:'SURFACE_WATER',groupId:'baseflow'},
+      {type:'SnowBalance',algo:'SNOBAL_HMETS',from:'MULTIPLE',to:'MULTIPLE',groupId:'snow'},
+      {type:'SnowBalance',algo:'SNOBAL_SIMPLE_MELT',from:'SNOW',to:'PONDED_WATER',groupId:'snow'},
+      {type:'SnowBalance',algo:'SNOBAL_HBV',from:'MULTIPLE',to:'MULTIPLE',groupId:'snow'}
+    ]
+  },
+  // F.14 — Blended v2 (lumped daily)
+  'Blended v2':{
+    desc:'Blended model v2 — blended PET/melt/quickflow/AET/baseflow (Chlumsky et al. 2024)',
+    soil:'SOIL_MULTILAYER 3',
+    rvi:`:Evaporation         PET_BLENDED
+:BlendedPETWeights   PET_GRANGERGRAY 0.55556 PET_HAMON 0.5 PET_PENMAN_MONTEITH
+:PotentialMeltMethod POTMELT_BLENDED
+:BlendedPotMeltWeights POTMELT_HMETS 0.5 POTMELT_RESTRICTED
+:RainSnowFraction    RAINSNOW_HBV
+:PrecipIceptFract    PRECIP_ICEPT_USER
+:CatchmentRoute      ROUTE_DUMP
+:Routing             ROUTE_NONE`,
+    aliases:[{alias:'DELAYED_RUNOFF',target:'CONVOLUTION[1]'}],
+    processes:[
+      {type:'Precipitation',algo:'RAVEN_DEFAULT',from:'ATMOS_PRECIP',to:'MULTIPLE'},
+      {type:'CanopyDrip',algo:'CANDRIP_RUTTER',from:'CANOPY',to:'PONDED_WATER'},
+      {type:'Abstraction',algo:'ABST_PERCENTAGE',from:'PONDED_WATER',to:'DEPRESSION'},
+      {type:'OpenWaterEvaporation',algo:'OPEN_WATER_EVAP',from:'DEPRESSION',to:'ATMOSPHERE'},
+      {type:'CanopyEvaporation',algo:'CANEVP_MAXIMUM',from:'CANOPY',to:'ATMOSPHERE'},
+      {type:'CanopySublimation',algo:'CANEVP_MAXIMUM',from:'CANOPY_SNOW',to:'ATMOSPHERE'},
+      {type:'Seepage',algo:'SEEP_LINEAR',from:'DEPRESSION',to:'SOIL[1]'},
+      {type:'Infiltration',algo:'INF_HMETS',from:'PONDED_WATER',to:'MULTIPLE'},
+      {type:'Overflow',algo:'OVERFLOW_RAVEN',from:'SOIL[0]',to:'DELAYED_RUNOFF'},
+      {type:'Baseflow',algo:'BASE_POWER_LAW',from:'SOIL[0]',to:'SURFACE_WATER',groupId:'quickflow'},
+      {type:'Baseflow',algo:'BASE_THRESH_POWER',from:'SOIL[0]',to:'SURFACE_WATER',groupId:'quickflow'},
+      {type:'Percolation',algo:'PERC_LINEAR',from:'SOIL[0]',to:'SOIL[1]'},
+      {type:'CapillaryRise',algo:'CRISE_HBV',from:'SOIL[1]',to:'SOIL[0]'},
+      {type:'Overflow',algo:'OVERFLOW_RAVEN',from:'SOIL[1]',to:'DELAYED_RUNOFF'},
+      {type:'Percolation',algo:'PERC_LINEAR',from:'SOIL[1]',to:'SOIL[2]'},
+      {type:'CapillaryRise',algo:'CRISE_HBV',from:'SOIL[2]',to:'SOIL[1]'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_ALL',from:'SOIL[0]',to:'ATMOSPHERE',groupId:'aet'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_ROOT',from:'SOIL[0]',to:'ATMOSPHERE',groupId:'aet'},
+      {type:'SoilEvaporation',algo:'SOILEVAP_SEQUEN',from:'SOIL[0]',to:'ATMOSPHERE',groupId:'aet'},
+      {type:'Convolve',algo:'CONVOL_GAMMA',from:'CONVOLUTION[0]',to:'SURFACE_WATER'},
+      {type:'Convolve',algo:'CONVOL_GAMMA_2',from:'DELAYED_RUNOFF',to:'SURFACE_WATER'},
+      {type:'Baseflow',algo:'BASE_POWER_LAW',from:'SOIL[1]',to:'SURFACE_WATER',groupId:'baseflow'},
+      {type:'Baseflow',algo:'BASE_THRESH_POWER',from:'SOIL[1]',to:'SURFACE_WATER',groupId:'baseflow'},
+      {type:'SnowBalance',algo:'SNOBAL_HBV',from:'MULTIPLE',to:'MULTIPLE'}
+    ]
+  }
+};
+
+
+window.showTemplateGallery = function() {
+  const gal = document.getElementById('tpl-gallery');
+  if (!gal) return;
+  gal.innerHTML = Object.entries(MODEL_TEMPLATES).map(([name, tpl]) => `
+    <div style="border:1px solid var(--border);border-radius:6px;padding:10px;cursor:pointer;transition:border-color .15s,box-shadow .15s"
+         onmouseenter="this.style.borderColor='var(--accent)';this.style.boxShadow='0 2px 8px rgba(0,0,0,.15)'"
+         onmouseleave="this.style.borderColor='var(--border)';this.style.boxShadow='none'"
+         onclick="applyTemplate('${name}')">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">${escH(name)}</div>
+      <div style="font-size:9px;color:var(--text2);line-height:1.4">${escH(tpl.desc)}</div>
+      <div style="font-size:8px;color:var(--text3);margin-top:6px">${tpl.processes.length} processes · ${tpl.soil}</div>
+    </div>`).join('');
+  document.getElementById('tpl-modal-overlay').style.display = 'flex';
+};
+
+window.applyTemplate = function(name) {
+  const tpl = MODEL_TEMPLATES[name];
+  if (!tpl) return;
+  if (!confirm(`Load "${name}" template?\n\nThis will replace your RVI methods, processes, aliases, and soil model.\nYour SubBasins, HRUs, gauges, and time series data will be preserved.`)) return;
+  document.getElementById('tpl-modal-overlay').style.display = 'none';
+
+  // Parse the RVI snippet to populate sim methods
+  const rviLines = tpl.rvi.split('\n');
+  for (const line of rviLines) {
+    const t = tokenize(line);
+    const c = cmd(t);
+    if (!c) continue;
+    const s = S.sim;
+    switch(c) {
+      case 'Method': s.method=t[1]; break;
+      case 'Interpolation': s.interpolation=t[1]; break;
+      case 'Routing': s.routing=t[1]; break;
+      case 'CatchmentRoute': s.catchmentRoute=t[1]; break;
+      case 'Evaporation': s.evaporation=t[1]; break;
+      case 'OW_Evaporation': s.owEvaporation=t[1]; break;
+      case 'SWRadiationMethod': s.swRadiation=t[1]; break;
+      case 'SWCloudCorrect': s.swCloudCorrect=t[1]; break;
+      case 'SWCanopyCorrect': s.swCanopyCorrect=t[1]; break;
+      case 'LWRadiationMethod': s.lwRadiation=t[1]; break;
+      case 'WindspeedMethod': s.windspeed=t[1]; break;
+      case 'RainSnowFraction': s.rainSnowFraction=t[1]; break;
+      case 'PotentialMeltMethod': s.potentialMelt=t[1]; break;
+      case 'OroTempCorrect': s.oroTempCorrect=t[1]; break;
+      case 'OroPrecipCorrect': s.oroPrecipCorrect=t[1]; break;
+      case 'OroPETCorrect': s.oroPETCorrect=t[1]; break;
+      case 'CloudCoverMethod': s.cloudCover=t[1]; break;
+      case 'PrecipIceptFract': s.precipIceptFract=t[1]; break;
+      case 'MonthlyInterpolationMethod': s.monthlyInterp=t[1]; break;
+      case 'SubdailyMethod': s.subdailyMethod=t[1]; break;
+      case 'LakeStorage': s.lakeStorage=t[1]; break;
+      case 'DirectEvaporation': S.flags.DirectEvaporation=true; break;
+      case 'AllowSoilOverfill': S.flags.AllowSoilOverfill=true; break;
+      case 'BlendedPETWeights': s.blendedPETWeights=t.slice(1).join(' '); break;
+      case 'BlendedPotMeltWeights': s.blendedPotMeltWeights=t.slice(1).join(' '); break;
+    }
+  }
+
+  // Soil model
+  const sp = tpl.soil.split(/\s+/);
+  S.sim.soilModel = sp[0];
+  if (sp[1]) S.sim.soilModelLayers = parseInt(sp[1]);
+
+  // Aliases
+  S.aliases = (tpl.aliases||[]).map(a => ({alias:a.alias, target:a.target}));
+
+  // Processes
+  S.processes = tpl.processes.map(p => ({
+    type: p.type,
+    algo: p.algo,
+    from: p.from || 'MULTIPLE',
+    to: p.to || 'MULTIPLE',
+    cond: p.cond || '',
+    groupId: p.groupId || null
+  }));
+
+  // Enable CreateRVPTemplate by default
+  S.flags.CreateRVPTemplate = true;
+
+  afterLoad();
+  toast(`Template "${name}" loaded! Use CreateRVPTemplate flag + Execute to generate matching .rvp`, 'ok');
+};
+
+// ── CreateRVPTemplate workflow ────────────────────────────────────────────────
+// When CreateRVPTemplate is active and user hits Execute, Raven generates
+// a .rvp template file. The backend should detect this and return the file.
+// We override the result handler to auto-parse the generated .rvp.
+window._handleRVPTemplateResult = function(rvpText) {
+  if (!rvpText || !rvpText.trim()) { toast('No .rvp template generated','warn'); return; }
+  // Parse the generated .rvp into the store
+  try {
+    parseRVP(rvpText.split('\n'), S);
+    toast('Generated .rvp template parsed successfully! Review the RVP panel.', 'ok');
+    // Disable the flag so the next run is a real simulation
+    S.flags.CreateRVPTemplate = false;
+    afterLoad();
+  } catch(e) {
+    toast('Error parsing generated .rvp: ' + e.message, 'warn');
+  }
+};
+
 // ── Show process-builder modal ────────────────────────────────────────────────
 function showAddProcessModal() {
   const existing = document.getElementById('proc-modal');
@@ -10185,9 +10734,11 @@ function rviTab(id) {
       ['AllowSoilOverfill','Allow soil layers to overfill without error'],
       ['SnowSuppressesPET','Snow suppresses PET'],
       ['SuppressCompetitiveET','Suppress competitive ET'],
-      ['CreateRVPTemplate','Write empty .rvp template on run'],
+      ['CreateRVPTemplate','Write empty .rvp template on run — generates compliant .rvp from .rvi'],
       ['UseStopFile','Check for stop file during run'],
       ['WriteMassLoadings','Write constituent mass loadings file (transport)'],
+      ['DeltaresFEWSMode','Enable Deltares FEWS integration mode'],
+      ['NetCDFUseBasinFullname','Use full basin names in NetCDF output'],
     ];
     const flagBits=S.flags||{};
     B.innerHTML=`<div class="s-hdr"><h3>Output Flags</h3></div>
@@ -10198,8 +10749,17 @@ function rviTab(id) {
         <span style="font-size:9px;line-height:1.4">${f}<br><span style="color:var(--text3);font-size:8px">${desc}</span></span>
       </label>`).join('')}
     </div>
+    ${flagBits.DeltaresFEWSMode ? `
+    <div class="divider"></div>
+    <div class="s-hdr"><h3>Deltares FEWS Integration</h3></div>
+    <div class="hint" style="margin-bottom:6px">FEWS adaptor file paths (relative to working directory). Leave blank if not used.</div>
+    ${frow('Run Info File',`<input type="text" value="${escH(s.fewsRunInfo||'')}" placeholder="./input/run_info.nc" oninput="S.sim.fewsRunInfo=this.value||null">`,'= FEWSRunInfoFile')}
+    ${frow('State Update File',`<input type="text" value="${escH(s.fewsStateInfo||'')}" placeholder="./input/state_update.nc" oninput="S.sim.fewsStateInfo=this.value||null">`,'= FEWSStateInfoFile')}
+    ${frow('Basin State File',`<input type="text" value="${escH(s.fewsBasinStateInfo||'')}" placeholder="./input/flow_update.nc" oninput="S.sim.fewsBasinStateInfo=this.value||null">`,'= FEWSBasinStateInfoFile')}
+    ${frow('Param Update File',`<input type="text" value="${escH(s.fewsParamInfo||'')}" placeholder="./input/param_update.nc" oninput="S.sim.fewsParamInfo=this.value||null">`,'= FEWSParamInfoFile')}
+    ${frow('Management File',`<input type="text" value="${escH(s.fewsManagementInfo||'')}" placeholder="./input/mgmt_update.nc" oninput="S.sim.fewsManagementInfo=this.value||null">`,'= FEWSManagementInfoFile')}
+    ` : ''}
     <div class="divider"></div>`;
-    B.innerHTML+=``;
     const ALL_METRICS=['NASH_SUTCLIFFE','NASH_SUTCLIFFE_RUN','LOG_NASH','FUZZY_NASH','NSE4','RMSE','KLING_GUPTA','KGE_PRIME','DAILY_KGE','PCT_BIAS','ABSERR','ABSERR_RUN','ABSMAX','PDIFF','TMVOL','RCOEF','NSC','RSR','R2','SPEARMAN'];
     const activeMetrics=new Set(S.evalMetrics);
     const CO_PERIODS=['DAILY','MONTHLY','YEARLY','WATER_YEARLY','CONTINUOUS','ENTIRE_SIM'];
@@ -11437,7 +11997,7 @@ function jumpHRU(id) {
 // ── RVP PANEL ────────────────────────────────────────────────────────────────
 function renderRVP() {
   const allPL=[...S.soilParams,...S.luParams,...S.vegParams].length;
-  tabs([['soil',`Soil (${S.soilClasses.length})`],['veg',`Veg (${S.vegClasses.length})`],['lu',`LandUse (${S.luClasses.length})`],['profs',`Profiles (${S.soilProfiles.length})`],['profviz','Profile Viz'],['chan',`Channels (${S.channelProfiles.length})`],['global',`Global (${Object.keys(S.globalParams).length})`],['params',`Param Lists (${allPL})`],['transient',`Transient (${(S.transientParams||[]).length})`]],'soil',id=>{activatePtab(id);rvpTab(id);});
+  tabs([['soil',`Soil (${S.soilClasses.length})`],['veg',`Veg (${S.vegClasses.length})`],['lu',`LandUse (${S.luClasses.length})`],['terrain',`Terrain (${S.terrainClasses.length})`],['profs',`Profiles (${S.soilProfiles.length})`],['profviz','Profile Viz'],['chan',`Channels (${S.channelProfiles.length})`],['global',`Global (${Object.keys(S.globalParams).length})`],['params',`Param Lists (${allPL})`],['transient',`Transient (${(S.transientParams||[]).length})`]],'soil',id=>{activatePtab(id);rvpTab(id);});
   rvpTab('soil');
 }
 function rvpTab(id) {
@@ -11454,27 +12014,40 @@ function rvpTab(id) {
     </table></div>`;
   } else if(id==='veg') {
     B.innerHTML=`<div class="s-hdr"><h3>Vegetation Classes</h3><div class="s-hdr-acts"><button class="btn sm" onclick="S.vegClasses.push({name:'NEW_VEG',max_ht:10,max_lai:4,max_leaf_cond:5});rvpTab('veg')">+ Add</button></div></div>
-    <div class="t-wrap"><table class="rv"><tr><th>Name</th><th>Max HT (m)</th><th>Max LAI</th><th>Max Leaf Cond</th></tr>
+    <div class="t-wrap"><table class="rv"><tr><th>Name</th><th>Max HT (m)</th><th>Max LAI</th><th>Max Leaf Cond</th><th></th></tr>
     ${S.vegClasses.map((c,i)=>`<tr><td><input value="${escH(c.name)}" oninput="S.vegClasses[${i}].name=this.value"></td>
       <td><input type="number" value="${c.max_ht??0}" oninput="S.vegClasses[${i}].max_ht=parseFloat(this.value)" style="width:65px"></td>
       <td><input type="number" value="${c.max_lai??0}" oninput="S.vegClasses[${i}].max_lai=parseFloat(this.value)" style="width:65px"></td>
-      <td><input type="number" value="${c.max_leaf_cond??0}" oninput="S.vegClasses[${i}].max_leaf_cond=parseFloat(this.value)" style="width:65px"></td></tr>`).join('')}
+      <td><input type="number" value="${c.max_leaf_cond??0}" oninput="S.vegClasses[${i}].max_leaf_cond=parseFloat(this.value)" style="width:65px"></td>
+      <td><button class="del-btn" onclick="S.vegClasses.splice(${i},1);rvpTab('veg')">✕</button></td></tr>`).join('')}
     </table></div>`;
   } else if(id==='lu') {
     B.innerHTML=`<div class="s-hdr"><h3>Land Use Classes</h3><div class="s-hdr-acts"><button class="btn sm" onclick="S.luClasses.push({name:'NEW_LU',imperm:0,forest_cov:0});rvpTab('lu')">+ Add</button></div></div>
-    <div class="t-wrap"><table class="rv"><tr><th>Name</th><th>Tag</th><th>Imperm frac</th><th>Forest Cov</th></tr>
+    <div class="t-wrap"><table class="rv"><tr><th>Name</th><th>Tag</th><th>Imperm frac</th><th>Forest Cov</th><th></th></tr>
     ${S.luClasses.map((c,i)=>`<tr><td><input value="${escH(c.name)}" oninput="S.luClasses[${i}].name=this.value"></td>
       <td>${luTag(c.name)}</td>
       <td><input type="number" step="0.01" value="${c.imperm??0}" oninput="S.luClasses[${i}].imperm=parseFloat(this.value)" style="width:65px"></td>
-      <td><input type="number" step="0.01" value="${c.forest_cov??0}" oninput="S.luClasses[${i}].forest_cov=parseFloat(this.value)" style="width:65px"></td></tr>`).join('')}
+      <td><input type="number" step="0.01" value="${c.forest_cov??0}" oninput="S.luClasses[${i}].forest_cov=parseFloat(this.value)" style="width:65px"></td>
+      <td><button class="del-btn" onclick="S.luClasses.splice(${i},1);rvpTab('lu')">✕</button></td></tr>`).join('')}
     </table></div>`;
+  } else if(id==='terrain') {
+    B.innerHTML=`<div class="s-hdr"><h3>Terrain Classes (${S.terrainClasses.length})</h3><div class="s-hdr-acts"><button class="btn sm" onclick="S.terrainClasses.push({name:'NEW_TERRAIN',hillslopeLen:100,drainDensity:1.0});rvpTab('terrain')">+ Add</button></div></div>
+    <div class="hint" style="margin-bottom:6px">Terrain classes define hillslope length and drainage density for each terrain type. Referenced by HRUs.</div>
+    ${S.terrainClasses.length?`<div class="t-wrap"><table class="rv"><tr><th>Name</th><th>Hillslope Length (m)</th><th>Drainage Density (km/km²)</th><th></th></tr>
+    ${S.terrainClasses.map((c,i)=>`<tr><td><input value="${escH(c.name)}" oninput="S.terrainClasses[${i}].name=this.value"></td>
+      <td><input type="number" step="1" value="${c.hillslopeLen??100}" oninput="S.terrainClasses[${i}].hillslopeLen=parseFloat(this.value)" style="width:80px"></td>
+      <td><input type="number" step="0.01" value="${c.drainDensity??1}" oninput="S.terrainClasses[${i}].drainDensity=parseFloat(this.value)" style="width:80px"></td>
+      <td><button class="del-btn" onclick="S.terrainClasses.splice(${i},1);rvpTab('terrain')">✕</button></td></tr>`).join('')}
+    </table></div>`:'<div class="empty">No terrain classes defined. Add one or import from .rvp file.</div>'}`;
   } else if(id==='profs') {
     B.innerHTML=`<div class="s-hdr"><h3>Soil Profiles (${S.soilProfiles.length})</h3><div class="s-hdr-acts">
       <button class="btn sm" onclick="rvpTab('profviz')" title="Open stratigraphic visualizer">📊 Visualize</button>
       <button class="btn sm" onclick="S.soilProfiles.push({name:'PROFILE_'+(S.soilProfiles.length+1),numLayers:2,horizons:[{cls:S.soilClasses[0]?.name||'SAND',thick:0.5},{cls:S.soilClasses[0]?.name||'SAND',thick:1.0}]});rvpTab('profs')">+ Add</button>
     </div></div>`+
     (S.soilProfiles.length?S.soilProfiles.map((p,pi)=>`<div class="proc-item" style="margin-bottom:5px">
-      <div class="proc-hdr" onclick="toggleProc('cp${pi}')"><span class="proc-type">${escH(p.name)}</span><span class="proc-method">${p.numLayers} layers</span></div>
+      <div class="proc-hdr" onclick="toggleProc('cp${pi}')"><span class="proc-type">${escH(p.name)}</span><span class="proc-method">${p.numLayers} layers</span>
+        <button class="del-btn" style="margin-left:auto" onclick="event.stopPropagation();S.soilProfiles.splice(${pi},1);rvpTab('profs')">✕</button>
+      </div>
       <div class="proc-body" id="cp${pi}">
         <div class="t-wrap"><table class="rv"><tr><th>#</th><th>Soil Class</th><th>Thickness (m)</th><th></th></tr>
         ${p.horizons.map((h,hi)=>`<tr><td class="id">${hi+1}</td>
@@ -12036,7 +12609,7 @@ function rvtTab(id) {
     }
     html += `<div class="divider"></div><div class="s-hdr"><h3>Gridded Forcings (${gf.length})</h3></div>`;
     if (gf.length) {
-      html += `<div class="t-wrap"><table class="rv"><tr><th>Name</th><th>Forcing Type</th><th>NetCDF File</th><th>Variable</th><th>Dim Names</th><th>Options</th><th>Map</th></tr>
+      html += `<div class="t-wrap"><table class="rv"><tr><th>Name</th><th>Forcing Type</th><th>NetCDF File</th><th>Variable</th><th>Dim Names</th><th>Options</th><th>Map</th><th></th></tr>
       ${gf.map((f,fi)=>`<tr>
         <td class="mono" style="font-size:9px">${escH(f.name||'—')}</td>
         <td style="font-size:9px">${escH(f.forcingType||'—')}</td>
@@ -12045,6 +12618,7 @@ function rvtTab(id) {
         <td style="font-size:9px;color:var(--text3)">${escH(f.dimNames||'—')}</td>
         <td style="font-size:9px;color:var(--text3)">${[f.periodEnding?'PeriodEnding':'',f.deaccumulate?'Deaccum':'',f.chunkSize?`chunk:${f.chunkSize}`:''].filter(Boolean).join(' ')||'—'}</td>
         <td>${(f.gridWeights&&f.gridWeights.length>0)?`<button class="btn sm" style="font-size:8px;padding:2px 5px" onclick="visualizeForcingHRUs(${fi})" title="Highlight forced HRUs on map">🗺 Map</button>`:'<span style="font-size:8px;color:var(--text3)">no weights</span>'}</td>
+        <td><button class="del-btn" onclick="S.griddedForcings.splice(${fi},1);rvtTab('forcing')">✕</button></td>
       </tr>`).join('')}
       </table></div>
       <div class="hint" style="margin-top:4px">Edit NetCDF forcing details directly in the .rvt file. Use <b>🗺 Map</b> to highlight HRUs with forcing coverage. Import NetCDF via the <b>📂 Import</b> button in the toolbar.</div>`;
@@ -12119,7 +12693,20 @@ function rvtTab(id) {
     ${ert.map((ef,ei)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
       <input value="${escH(ef)}" style="flex:1;font-size:9px" placeholder="path/to/file.rvt" oninput="S.extraRVTFiles[${ei}]=this.value">
       <button class="btn sm" onclick="S.extraRVTFiles.splice(${ei},1);rvtTab('extras')">✕</button>
-    </div>`).join('')||'<div class="empty">None</div>'}`;
+    </div>`).join('')||'<div class="empty">None</div>'}
+
+    <div class="divider"></div>
+    <div class="s-hdr"><h3>Irrigation Demands (${ird.length})</h3>
+      <div class="s-hdr-acts"><button class="btn sm" onclick="if(!S.irrigationDemands)S.irrigationDemands=[];S.irrigationDemands.push({sbid:S.subbasins[0]?.id||1,series:null});rvtTab('extras')">+ Add</button></div>
+    </div>
+    <div class="hint" style="margin-bottom:6px">Water demand extractions from subbasin outlets, constrained by environmental min flows.</div>
+    ${ird.length?`<div class="t-wrap"><table class="rv"><tr><th>SubBasin ID</th><th>Status</th><th></th></tr>
+    ${ird.map((d,di)=>`<tr>
+      <td><input type="number" value="${d.sbid??''}" style="width:70px" oninput="S.irrigationDemands[${di}].sbid=parseInt(this.value)"></td>
+      <td style="font-size:9px;color:var(--text3)">${d.series?'has time series':'constant/none'}</td>
+      <td><button class="del-btn" onclick="S.irrigationDemands.splice(${di},1);rvtTab('extras')">✕</button></td>
+    </tr>`).join('')}
+    </table></div>`:'<div class="empty">None</div>'}`;
 
   } else if(id==='redirects') {
     const rds = S.rvtRedirects||[];
@@ -23224,6 +23811,12 @@ window.visualizeStationForcingHRUs = visualizeStationForcingHRUs;
     appendConsole('=== RAVEN MODEL EXECUTION ===');
     appendConsole('Model: ' + (S.sim.runName || 'model'));
     appendConsole('Period: ' + (S.sim.startDate || '?') + ' → ' + (S.sim.endDate || S.sim.duration + ' days'));
+    if (S.flags.CreateRVPTemplate) {
+      appendConsole('');
+      appendConsole('>>> CreateRVPTemplate is ACTIVE <<<');
+      appendConsole('Raven will generate a .rvp template file compliant with your .rvi configuration.');
+      appendConsole('The generated .rvp will be auto-parsed into the RVP panel when complete.');
+    }
     appendConsole('');
 
     const modelName = (S.sim.runName || 'model').replace(/\s+/g, '_');
@@ -23446,6 +24039,20 @@ window.visualizeStationForcingHRUs = visualizeStationForcingHRUs;
       _lastOutputContents = msg.output_contents;
       // Auto-import CSV outputs into the existing viewer (Hydrographs, Diagnostics, etc.)
       autoImportAllOutputs(msg.output_contents);
+
+      // CreateRVPTemplate workflow: if the flag was active, look for the generated .rvp
+      if (S.flags.CreateRVPTemplate) {
+        const modelName = (S.sim.runName || 'model').replace(/\s+/g, '_');
+        const rvpKey = Object.keys(msg.output_contents).find(k =>
+          k.endsWith('.rvp') || k.endsWith('_template.rvp') || k.includes('Template'));
+        if (rvpKey) {
+          appendConsole('\n--- Auto-parsing generated .rvp template: ' + rvpKey + ' ---');
+          _handleRVPTemplateResult(msg.output_contents[rvpKey]);
+        } else {
+          appendConsole('\n--- CreateRVPTemplate: no .rvp found in outputs. Check if Raven generated it. ---');
+          toast('No .rvp template found in outputs — check console', 'warn');
+        }
+      }
     }
 
     document.getElementById('ns-console').style.display = '';
