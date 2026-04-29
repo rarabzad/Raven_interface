@@ -2435,7 +2435,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
           <div id="hydro-cmp-wrap" style="position:absolute;inset:0;display:none;flex-direction:column">
             <div style="display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid var(--border);flex-shrink:0;min-height:32px;flex-wrap:wrap;background:var(--bg2)">
               <span style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;font-weight:600">Multi-Run:</span>
-              <button class="btn sm" style="font-size:9px;padding:3px 10px;background:var(--accent3);color:var(--text1)" onclick="saveCurrentRunToHistory(prompt('Label for this run:','Run '+ (_runHistory.length+1)))" title="Save current loaded output as a named run">💾 Save Run</button>
+              <button class="btn sm" style="font-size:9px;padding:3px 10px;background:var(--accent3);color:var(--text1)" onclick="saveCurrentRunToHistory(prompt('Name this run:',(S.sim.runName||'model')+' — Run '+(_runHistory.length+1)))" title="Save current loaded output as a named run">💾 Save Run</button>
               <button class="btn sm" style="font-size:9px;padding:3px 10px" onclick="requestServerRuns()" title="Load archived runs from server (after page refresh)">📡 Load Server Runs</button>
               <button class="btn sm" style="font-size:9px;padding:3px 10px" onclick="if(confirm('Clear all saved runs?'))clearRunHistory()" title="Clear all saved runs">🗑 Clear</button>
               <span id="cmp-run-count" style="font-size:9px;color:var(--text2);margin-left:auto;font-weight:600"></span>
@@ -6369,6 +6369,7 @@ function updateHydroRange() {
   if (el) el.textContent = `${ravenOut.dates[s]||''} → ${ravenOut.dates[e]||''}`;
 }
 function hydroZoom(dir) { // dir -1 = zoom in, +1 = zoom out
+  if (hydroState.tab === 'cmp') { cmpZoom(dir); return; }
   const n = ravenOut.dates.length;
   let { s, e } = getViewRange();
   const span = e - s;
@@ -6381,6 +6382,7 @@ function hydroZoom(dir) { // dir -1 = zoom in, +1 = zoom out
   updateHydroRange(); drawHydrograph();
 }
 function hydroPan(dir) { // dir -1 = left, +1 = right
+  if (hydroState.tab === 'cmp') { cmpPan(dir); return; }
   const n = ravenOut.dates.length;
   let { s, e } = getViewRange();
   const span = e - s;
@@ -6393,12 +6395,52 @@ function hydroPan(dir) { // dir -1 = left, +1 = right
   updateHydroRange(); drawHydrograph();
 }
 function hydroReset() {
+  if (hydroState.tab === 'cmp') { cmpReset(); return; }
   hydroState.viewStart = null; hydroState.viewEnd = null;
   updateHydroRange(); drawHydrograph();
 }
 window.hydroZoom  = hydroZoom;
 window.hydroPan   = hydroPan;
 window.hydroReset = hydroReset;
+
+// ── CMP-specific zoom/pan/reset (uses date strings, not indices) ─────────
+const _cmpView = { startDate: null, endDate: null };
+function cmpZoom(dir) {
+  const dates = _cmpState.sortedDates;
+  if (!dates || !dates.length) return;
+  const n = dates.length;
+  let s = _cmpView.startDate ? dates.indexOf(_cmpView.startDate) : 0;
+  let e = _cmpView.endDate   ? dates.indexOf(_cmpView.endDate)   : n - 1;
+  if (s < 0) s = 0; if (e < 0) e = n - 1;
+  const span = e - s;
+  const delta = Math.max(1, Math.round(span * 0.25));
+  if (dir < 0) { s += delta; e -= delta; }
+  else          { s -= delta; e += delta; }
+  s = Math.max(0, s); e = Math.min(n-1, e);
+  if (e - s < 2) return;
+  _cmpView.startDate = dates[s]; _cmpView.endDate = dates[e];
+  redrawActiveTab();
+}
+function cmpPan(dir) {
+  const dates = _cmpState.sortedDates;
+  if (!dates || !dates.length) return;
+  const n = dates.length;
+  let s = _cmpView.startDate ? dates.indexOf(_cmpView.startDate) : 0;
+  let e = _cmpView.endDate   ? dates.indexOf(_cmpView.endDate)   : n - 1;
+  if (s < 0) s = 0; if (e < 0) e = n - 1;
+  const span = e - s;
+  const step = Math.max(1, Math.round(span * 0.2));
+  s += dir * step; e += dir * step;
+  if (s < 0) { e -= s; s = 0; }
+  if (e >= n) { s -= e-(n-1); e = n-1; }
+  s = Math.max(0, s);
+  _cmpView.startDate = dates[s]; _cmpView.endDate = dates[e];
+  redrawActiveTab();
+}
+function cmpReset() {
+  _cmpView.startDate = null; _cmpView.endDate = null;
+  redrawActiveTab();
+}
 
 function hydroDownloadPNG() {
   const canvas = document.getElementById('hydro-canvas');
@@ -20537,7 +20579,10 @@ const _maxRunHistory = 8;
 
 window.saveCurrentRunToHistory = function(label) {
   if (!_outputRegistry.length) { toast('No outputs loaded to save','warn'); return; }
-  const runLabel = label || `Run ${_runHistory.length + 1} (${new Date().toLocaleTimeString()})`;
+  const modelName = S.sim.runName || S.sim.modelName || 'model';
+  const runNum = _runHistory.length + 1;
+  const timeStr = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  const runLabel = label || `${modelName} — Run ${runNum} (${timeStr})`;
   // Deep-copy the entire output registry
   const regCopy = _outputRegistry.map(entry => ({
     id: entry.id,
@@ -20653,10 +20698,10 @@ function drawMultiRunComparison() {
   }
   let sortedDates = [...allDates].sort();
 
-  // Apply zoom/pan from hydroState (shared with TS tab)
-  if (hydroState.viewStart || hydroState.viewEnd) {
-    const vs = hydroState.viewStart || sortedDates[0];
-    const ve = hydroState.viewEnd || sortedDates[sortedDates.length - 1];
+  // Apply CMP-specific zoom/pan view window
+  if (_cmpView.startDate || _cmpView.endDate) {
+    const vs = _cmpView.startDate || sortedDates[0];
+    const ve = _cmpView.endDate || sortedDates[sortedDates.length - 1];
     sortedDates = sortedDates.filter(d => d >= vs && d <= ve);
     if (!sortedDates.length) sortedDates = [...allDates].sort();
   }
@@ -20736,21 +20781,32 @@ function drawMultiRunComparison() {
     ctx.stroke(); ctx.globalAlpha = 1.0;
   }
 
-  // Legend (right side)
+  // Legend (top-right with background box)
   ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
-  const legX = W - 195, legBase = M.t + 4;
-  if (obsRun) {
-    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.setLineDash([4,3]); ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(legX, legBase + 4); ctx.lineTo(legX + 14, legBase + 4); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = 'var(--text2)'; ctx.fillText('Observed', legX + 18, legBase + 7);
-  }
+  const legItems = [];
+  if (obsRun) legItems.push({ col: 'rgba(255,255,255,.5)', label: 'Observed', dash: true, lw: 1 });
   for (let ri = 0; ri < allRuns.length; ri++) {
     const run = allRuns[ri];
     const col = run.isCurrent ? '#58a6ff' : runColors[run.idx % runColors.length];
-    const ly = legBase + 14 + ri * 13;
-    ctx.strokeStyle = col; ctx.lineWidth = run.isCurrent ? 2.5 : 1.5;
-    ctx.beginPath(); ctx.moveTo(legX, ly); ctx.lineTo(legX + 14, ly); ctx.stroke();
-    ctx.fillStyle = 'var(--text2)'; ctx.fillText(run.label, legX + 18, ly + 3);
+    const label = run.label.length > 28 ? run.label.slice(0, 27) + '…' : run.label;
+    legItems.push({ col, label, dash: false, lw: run.isCurrent ? 2.5 : 1.5 });
+  }
+  // Draw legend background
+  const legLineH = 14, legPad = 6;
+  const legH = legItems.length * legLineH + legPad * 2;
+  const legW = 190;
+  const legX = W - legW - M.r - 4, legY = M.t + 4;
+  ctx.fillStyle = 'rgba(8,11,13,.75)'; ctx.strokeStyle = 'var(--border)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(legX, legY, legW, legH, 4); ctx.fill(); ctx.stroke();
+  // Draw legend items
+  for (let li = 0; li < legItems.length; li++) {
+    const item = legItems[li];
+    const iy = legY + legPad + li * legLineH + 6;
+    ctx.strokeStyle = item.col; ctx.lineWidth = item.lw;
+    if (item.dash) ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(legX + legPad, iy); ctx.lineTo(legX + legPad + 16, iy); ctx.stroke();
+    if (item.dash) ctx.setLineDash([]);
+    ctx.fillStyle = '#d0d0d0'; ctx.fillText(item.label, legX + legPad + 20, iy + 3);
   }
 
   // Title
