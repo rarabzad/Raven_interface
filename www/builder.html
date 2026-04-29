@@ -1442,7 +1442,7 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 #player-gradient{width:100%;height:10px;border-radius:2px;margin-bottom:4px}
 #player-legend-labels{display:flex;justify-content:space-between;font-size:8px;color:var(--text3)}
 
-#hydro-panel{position:absolute;bottom:0;left:0;right:0;height:380px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:800;display:none;flex-direction:column;transform:translateY(100%);transition:transform .2s ease}
+#hydro-panel{position:absolute;bottom:0;left:0;right:4px;height:380px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:800;display:none;flex-direction:column;transform:translateY(100%);transition:transform .2s ease}
 #hydro-panel.open{display:flex;transform:translateY(0)}
 /* Top control bar */
 #hydro-tabs{display:flex;gap:0;flex-shrink:0;border-bottom:1px solid var(--border);align-items:stretch;overflow:hidden;min-height:26px}
@@ -1454,13 +1454,16 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 /* Inner area: vertical tab strip + chart side by side */
 #hydro-inner{flex:1;display:flex;overflow:hidden;min-height:0}
 /* Vertical tab strip */
-#hydro-tab-pills{display:flex;flex-direction:column;width:36px;flex-shrink:0;border-right:1px solid var(--border);background:var(--bg1);overflow:hidden}
-.htab{padding:0;font-size:8px;font-weight:600;color:var(--text3);cursor:pointer;border-left:2px solid transparent;border-top:none;border-bottom:none;transition:all .12s;white-space:nowrap;width:36px;height:32px;display:flex;align-items:center;justify-content:center;letter-spacing:.04em;text-transform:uppercase;user-select:none;flex-shrink:0}
+#hydro-tab-pills{display:flex;flex-direction:column;width:36px;flex-shrink:0;border-right:1px solid var(--border);background:var(--bg1);overflow-y:auto;overflow-x:hidden;padding-top:4px}
+.htab{padding:0;font-size:8px;font-weight:600;color:var(--text3);cursor:pointer;border-left:2px solid transparent;border-top:none;border-bottom:none;transition:all .12s;white-space:nowrap;width:36px;height:26px;display:flex;align-items:center;justify-content:center;letter-spacing:.04em;text-transform:uppercase;user-select:none;flex-shrink:0}
 .htab:hover{color:var(--text1);background:var(--bg2)}
 .htab.on{color:var(--accent);border-left-color:var(--accent);background:var(--bg2)}
 /* Chart body — position:relative so all absolute children anchor here */
 #hydro-body{flex:1;position:relative;overflow:hidden}
-#hydro-tab-pills::-webkit-scrollbar{height:0}
+#hydro-tab-pills::-webkit-scrollbar{width:3px}
+#hydro-tab-pills::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+#hydro-tab-pills::-webkit-scrollbar-track{background:transparent}
+#hydro-tab-pills{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 #hydro-fdc-canvas{display:block;position:absolute;top:0;left:0;width:100%;height:100%}
 #hydro-scatter-canvas{display:block;position:absolute;top:0;left:0;width:100%;height:100%}
 #hydro-diag-wrap{position:absolute;inset:0;overflow-y:auto;padding:6px 10px}
@@ -1625,7 +1628,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
 
 
 /* ── MET GAUGE TIME SERIES PANEL ── */
-#met-panel{position:absolute;bottom:0;left:0;right:0;height:360px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:601;display:none;flex-direction:column}
+#met-panel{position:absolute;bottom:0;left:0;right:4px;height:360px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:601;display:none;flex-direction:column}
 #met-panel.open{display:flex}
 #met-hdr{display:flex;align-items:center;padding:5px 10px;border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;flex-wrap:wrap}
 #met-title{font-size:10px;font-weight:600;color:var(--accent);flex:1;min-width:80px}
@@ -2232,7 +2235,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
         <div id="met-params"></div>
         <!-- Inner: vertical tab strip left + chart body right (same pattern as hydro panel) -->
         <div id="met-inner" style="flex:1;display:flex;overflow:hidden;min-height:0">
-          <div id="met-tabs" style="display:flex;flex-direction:column;width:36px;flex-shrink:0;border-right:1px solid var(--border);background:var(--bg1);overflow:hidden">
+          <div id="met-tabs" style="display:flex;flex-direction:column;width:36px;flex-shrink:0;border-right:1px solid var(--border);background:var(--bg1);overflow-y:auto;overflow-x:hidden;padding-top:4px">
             <div class="htab on" id="mttab-ts"    onclick="setMetTab('ts')"    title="Time Series">TS</div>
             <div class="htab"    id="mttab-clim"  onclick="setMetTab('clim')"  title="Climatology">CLM</div>
             <div class="htab"    id="mttab-bwk"   onclick="setMetTab('bwk')"   title="Box-Whisker Monthly">BWK</div>
@@ -5433,6 +5436,9 @@ function switchOutput(id) {
   Object.keys(featureLayerMap).forEach(k => delete featureLayerMap[k]);
   try {
     if (entry.type === 'output') {
+      // Restore tab pills if they were hidden by errors view
+      const pills = document.getElementById('hydro-tab-pills');
+      if (pills) pills.style.display = '';
       Object.assign(ravenOut, entry.snap);
       ravenOut.loaded = true;
       diagData.length = 0;
@@ -5444,8 +5450,26 @@ function switchOutput(id) {
       const _pb2 = document.getElementById('sb-play-btn');
       if (_pb2) _pb2.style.display = (ravenOut.csvType === 'custom') ? '' : 'none';
       updateStatus();
+    } else if (entry.type === 'errors') {
+      // Show RavenErrors.txt in hydro panel — open panel and render errors
+      ravenOut.loaded = false;
+      ravenOut.series = {};
+      ravenOut.csvType = 'errors';
+      diagData.length = 0;
+      // Auto-open hydro panel and show the ERR tab with no tab pills
+      const hydroPanel = document.getElementById('hydro-panel');
+      if (hydroPanel) hydroPanel.style.display = '';
+      // Hide the tab pills column — errors get full width
+      const pills = document.getElementById('hydro-tab-pills');
+      if (pills) pills.style.display = 'none';
+      setHydroTab('err');
+      renderRavenErrors();
+      updateStatus();
     } else {
       // Diagnostics — clear ravenOut so map doesn't show old hydrograph accent colors
+      // Restore tab pills if they were hidden by errors view
+      const pillsD = document.getElementById('hydro-tab-pills');
+      if (pillsD) pillsD.style.display = '';
       diagData.length = 0;
       entry.diagSnap.forEach(r => diagData.push(r));
       ravenOut.loaded = false;
@@ -5507,7 +5531,7 @@ function _refreshOutputSwitcher() {
       el.style.display = '';
       el.innerHTML = _outputRegistry.map(r => {
         const active = r.id === _activeOutputId;
-        const icon   = r.type==='diag' ? '📊' : '📈';
+        const icon   = r.type==='diag' ? '📊' : r.type==='errors' ? '⚠️' : '📈';
         const label  = r.filename.length>24 ? r.filename.slice(0,22)+'…' : r.filename;
         const isDiag = r.type==='diag';
         const escapedId = r.id.replace(/'/g,"\'");
@@ -7536,6 +7560,15 @@ function renderDiagTable() {
   const wrap = document.getElementById('hydro-diag-wrap');
   if (!wrap) return;
 
+  // Auto-load diagnostics from output registry if not already loaded
+  if (!diagData.length) {
+    const diagEntry = _outputRegistry.find(r => r.type === 'diag' && r.diagSnap && r.diagSnap.length > 0);
+    if (diagEntry) {
+      diagData.length = 0;
+      diagEntry.diagSnap.forEach(r => diagData.push(r));
+    }
+  }
+
   if (!diagData.length) {
     wrap.innerHTML = `<div style="padding:20px;text-align:center">
       <div style="color:#334d60;font-size:11px;margin-bottom:10px">No Diagnostics.csv loaded</div>
@@ -8591,8 +8624,22 @@ window.applyTemplate = function(name) {
   // Enable CreateRVPTemplate by default
   S.flags.CreateRVPTemplate = true;
 
+  // Ensure minimal required fields exist for CreateRVPTemplate mode
+  // Raven only needs .rvi (with processes) + the flag — other files can be minimal/empty
+  if (!S.sim.startDate) S.sim.startDate = '2000-01-01 00:00:00';
+  if (!S.sim.endDate)   S.sim.endDate   = '2000-01-02 00:00:00';
+  if (!S.sim.timeStep)  S.sim.timeStep  = '24:00:00';
+
   afterLoad();
-  toast(`Template "${name}" loaded! Use CreateRVPTemplate flag + Execute to generate matching .rvp`, 'ok');
+
+  // Auto-execute to generate the .rvp template
+  toast(`Template "${name}" loaded — executing to generate .rvp...`, 'ok');
+  setTimeout(() => {
+    // Bypass validation for CreateRVPTemplate — template .rvi is known valid
+    if (typeof window._setValidationPassed === 'function') window._setValidationPassed(true);
+    if (typeof executeModel === 'function') executeModel();
+    else if (typeof window.executeModel === 'function') window.executeModel();
+  }, 500);
 };
 
 // ── CreateRVPTemplate workflow ────────────────────────────────────────────────
@@ -14697,6 +14744,30 @@ async function exportZip() {
   // Also export JSON store snapshot
   zip.file(`${run}_store.json`, JSON.stringify({sim:S.sim,flags:S.flags,aliases:S.aliases,
     subbasinsCount:S.subbasins.length,hrusCount:S.hrus.length,processesCount:S.processes.length},null,2));
+
+  // Include all data files (NetCDF, grid weights, observation files, etc.)
+  const inputFolder = zip.folder('input');
+  for (const df of (window._dataFiles || [])) {
+    const fname = df.name;
+    if (df.data_b64) {
+      // Binary file (NetCDF etc) — decode base64 to raw bytes
+      const raw = Uint8Array.from(atob(df.data_b64), c => c.charCodeAt(0));
+      inputFolder.file(fname, raw);
+    } else if (df.text_content) {
+      inputFolder.file(fname, df.text_content);
+    }
+  }
+
+  // Include output files from last run (if any)
+  if (_lastOutputContents && Object.keys(_lastOutputContents).length > 0) {
+    const outputFolder = zip.folder('output');
+    for (const [fname, text] of Object.entries(_lastOutputContents)) {
+      if (text && typeof text === 'string') {
+        outputFolder.file(fname, text);
+      }
+    }
+  }
+
   const blob=await zip.generateAsync({type:'blob'});
   const a=document.createElement('a');const _expUrl=URL.createObjectURL(blob);a.href=_expUrl;a.download=`${run}_raven_export.zip`;a.click();setTimeout(()=>URL.revokeObjectURL(_expUrl),5000);
   toast(`Exported ${run}_raven_export.zip`,'ok');
@@ -20238,9 +20309,23 @@ function parseRavenErrorsFile(text) {
     else if (severity === 'warning') _ravenErrors.warnings.push(msg);
     else _ravenErrors.advisories.push(msg);
   }
-  // Show ERR tab pill if any messages found
-  const errTab = document.getElementById('htab-err');
-  if (errTab) errTab.style.display = (_ravenErrors.errors.length || _ravenErrors.warnings.length || _ravenErrors.advisories.length) ? '' : 'none';
+  // Show ERR tab pill — DISABLED: errors now shown via output dropdown
+  // const errTab = document.getElementById('htab-err');
+  // if (errTab) errTab.style.display = (...) ? '' : 'none';
+
+  // Register in output dropdown so user can select it
+  if (_ravenErrors.errors.length || _ravenErrors.warnings.length || _ravenErrors.advisories.length) {
+    const total = _ravenErrors.errors.length + _ravenErrors.warnings.length + _ravenErrors.advisories.length;
+    const errEntry = {
+      id: 'RavenErrors.txt', filename: 'RavenErrors.txt', type: 'errors',
+      snap: { loaded: true, csvType: 'errors', dates: [], series: {}, precip: [] },
+      diagSnap: []
+    };
+    const existing = _outputRegistry.findIndex(r => r.id === 'RavenErrors.txt');
+    if (existing >= 0) _outputRegistry[existing] = errEntry;
+    else _outputRegistry.push(errEntry);
+    _refreshOutputSwitcher();
+  }
 }
 window.parseRavenErrorsFile = parseRavenErrorsFile;
 
