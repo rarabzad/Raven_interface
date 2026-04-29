@@ -1387,10 +1387,9 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 .fchip .dot{width:5px;height:5px;border-radius:50%;background:var(--ok)}
 
 /* ── SPATIAL PLAYER ── */
-#player-bar{position:absolute;bottom:0;left:0;right:0;height:54px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:1100;display:none;flex-direction:column;justify-content:center;padding:0 12px;gap:5px}
+#player-bar{position:absolute;bottom:0;left:0;right:0;height:32px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:1100;display:none;flex-direction:column;justify-content:center;padding:0 12px;gap:0}
 #player-bar.open{display:flex}
-#player-row1{display:flex;align-items:center;gap:8px}
-#player-row2{display:flex;align-items:center;gap:8px}
+#player-row1{display:flex;align-items:center;gap:6px}
 .pb-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text1);width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:3px;font-size:13px;flex-shrink:0;user-select:none}
 .pb-btn:hover{background:var(--bg4);color:var(--accent)}
 .pb-btn.active{background:var(--accent3);border-color:var(--accent);color:#000}
@@ -1507,10 +1506,10 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 #hydro-zoom{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .hz-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text1);font-size:11px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;user-select:none;flex-shrink:0}
 .hz-btn:hover{background:var(--bg4);color:var(--accent)}
-#chart-style-modal{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
+#chart-style-modal{position:fixed;inset:0;z-index:9999;display:none;align-items:flex-start;justify-content:flex-end;padding:40px 20px;pointer-events:none}
 #chart-style-modal.open{display:flex}
-#chart-style-editor{background:var(--bg1);border:1px solid var(--border2);border-radius:8px;width:420px;max-height:85vh;overflow-y:auto;padding:0;box-shadow:0 12px 40px rgba(0,0,0,.5)}
-#chart-style-editor .cse-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg1);z-index:1}
+#chart-style-editor{background:var(--bg1);border:1px solid var(--border2);border-radius:8px;width:380px;max-height:85vh;overflow-y:auto;padding:0;box-shadow:0 12px 40px rgba(0,0,0,.5);pointer-events:all;position:relative}
+#chart-style-editor .cse-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg1);z-index:1;cursor:move;user-select:none}
 #chart-style-editor .cse-hdr h3{font-size:12px;font-weight:700;color:var(--text1);margin:0}
 #chart-style-editor .cse-body{padding:10px 14px}
 #chart-style-editor .cse-section{margin-bottom:12px}
@@ -2213,25 +2212,22 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
           <div class="pb-btn" id="pb-prev"  onclick="playerStep(-1)"  title="Step back">◀◀</div>
           <div class="pb-btn" id="pb-play"  onclick="playerToggle()"  title="Play/Pause">▶</div>
           <div class="pb-btn" id="pb-next"  onclick="playerStep(1)"   title="Step forward">▶▶</div>
-          <span id="player-date">—</span>
+          <span id="player-date" style="font-size:10px;color:var(--text1);white-space:nowrap">—</span>
           <input type="range" id="player-scrubber" min="0" value="0"
-                 oninput="playerSeek(parseInt(this.value))">
-          <span id="player-step"></span>
-          <select id="player-speed" title="Playback speed" onchange="playerSetSpeed(parseFloat(this.value))">
+                 oninput="playerSeek(parseInt(this.value))" style="flex:1;min-width:60px">
+          <span id="player-step" style="font-size:9px;color:var(--text3);white-space:nowrap"></span>
+          <span id="player-varname" style="font-size:9px;color:var(--accent);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">—</span>
+          <div id="player-file-switcher" style="display:none;align-items:center;gap:4px">
+            <select id="player-file-select" style="font-size:9px;padding:1px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--text1);border-radius:var(--r);max-width:200px"
+                    onchange="playerSwitchFile(this.value)"></select>
+          </div>
+          <select id="player-speed" title="Playback speed" onchange="playerSetSpeed(parseFloat(this.value))" style="width:42px;font-size:9px;padding:1px 2px;background:var(--bg3);border:1px solid var(--border);color:var(--text1);border-radius:var(--r);flex-shrink:0">
             <option value="4">4×</option>
             <option value="8" selected>8×</option>
             <option value="16">16×</option>
             <option value="24">24×</option>
           </select>
           <button id="player-close" onclick="playerClose()" title="Close animation">✕ Close</button>
-        </div>
-        <div id="player-row2">
-          <span id="player-varname">—</span>
-          <div id="player-file-switcher" style="display:none;align-items:center;gap:4px;margin-left:8px">
-            <span style="font-size:9px;color:var(--text3);flex-shrink:0">File:</span>
-            <select id="player-file-select" style="font-size:9px;padding:1px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--text1);border-radius:var(--r);max-width:180px"
-                    onchange="playerSwitchFile(this.value)"></select>
-          </div>
         </div>
       </div>
 
@@ -6614,6 +6610,7 @@ function _labelColor() { return chartStyle.axisLabelColor || _cv('--text3') || '
 function _axisLabelColor() { return chartStyle.axisLabelColor || _cv('--text2') || '#5c7d96'; }
 function _chartFont(sz) { return `${sz||chartStyle.axisFontSize}px ${chartStyle.fontFamily==='sans-serif'?'IBM Plex Mono,monospace':chartStyle.fontFamily}`; }
 function _titleFont() { return `bold ${chartStyle.titleFontSize}px ${chartStyle.fontFamily==='sans-serif'?'IBM Plex Mono,monospace':chartStyle.fontFamily}`; }
+function _fillChartBg(ctx, W, H) { ctx.fillStyle = chartStyle.bgColor || '#0d1117'; ctx.fillRect(0, 0, W, H); }
 function _crosshairColor() { return _isLightTheme() ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.18)'; }
 function _diagonalColor() { return _isLightTheme() ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)'; }
 
@@ -6819,6 +6816,7 @@ function drawHydrograph() {
   ctx.save();
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
+  _fillChartBg(ctx, W, H);
 
   const activeSeries = hydroState.activeKeys
     .filter(k => !hydroState.mutedKeys.has(k) && ravenOut.series[k]);
@@ -7032,6 +7030,7 @@ function drawFDC() {
   ctx.save();
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
+  _fillChartBg(ctx, W, H);
 
   const PAD = { top:18, right:24, bottom:42, left:62 };
   const cW = W - PAD.left - PAD.right;
@@ -7179,6 +7178,7 @@ function drawScatter() {
   ctx.save();
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
+  _fillChartBg(ctx, W, H);
 
   const PAD = { top:18, right:24, bottom:46, left:62 };
   const cW = W - PAD.left - PAD.right;
@@ -18520,6 +18520,7 @@ function drawCumulDep() {
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
   const ctx = canvas.getContext('2d'); ctx.save(); ctx.scale(dpr, dpr);
   ctx.clearRect(0,0,W,H);
+  _fillChartBg(ctx, W, H);
 
   const PAD = {top:22, right:24, bottom:46, left:62};
   const cW = W-PAD.left-PAD.right, cH = H-PAD.top-PAD.bottom;
@@ -20367,6 +20368,7 @@ function drawWaterBalance() {
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
   const ctx = canvas.getContext('2d'); ctx.save(); ctx.scale(dpr, dpr);
   ctx.clearRect(0,0,W,H);
+  _fillChartBg(ctx, W, H);
 
   // Use first non-muted series
   const k  = hydroState.activeKeys.find(k => !hydroState.mutedKeys.has(k) && ravenOut.series[k]);
@@ -20561,7 +20563,7 @@ window.drawWaterBalance = drawWaterBalance;
 // UNIVERSAL CHART STYLE EDITOR
 // ══════════════════════════════════════════════════════════════════════════════
 const chartStyle = {
-  bgColor:'rgba(0,0,0,0)', gridColor:'rgba(128,128,128,.15)', gridWidth:1,
+  bgColor:'#0d1117', gridColor:'rgba(128,128,128,.15)', gridWidth:1,
   axisColor:'#4a5568', axisWidth:1, axisFont:'9px sans-serif', axisFontSize:9, axisLabelColor:'#a0aec0',
   titleFont:'bold 11px sans-serif', titleFontSize:11, titleColor:'#e2e8f0',
   simLineWidth:1.8, obsLineWidth:1.5, obsLineDash:[5,3], simColor:'#00e4b4', obsColor:'rgba(255,255,255,.5)',
@@ -20685,6 +20687,34 @@ function _cseRenderRow(r, val, onchangeTpl) {
   return h;
 }
 window.closeChartStyleEditor = function(){ const m=document.getElementById('chart-style-modal'); if(m) m.classList.remove('open'); };
+
+// Draggable style editor
+(function() {
+  let _dragOfs = null;
+  document.addEventListener('mousedown', e => {
+    const hdr = e.target.closest('.cse-hdr');
+    if (!hdr) return;
+    const editor = document.getElementById('chart-style-editor');
+    if (!editor) return;
+    e.preventDefault();
+    const rect = editor.getBoundingClientRect();
+    _dragOfs = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    editor.style.position = 'fixed';
+    editor.style.margin = '0';
+    function onMove(ev) {
+      editor.style.left = (ev.clientX - _dragOfs.x) + 'px';
+      editor.style.top  = (ev.clientY - _dragOfs.y) + 'px';
+      editor.style.right = 'auto';
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      _dragOfs = null;
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+})();
 window._cseApply = function(key, val) {
   if(key==='obsLineDash'){ try{val=JSON.parse(val);}catch(e){} }
   if(key==='axisFontSize'){chartStyle.axisFont=`${val}px ${chartStyle.fontFamily}`;}
@@ -20700,7 +20730,7 @@ window._cseSeriesApply = function(seriesId, prop, val) {
   if(typeof redrawActiveTab==='function') redrawActiveTab();
 };
 window.resetChartStyle = function() {
-  Object.assign(chartStyle,{bgColor:'rgba(0,0,0,0)',gridColor:'rgba(128,128,128,.15)',gridWidth:1,axisColor:'#4a5568',axisWidth:1,axisFont:'9px sans-serif',axisFontSize:9,axisLabelColor:'#a0aec0',titleFont:'bold 11px sans-serif',titleFontSize:11,titleColor:'#e2e8f0',simLineWidth:1.8,obsLineWidth:1.5,obsLineDash:[5,3],simColor:'#00e4b4',obsColor:'rgba(255,255,255,.5)',runColors:['#f97583','#56d364','#d2a8ff','#ff9e64','#79c0ff','#ffa657','#7ee787','#ff7b72'],currentRunColor:'#58a6ff',fontFamily:'sans-serif',precipColor:'rgba(100,180,255,.35)',legendBg:'rgba(8,11,13,.75)',legendFontSize:9,legendBorder:'#4a5568',tooltipBg:'rgba(8,11,13,.97)',tooltipFont:9,seriesOverrides:{}});
+  Object.assign(chartStyle,{bgColor:'#0d1117',gridColor:'rgba(128,128,128,.15)',gridWidth:1,axisColor:'#4a5568',axisWidth:1,axisFont:'9px sans-serif',axisFontSize:9,axisLabelColor:'#a0aec0',titleFont:'bold 11px sans-serif',titleFontSize:11,titleColor:'#e2e8f0',simLineWidth:1.8,obsLineWidth:1.5,obsLineDash:[5,3],simColor:'#00e4b4',obsColor:'rgba(255,255,255,.5)',runColors:['#f97583','#56d364','#d2a8ff','#ff9e64','#79c0ff','#ffa657','#7ee787','#ff7b72'],currentRunColor:'#58a6ff',fontFamily:'sans-serif',precipColor:'rgba(100,180,255,.35)',legendBg:'rgba(8,11,13,.75)',legendFontSize:9,legendBorder:'#4a5568',tooltipBg:'rgba(8,11,13,.97)',tooltipFont:9,seriesOverrides:{}});
   openChartStyleEditor(); toast('Chart style reset to defaults','ok');
 };
 
@@ -20845,6 +20875,7 @@ function drawMultiRunComparison() {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
+  _fillChartBg(ctx, W, H);
 
   // Update run count display
   const countEl = document.getElementById('cmp-run-count');
@@ -21297,6 +21328,7 @@ function drawEnsembleSpread() {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
+  _fillChartBg(ctx, W, H);
 
   if (!_ensembleData.loaded) {
     ctx.fillStyle = 'var(--text3)'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
@@ -21932,6 +21964,7 @@ function drawAnnualClimatology() {
   const ctx = canvas.getContext('2d');
   ctx.save(); ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
+  _fillChartBg(ctx, W, H);
 
   const isMonthly  = hydroState.aclmScale === 'month';
   const useMean    = hydroState.aclmStat  === 'mean';
@@ -22198,6 +22231,7 @@ function drawFDCBias() {
   const ctx = canvas.getContext('2d');
   ctx.save(); ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
+  _fillChartBg(ctx, W, H);
 
   const PAD = { top:26, right:24, bottom:44, left:64 };
   const cW = W - PAD.left - PAD.right, cH = H - PAD.top - PAD.bottom;
