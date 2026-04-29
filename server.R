@@ -1041,6 +1041,18 @@ server <- function(input, output, session) {
       }
     }
 
+    # Include generated .rvp template from CreateRVPTemplate (Raven writes to main/, not output/)
+    rvp_candidates <- list.files(dirs$main, pattern = "\\.rvp$", full.names = TRUE)
+    for (rf in rvp_candidates) {
+      rf_name <- basename(rf)
+      # Skip the input .rvp file we wrote (model_name.rvp) — only include generated templates
+      if (rf_name == paste0(model_name, ".rvp")) next
+      if (file.exists(rf) && file.size(rf) > 0) {
+        output_contents[[rf_name]] <- paste(readLines(rf, warn = FALSE), collapse = "\n")
+        cat("[RAVEN-EXEC] Included generated .rvp template:", rf_name, "(", file.size(rf), "bytes)\n")
+      }
+    }
+
     send_to_iframe(list(
       type = "run_result",
       status = if (exit_code == 0) "success" else "warning",
