@@ -2442,7 +2442,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
             </div>
             <div style="flex:1;position:relative;min-height:0">
               <canvas id="hydro-cmp-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
-              <div id="hydro-cmp-tooltip" style="position:fixed;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:9999;white-space:nowrap"></div>
+              <div id="hydro-cmp-tooltip" style="position:fixed;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:9999;white-space:nowrap;min-width:120px;max-width:240px"></div>
             </div>
           </div>
           <!-- ── Ensemble Spread (ENS tab) ─────────────────────────────── -->
@@ -5456,14 +5456,15 @@ function switchOutput(id) {
       ravenOut.series = {};
       ravenOut.csvType = 'errors';
       diagData.length = 0;
-      // Auto-open hydro panel and show the ERR tab with no tab pills
-      const hydroPanel = document.getElementById('hydro-panel');
-      if (hydroPanel) hydroPanel.style.display = '';
       // Hide the tab pills column — errors get full width
       const pills = document.getElementById('hydro-tab-pills');
       if (pills) pills.style.display = 'none';
+      // Activate the ERR tab content
       setHydroTab('err');
       renderRavenErrors();
+      // Open the hydro panel properly (adds .open class for animation)
+      const hydroPanel = document.getElementById('hydro-panel');
+      if (hydroPanel) { hydroPanel.style.display = 'flex'; hydroPanel.classList.add('open'); }
       updateStatus();
     } else {
       // Diagnostics — clear ravenOut so map doesn't show old hydrograph accent colors
@@ -12091,13 +12092,70 @@ function renderRVP() {
   tabs([['soil',`Soil (${S.soilClasses.length})`],['veg',`Veg (${S.vegClasses.length})`],['lu',`LandUse (${S.luClasses.length})`],['terrain',`Terrain (${S.terrainClasses.length})`],['profs',`Profiles (${S.soilProfiles.length})`],['profviz','Profile Viz'],['chan',`Channels (${S.channelProfiles.length})`],['global',`Global (${Object.keys(S.globalParams).length})`],['params',`Param Lists (${allPL})`],['transient',`Transient (${(S.transientParams||[]).length})`]],'soil',id=>{activatePtab(id);rvpTab(id);});
   rvpTab('soil');
 }
+// ── Class name synchronization across all panels ──────────────────────────────
+// When a class/profile name is changed, update all references across the store.
+// type: 'soil' | 'lu' | 'veg' | 'soilProfile' | 'terrain'
+window.syncClassName = function(type, oldName, newName) {
+  if (!oldName || !newName || oldName === newName) return;
+  let count = 0;
+  if (type === 'soil') {
+    // Update SoilParameterList rows (keyed by soil class name)
+    for (const pl of (S.soilParams || [])) {
+      if (pl.rows && pl.rows[oldName] !== undefined) {
+        pl.rows[newName] = pl.rows[oldName]; delete pl.rows[oldName]; count++;
+      }
+    }
+    // Update SoilProfile horizon references
+    for (const sp of (S.soilProfiles || []))
+      for (const h of (sp.horizons || []))
+        if (h.cls === oldName) { h.cls = newName; count++; }
+  } else if (type === 'lu') {
+    // Update LandUseParameterList rows
+    for (const pl of (S.luParams || [])) {
+      if (pl.rows && pl.rows[oldName] !== undefined) {
+        pl.rows[newName] = pl.rows[oldName]; delete pl.rows[oldName]; count++;
+      }
+    }
+    // Update HRU land use references
+    for (const h of (S.hrus || []))
+      if (h.lu === oldName) { h.lu = newName; count++; }
+    // Update PopulateHRUGroup references
+    for (const [gn, g] of Object.entries(S.hruGroups || {}))
+      if (g.auto && g.auto.data === oldName) { g.auto.data = newName; count++; }
+  } else if (type === 'veg') {
+    // Update VegetationParameterList rows
+    for (const pl of (S.vegParams || [])) {
+      if (pl.rows && pl.rows[oldName] !== undefined) {
+        pl.rows[newName] = pl.rows[oldName]; delete pl.rows[oldName]; count++;
+      }
+    }
+    // Update HRU veg references
+    for (const h of (S.hrus || []))
+      if (h.veg === oldName) { h.veg = newName; count++; }
+    // Update SeasonalRelativeLAI and SeasonalRelativeHeight
+    for (const sl of (S.seasonalLAI || []))
+      if (sl.vegClass === oldName) { sl.vegClass = newName; count++; }
+    for (const sh of (S.seasonalHeight || []))
+      if (sh.vegClass === oldName) { sh.vegClass = newName; count++; }
+  } else if (type === 'soilProfile') {
+    // Update HRU soil profile references
+    for (const h of (S.hrus || []))
+      if (h.soilProf === oldName) { h.soilProf = newName; count++; }
+  } else if (type === 'terrain') {
+    // Update HRU terrain class references
+    for (const h of (S.hrus || []))
+      if (h.terrainCls === oldName) { h.terrainCls = newName; count++; }
+  }
+  if (count > 0) toast(`Updated ${count} reference${count>1?'s':''} from "${oldName}" → "${newName}"`, 'ok');
+};
+
 function rvpTab(id) {
   activatePtab(id);
   const B=document.getElementById('panel-body');
   if(id==='soil') {
     B.innerHTML=`<div class="s-hdr"><h3>Soil Classes</h3><div class="s-hdr-acts"><button class="btn sm" onclick="S.soilClasses.push({name:'NEW_CLASS',sand:1,clay:0,organic:0});rvpTab('soil')">+ Add</button></div></div>
     <div class="t-wrap"><table class="rv"><tr><th>Name</th><th>Sand frac</th><th>Clay frac</th><th>Organic</th><th></th></tr>
-    ${S.soilClasses.map((c,i)=>`<tr><td><input value="${escH(c.name)}" oninput="S.soilClasses[${i}].name=this.value"></td>
+    ${S.soilClasses.map((c,i)=>`<tr><td><input value="${escH(c.name)}" onfocus="this.dataset.old=this.value" oninput="S.soilClasses[${i}].name=this.value" onchange="syncClassName('soil',this.dataset.old,this.value)"></td>
       <td><input type="number" step="0.01" value="${c.sand}" oninput="S.soilClasses[${i}].sand=parseFloat(this.value)" style="width:60px"></td>
       <td><input type="number" step="0.01" value="${c.clay}" oninput="S.soilClasses[${i}].clay=parseFloat(this.value)" style="width:60px"></td>
       <td><input type="number" step="0.01" value="${c.organic}" oninput="S.soilClasses[${i}].organic=parseFloat(this.value)" style="width:60px"></td>
@@ -12106,7 +12164,7 @@ function rvpTab(id) {
   } else if(id==='veg') {
     B.innerHTML=`<div class="s-hdr"><h3>Vegetation Classes</h3><div class="s-hdr-acts"><button class="btn sm" onclick="S.vegClasses.push({name:'NEW_VEG',max_ht:10,max_lai:4,max_leaf_cond:5});rvpTab('veg')">+ Add</button></div></div>
     <div class="t-wrap"><table class="rv"><tr><th>Name</th><th>Max HT (m)</th><th>Max LAI</th><th>Max Leaf Cond</th><th></th></tr>
-    ${S.vegClasses.map((c,i)=>`<tr><td><input value="${escH(c.name)}" oninput="S.vegClasses[${i}].name=this.value"></td>
+    ${S.vegClasses.map((c,i)=>`<tr><td><input value="${escH(c.name)}" onfocus="this.dataset.old=this.value" oninput="S.vegClasses[${i}].name=this.value" onchange="syncClassName('veg',this.dataset.old,this.value)"></td>
       <td><input type="number" value="${c.max_ht??0}" oninput="S.vegClasses[${i}].max_ht=parseFloat(this.value)" style="width:65px"></td>
       <td><input type="number" value="${c.max_lai??0}" oninput="S.vegClasses[${i}].max_lai=parseFloat(this.value)" style="width:65px"></td>
       <td><input type="number" value="${c.max_leaf_cond??0}" oninput="S.vegClasses[${i}].max_leaf_cond=parseFloat(this.value)" style="width:65px"></td>
@@ -12115,7 +12173,7 @@ function rvpTab(id) {
   } else if(id==='lu') {
     B.innerHTML=`<div class="s-hdr"><h3>Land Use Classes</h3><div class="s-hdr-acts"><button class="btn sm" onclick="S.luClasses.push({name:'NEW_LU',imperm:0,forest_cov:0});rvpTab('lu')">+ Add</button></div></div>
     <div class="t-wrap"><table class="rv"><tr><th>Name</th><th>Tag</th><th>Imperm frac</th><th>Forest Cov</th><th></th></tr>
-    ${S.luClasses.map((c,i)=>`<tr><td><input value="${escH(c.name)}" oninput="S.luClasses[${i}].name=this.value"></td>
+    ${S.luClasses.map((c,i)=>`<tr><td><input value="${escH(c.name)}" onfocus="this.dataset.old=this.value" oninput="S.luClasses[${i}].name=this.value" onchange="syncClassName('lu',this.dataset.old,this.value)"></td>
       <td>${luTag(c.name)}</td>
       <td><input type="number" step="0.01" value="${c.imperm??0}" oninput="S.luClasses[${i}].imperm=parseFloat(this.value)" style="width:65px"></td>
       <td><input type="number" step="0.01" value="${c.forest_cov??0}" oninput="S.luClasses[${i}].forest_cov=parseFloat(this.value)" style="width:65px"></td>
@@ -12125,7 +12183,7 @@ function rvpTab(id) {
     B.innerHTML=`<div class="s-hdr"><h3>Terrain Classes (${S.terrainClasses.length})</h3><div class="s-hdr-acts"><button class="btn sm" onclick="S.terrainClasses.push({name:'NEW_TERRAIN',hillslopeLen:100,drainDensity:1.0});rvpTab('terrain')">+ Add</button></div></div>
     <div class="hint" style="margin-bottom:6px">Terrain classes define hillslope length and drainage density for each terrain type. Referenced by HRUs.</div>
     ${S.terrainClasses.length?`<div class="t-wrap"><table class="rv"><tr><th>Name</th><th>Hillslope Length (m)</th><th>Drainage Density (km/km²)</th><th></th></tr>
-    ${S.terrainClasses.map((c,i)=>`<tr><td><input value="${escH(c.name)}" oninput="S.terrainClasses[${i}].name=this.value"></td>
+    ${S.terrainClasses.map((c,i)=>`<tr><td><input value="${escH(c.name)}" onfocus="this.dataset.old=this.value" oninput="S.terrainClasses[${i}].name=this.value" onchange="syncClassName('terrain',this.dataset.old,this.value)"></td>
       <td><input type="number" step="1" value="${c.hillslopeLen??100}" oninput="S.terrainClasses[${i}].hillslopeLen=parseFloat(this.value)" style="width:80px"></td>
       <td><input type="number" step="0.01" value="${c.drainDensity??1}" oninput="S.terrainClasses[${i}].drainDensity=parseFloat(this.value)" style="width:80px"></td>
       <td><button class="del-btn" onclick="S.terrainClasses.splice(${i},1);rvpTab('terrain')">✕</button></td></tr>`).join('')}
@@ -12136,7 +12194,7 @@ function rvpTab(id) {
       <button class="btn sm" onclick="S.soilProfiles.push({name:'PROFILE_'+(S.soilProfiles.length+1),numLayers:2,horizons:[{cls:S.soilClasses[0]?.name||'SAND',thick:0.5},{cls:S.soilClasses[0]?.name||'SAND',thick:1.0}]});rvpTab('profs')">+ Add</button>
     </div></div>`+
     (S.soilProfiles.length?S.soilProfiles.map((p,pi)=>`<div class="proc-item" style="margin-bottom:5px">
-      <div class="proc-hdr" onclick="toggleProc('cp${pi}')"><span class="proc-type">${escH(p.name)}</span><span class="proc-method">${p.numLayers} layers</span>
+      <div class="proc-hdr" onclick="toggleProc('cp${pi}')"><input value="${escH(p.name)}" onfocus="this.dataset.old=this.value" oninput="S.soilProfiles[${pi}].name=this.value" onchange="syncClassName('soilProfile',this.dataset.old,this.value)" onclick="event.stopPropagation()" style="font-size:9px;font-weight:600;background:transparent;border:1px solid transparent;color:var(--accent);width:160px;padding:1px 4px" title="Click to edit profile name"><span class="proc-method">${p.numLayers} layers</span>
         <button class="del-btn" style="margin-left:auto" onclick="event.stopPropagation();S.soilProfiles.splice(${pi},1);rvpTab('profs')">✕</button>
       </div>
       <div class="proc-body" id="cp${pi}">
@@ -14758,13 +14816,42 @@ async function exportZip() {
     }
   }
 
-  // Include output files from last run (if any)
-  if (_lastOutputContents && Object.keys(_lastOutputContents).length > 0) {
-    const outputFolder = zip.folder('output');
-    for (const [fname, text] of Object.entries(_lastOutputContents)) {
-      if (text && typeof text === 'string') {
-        outputFolder.file(fname, text);
+  // Include output files organized per run
+  const outputFolder = zip.folder('output');
+
+  // Current run outputs
+  const curOutputs = window._lastOutputContents;
+  if (curOutputs && typeof curOutputs === 'object' && Object.keys(curOutputs).length > 0) {
+    const curFolder = outputFolder.folder('current');
+    for (const [fname, text] of Object.entries(curOutputs)) {
+      if (text && typeof text === 'string') curFolder.file(fname, text);
+    }
+  }
+
+  // Previous runs from _runHistory
+  for (let ri = 0; ri < _runHistory.length; ri++) {
+    const rh = _runHistory[ri];
+    const label = (rh.label || `run_${ri+1}`).replace(/[^a-zA-Z0-9_()-]/g, '_');
+    const runFolder = outputFolder.folder(label);
+    // Each run's registry contains snap objects with parsed data — export as CSVs
+    for (const entry of (rh.registry || [])) {
+      if (!entry.snap || !entry.snap.dates || !entry.snap.series) continue;
+      // Reconstruct CSV from snap data
+      const dates = entry.snap.dates;
+      const series = entry.snap.series;
+      const keys = Object.keys(series);
+      if (!keys.length || !dates.length) continue;
+      // Header
+      let csv = 'date,' + keys.map(k => series[k].label || k).join(',') + '\n';
+      for (let t = 0; t < dates.length; t++) {
+        csv += dates[t];
+        for (const k of keys) {
+          const arr = series[k].sim || series[k].data || [];
+          csv += ',' + (arr[t] != null ? arr[t] : '');
+        }
+        csv += '\n';
       }
+      runFolder.file(entry.filename || `output_${entry.id}.csv`, csv);
     }
   }
 
@@ -20577,8 +20664,107 @@ function drawMultiRunComparison() {
   const dispName = matchPattern || currentKey || 'outputs';
   ctx.fillStyle = 'var(--text1)'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
   ctx.fillText(`Multi-Run Comparison — ${currentKey || 'all'} (${dispName})`, W/2, 15);
+
+  // Store state for mouse interaction
+  _cmpState.allRuns = allRuns;
+  _cmpState.sortedDates = sortedDates;
+  _cmpState.xScale = xScale;
+  _cmpState.yScale = yScale;
+  _cmpState.M = M;
+  _cmpState.nDates = nDates;
+  _cmpState.W = W;
+  _cmpState.H = H;
+  _cmpState.currentKey = currentKey;
 }
 window.drawMultiRunComparison = drawMultiRunComparison;
+
+// ── CMP interactive mouse handler (crosshair + tooltip like TS) ──────────────
+const _cmpState = { allRuns:[], sortedDates:[], xScale:null, yScale:null, M:null, nDates:0, W:0, H:0, currentKey:null };
+
+(function() {
+  let _cmpInitDone = false;
+  function initCmpMouse() {
+    if (_cmpInitDone) return;
+    const wrap = document.getElementById('hydro-cmp-wrap');
+    if (!wrap) return;
+    _cmpInitDone = true;
+    const canvasParent = wrap.querySelector('div[style*="flex:1"]');
+    if (!canvasParent) return;
+
+    canvasParent.style.cursor = 'crosshair';
+    canvasParent.addEventListener('mousemove', function(e) {
+      const canvas = document.getElementById('hydro-cmp-canvas');
+      const tip = document.getElementById('hydro-cmp-tooltip');
+      if (!canvas || !tip || !_cmpState.sortedDates.length) { if(tip) tip.style.display='none'; return; }
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const M = _cmpState.M;
+      if (!M || mx < M.l || mx > _cmpState.W - M.r || my < M.t || my > M.t + (_cmpState.H - M.t - M.b)) {
+        tip.style.display = 'none'; return;
+      }
+      // Find nearest date index
+      const cW = _cmpState.W - M.l - M.r;
+      const frac = (mx - M.l) / cW;
+      const di = Math.round(frac * (_cmpState.nDates - 1));
+      if (di < 0 || di >= _cmpState.nDates) { tip.style.display = 'none'; return; }
+      const date = _cmpState.sortedDates[di];
+      // Draw crosshair on canvas
+      const ctx = canvas.getContext('2d');
+      drawMultiRunComparison(); // redraw base
+      const xPx = _cmpState.xScale(di);
+      ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(xPx, M.t); ctx.lineTo(xPx, M.t + _cmpState.H - M.t - M.b); ctx.stroke();
+      ctx.setLineDash([]);
+      // Build tooltip
+      const runColors = ['#f97583','#56d364','#d2a8ff','#ff9e64','#79c0ff','#ffa657','#7ee787','#ff7b72'];
+      let html = `<div class="ht-date">${date}</div>`;
+      for (let ri = 0; ri < _cmpState.allRuns.length; ri++) {
+        const run = _cmpState.allRuns[ri];
+        const dateIdx = run.dates.indexOf(date);
+        if (dateIdx < 0) continue;
+        const val = run.sim[dateIdx];
+        if (val == null) continue;
+        const col = run.isCurrent ? '#58a6ff' : runColors[run.idx % runColors.length];
+        html += `<div class="ht-row"><span class="ht-dot" style="background:${col}"></span>${run.label}<span class="ht-val">${val.toFixed(3)}</span></div>`;
+      }
+      // Show obs too
+      const obsRun = _cmpState.allRuns.find(r => r.obs);
+      if (obsRun) {
+        const odi = obsRun.dates.indexOf(date);
+        if (odi >= 0 && obsRun.obs[odi] != null)
+          html += `<div class="ht-row"><span class="ht-dot" style="background:rgba(255,255,255,.5)"></span>Obs<span class="ht-val">${obsRun.obs[odi].toFixed(3)}</span></div>`;
+      }
+      tip.innerHTML = html;
+      tip.style.display = '';
+      // Position tooltip near cursor
+      const tipW = tip.offsetWidth || 150, tipH = tip.offsetHeight || 60;
+      let tx = e.clientX + 12, ty = e.clientY - tipH - 8;
+      if (tx + tipW > window.innerWidth) tx = e.clientX - tipW - 12;
+      if (ty < 0) ty = e.clientY + 16;
+      tip.style.left = tx + 'px'; tip.style.top = ty + 'px';
+    });
+    canvasParent.addEventListener('mouseleave', function() {
+      const tip = document.getElementById('hydro-cmp-tooltip');
+      if (tip) tip.style.display = 'none';
+      // Redraw to clear crosshair
+      if (_cmpState.sortedDates.length) drawMultiRunComparison();
+    });
+  }
+  // Init on first CMP tab activation
+  const origSetHydroTab = window.setHydroTab;
+  if (origSetHydroTab) {
+    // Will be initialized when CMP tab is first shown — use MutationObserver as fallback
+  }
+  // Lazy init: try on every CMP draw
+  const origDraw = drawMultiRunComparison;
+  // Hook: after every draw, ensure mouse handlers are attached
+  setTimeout(() => initCmpMouse(), 2000);
+  // Also try when tab changes
+  document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'htab-cmp') setTimeout(initCmpMouse, 100);
+  });
+})();
 
 // Request archived runs from server (for CMP tab after page refresh)
 window.requestServerRuns = function() {
@@ -24172,6 +24358,7 @@ window.visualizeStationForcingHRUs = visualizeStationForcingHRUs;
   let _lastConsoleOutput = '';
   let _lastOutputFiles = [];
   let _lastOutputContents = {};
+  window._lastOutputContents = _lastOutputContents; // expose for export
 
   // ── Detect if running inside a Shiny iframe ─────────────────────────────────
   function isInShinyIframe() {
@@ -24774,6 +24961,7 @@ window.visualizeStationForcingHRUs = visualizeStationForcingHRUs;
     // Store output contents
     if (msg.output_contents) {
       _lastOutputContents = msg.output_contents;
+      window._lastOutputContents = _lastOutputContents;
       // Auto-import CSV outputs into the existing viewer (Hydrographs, Diagnostics, etc.)
       autoImportAllOutputs(msg.output_contents);
 
