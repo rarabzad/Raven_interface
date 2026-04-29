@@ -519,10 +519,10 @@ server <- function(input, output, session) {
         }
       }
       if (length(prev_contents) > 0) {
-        rid <- run_counter() + 1L
+        rid <- isolate(run_counter()) + 1L
         run_counter(rid)
         label <- paste0("Run ", rid, " (", format(Sys.time(), "%H:%M:%S"), ")")
-        hist <- run_history()
+        hist <- isolate(run_history())
         hist <- c(hist, list(list(
           run_id = rid, label = label, timestamp = as.numeric(Sys.time()),
           files = names(prev_contents), contents = prev_contents
@@ -1049,7 +1049,7 @@ server <- function(input, output, session) {
       console = console_output,
       output_files = output_files,
       output_contents = output_contents,
-      run_history_count = length(run_history())
+      run_history_count = length(isolate(run_history()))
     ))
     cat("[RAVEN-EXEC] Results sent to client. Done.\n")
     cat("[RAVEN-EXEC] ═══════════════════════════════════════════\n\n")
