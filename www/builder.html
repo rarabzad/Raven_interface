@@ -2325,6 +2325,9 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
             <div class="htab"    id="htab-cdep"  onclick="setHydroTab('cdep')"  title="Cumulative Departure">CDP</div>
             <div class="htab"    id="htab-resid" onclick="setHydroTab('resid')" title="Residuals">RSD</div>
             <div class="htab"    id="htab-wbal"  onclick="setHydroTab('wbal')"  title="Annual Water Balance">WBL</div>
+            <div class="htab"    id="htab-err"   onclick="setHydroTab('err')"   title="Raven Warnings & Errors" style="display:none">ERR</div>
+            <div class="htab"    id="htab-cmp"   onclick="setHydroTab('cmp')"   title="Multi-Run Comparison">CMP</div>
+            <div class="htab"    id="htab-ens"   onclick="setHydroTab('ens')"   title="Ensemble Spread" style="display:none">ENS</div>
           </div>
           <!-- ── Chart body ─────────────────────────────────────────────── -->
         <div id="hydro-body">
@@ -2420,6 +2423,29 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
           <div id="hydro-wbal-wrap" style="position:absolute;inset:0;display:none">
             <canvas id="hydro-wbal-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
             <div id="hydro-wbal-tooltip" style="position:fixed;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:9999;white-space:nowrap"></div>
+          </div>
+          <!-- ── Raven Error/Warning Parser (ERR tab) ──────────────────── -->
+          <div id="hydro-err-wrap" style="position:absolute;inset:0;display:none;overflow-y:auto;padding:8px 12px">
+            <div id="hydro-err-content"></div>
+          </div>
+          <!-- ── Multi-Run Comparison (CMP tab) ────────────────────────── -->
+          <div id="hydro-cmp-wrap" style="position:absolute;inset:0;display:none;flex-direction:column">
+            <div style="display:flex;align-items:center;gap:6px;padding:3px 8px;border-bottom:1px solid var(--border);flex-shrink:0;min-height:26px;flex-wrap:wrap">
+              <span style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Multi-Run:</span>
+              <button class="btn sm" style="font-size:8px;padding:2px 8px" onclick="saveCurrentRunToHistory(prompt('Label for this run:','Run '+ (_runHistory.length+1)))" title="Save current loaded output as a named run">💾 Save Run</button>
+              <button class="btn sm" style="font-size:8px;padding:2px 8px" onclick="requestServerRuns()" title="Load archived runs from server">📡 Load Server Runs</button>
+              <button class="btn sm" style="font-size:8px;padding:2px 8px" onclick="if(confirm('Clear all saved runs?'))clearRunHistory()" title="Clear all saved runs">🗑 Clear</button>
+              <span id="cmp-run-count" style="font-size:8px;color:var(--text3);margin-left:auto"></span>
+            </div>
+            <div style="flex:1;position:relative;min-height:0">
+              <canvas id="hydro-cmp-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+              <div id="hydro-cmp-tooltip" style="position:fixed;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:9999;white-space:nowrap"></div>
+            </div>
+          </div>
+          <!-- ── Ensemble Spread (ENS tab) ─────────────────────────────── -->
+          <div id="hydro-ens-wrap" style="position:absolute;inset:0;display:none">
+            <canvas id="hydro-ens-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+            <div id="hydro-ens-tooltip" style="position:fixed;display:none;background:var(--tooltip-bg,rgba(8,11,13,.97));border:1px solid var(--border2);border-radius:var(--r);padding:6px 9px;font-size:9px;color:var(--text1);pointer-events:none;z-index:9999;white-space:nowrap"></div>
           </div>
         </div><!-- end hydro-body -->
         </div><!-- end hydro-inner -->
@@ -5334,6 +5360,14 @@ function _isDiagnosticsCSV(text) {
 
 function _loadOutputText(text, filename) {
   try {
+    // B4: Handle RavenErrors.txt
+    if (filename && (filename.toLowerCase().includes('ravenerror') || filename.toLowerCase() === 'raven_errors.txt')) {
+      parseRavenErrorsFile(text);
+      const total = _ravenErrors.errors.length + _ravenErrors.warnings.length + _ravenErrors.advisories.length;
+      toast(`Parsed ${total} messages from ${filename}`, total ? 'ok' : 'warn');
+      if (hydroState.tab === 'err') renderRavenErrors();
+      return;
+    }
     if (_isDiagnosticsCSV(text)) {
       parseDiagnosticsCSV(text, filename);
       _registerOutput(filename, 'diag',
@@ -6070,7 +6104,7 @@ function openHydroPanel() {
 
 // Sets tab pill active + shows correct sub-panel + zoom visibility — no draw
 function _activateTabChrome(tab) {
-  ['ts','fdc','fdb','aclm','scat','cal','diag','cdep','resid','wbal'].forEach(t => {
+  ['ts','fdc','fdb','aclm','scat','cal','diag','cdep','resid','wbal','err','cmp','ens'].forEach(t => {
     const el = document.getElementById('htab-'+t);
     if (el) el.classList.toggle('on', t === tab);
   });
@@ -6083,6 +6117,7 @@ function _activateTabChrome(tab) {
   hide('hydro-aclm-wrap');
   hide('hydro-scatter-wrap'); hide('hydro-cal-wrap'); hide('hydro-diag-wrap');
   hide('hydro-cdep-wrap'); hide('hydro-resid-wrap'); hide('hydro-wbal-wrap');
+  hide('hydro-err-wrap'); hide('hydro-cmp-wrap'); hide('hydro-ens-wrap');
   if (tab==='ts')   { show('hydro-canvas-wrap');    if(zoomWrap)zoomWrap.style.visibility=''; updateHydroRange();
                       if(logBtn)logBtn.style.display=''; if(annoBtn)annoBtn.style.display=''; }
   if (tab==='fdc')  { show('hydro-fdc-wrap');       if(zoomWrap)zoomWrap.style.visibility='hidden';
@@ -6102,6 +6137,12 @@ function _activateTabChrome(tab) {
   if (tab==='resid') { const rw=document.getElementById('hydro-resid-wrap'); if(rw)rw.style.display='flex'; if(zoomWrap)zoomWrap.style.visibility='hidden';
                       if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
   if (tab==='wbal')  { show('hydro-wbal-wrap');     if(zoomWrap)zoomWrap.style.visibility='hidden';
+                      if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
+  if (tab==='err')   { show('hydro-err-wrap');      if(zoomWrap)zoomWrap.style.visibility='hidden';
+                      if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
+  if (tab==='cmp')   { const cw=document.getElementById('hydro-cmp-wrap'); if(cw)cw.style.display='flex'; if(zoomWrap)zoomWrap.style.visibility='hidden';
+                      if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
+  if (tab==='ens')   { show('hydro-ens-wrap');      if(zoomWrap)zoomWrap.style.visibility='hidden';
                       if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
 }
 
@@ -6149,6 +6190,9 @@ function redrawActiveTab() {
   if (hydroState.tab === 'cdep')  requestAnimationFrame(drawCumulDep);
   if (hydroState.tab === 'resid') requestAnimationFrame(drawResidHeatmap);
   if (hydroState.tab === 'wbal')  requestAnimationFrame(drawWaterBalance);
+  if (hydroState.tab === 'err')   renderRavenErrors();
+  if (hydroState.tab === 'cmp')   requestAnimationFrame(drawMultiRunComparison);
+  if (hydroState.tab === 'ens')   requestAnimationFrame(drawEnsembleSpread);
 }
 
 function closeHydro() {
@@ -20163,6 +20207,547 @@ function drawWaterBalance() {
   };
 }
 window.drawWaterBalance = drawWaterBalance;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// B4: RAVEN ERROR/WARNING PARSER (ERR tab)
+// ══════════════════════════════════════════════════════════════════════════════
+const _ravenErrors = { parsed: false, advisories:[], warnings:[], errors:[], summary:{} };
+
+function parseRavenErrorsFile(text) {
+  _ravenErrors.advisories = [];
+  _ravenErrors.warnings = [];
+  _ravenErrors.errors = [];
+  _ravenErrors.summary = {};
+  if (!text || !text.trim()) { _ravenErrors.parsed = false; return; }
+  _ravenErrors.parsed = true;
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('---') || trimmed.startsWith('Raven v')) continue;
+    let severity = null, msg = trimmed;
+    if (trimmed.startsWith('ERROR')) { severity = 'error'; msg = trimmed.replace(/^ERROR\s*:\s*/, ''); }
+    else if (trimmed.startsWith('WARNING')) { severity = 'warning'; msg = trimmed.replace(/^WARNING\s*:\s*/, ''); }
+    else if (trimmed.startsWith('ADVISORY')) { severity = 'advisory'; msg = trimmed.replace(/^ADVISORY\s*:\s*/, ''); }
+    else continue;
+    // Deduplicate by message key (strip numbers for grouping)
+    const key = msg.replace(/\d+/g, '#').replace(/\s+/g, ' ').trim();
+    if (!_ravenErrors.summary[key]) _ravenErrors.summary[key] = { severity, msg: msg, count: 0, examples: [] };
+    _ravenErrors.summary[key].count++;
+    if (_ravenErrors.summary[key].examples.length < 3) _ravenErrors.summary[key].examples.push(msg);
+    if (severity === 'error') _ravenErrors.errors.push(msg);
+    else if (severity === 'warning') _ravenErrors.warnings.push(msg);
+    else _ravenErrors.advisories.push(msg);
+  }
+  // Show ERR tab pill if any messages found
+  const errTab = document.getElementById('htab-err');
+  if (errTab) errTab.style.display = (_ravenErrors.errors.length || _ravenErrors.warnings.length || _ravenErrors.advisories.length) ? '' : 'none';
+}
+window.parseRavenErrorsFile = parseRavenErrorsFile;
+
+function renderRavenErrors() {
+  const el = document.getElementById('hydro-err-content');
+  if (!el) return;
+  if (!_ravenErrors.parsed) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);font-size:11px">No RavenErrors.txt loaded. Run the model first or import the error file.</div>';
+    return;
+  }
+  const ne = _ravenErrors.errors.length, nw = _ravenErrors.warnings.length, na = _ravenErrors.advisories.length;
+  const groups = Object.values(_ravenErrors.summary).sort((a,b) => {
+    const ord = {error:0,warning:1,advisory:2};
+    return (ord[a.severity]||3) - (ord[b.severity]||3) || b.count - a.count;
+  });
+  const sevIcon = s => s==='error' ? '🔴' : s==='warning' ? '🟡' : '🔵';
+  const sevColor = s => s==='error' ? 'var(--err)' : s==='warning' ? 'var(--warn)' : 'var(--accent)';
+  el.innerHTML = `
+    <div style="display:flex;gap:16px;margin-bottom:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:600;color:var(--text1)">Raven Messages</div>
+      <div style="font-size:10px;display:flex;gap:12px;margin-left:auto">
+        ${ne ? `<span style="color:var(--err)">🔴 ${ne} error${ne>1?'s':''}</span>` : ''}
+        ${nw ? `<span style="color:var(--warn)">🟡 ${nw} warning${nw>1?'s':''}</span>` : ''}
+        ${na ? `<span style="color:var(--accent)">🔵 ${na} advisor${na>1?'ies':'y'}</span>` : ''}
+        <span style="color:var(--text3)">${groups.length} unique message${groups.length>1?'s':''}</span>
+      </div>
+    </div>
+    ${groups.map((g,gi) => `
+      <div style="margin-bottom:6px;border:1px solid var(--border);border-radius:6px;overflow:hidden;border-left:3px solid ${sevColor(g.severity)}">
+        <div style="padding:6px 10px;background:var(--bg2);display:flex;align-items:flex-start;gap:8px;cursor:pointer"
+             onclick="const d=document.getElementById('errdet-${gi}');d.style.display=d.style.display==='none'?'':'none'">
+          <span style="flex-shrink:0">${sevIcon(g.severity)}</span>
+          <span style="font-size:9px;color:var(--text1);flex:1;line-height:1.4;word-break:break-word">${escH(g.examples[0])}</span>
+          ${g.count > 1 ? `<span style="flex-shrink:0;background:var(--bg3);border-radius:10px;padding:1px 7px;font-size:8px;color:var(--text2);font-weight:600">×${g.count}</span>` : ''}
+        </div>
+        ${g.count > 1 ? `<div id="errdet-${gi}" style="display:none;padding:4px 10px 6px 30px;font-size:8px;color:var(--text3);line-height:1.5;border-top:1px solid var(--border)">
+          ${g.examples.map(e => `<div style="padding:1px 0">• ${escH(e)}</div>`).join('')}
+          ${g.count > 3 ? `<div style="padding:1px 0;font-style:italic">...and ${g.count - 3} more identical messages</div>` : ''}
+        </div>` : ''}
+      </div>
+    `).join('')}
+  `;
+}
+window.renderRavenErrors = renderRavenErrors;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// B6: MULTI-RUN COMPARISON (CMP tab) — saves ALL outputs per run
+// ══════════════════════════════════════════════════════════════════════════════
+const _runHistory = []; // [{label, timestamp, registry:[{id,filename,type,snap,diagSnap}]}]
+const _maxRunHistory = 8;
+
+window.saveCurrentRunToHistory = function(label) {
+  if (!_outputRegistry.length) { toast('No outputs loaded to save','warn'); return; }
+  const runLabel = label || `Run ${_runHistory.length + 1} (${new Date().toLocaleTimeString()})`;
+  // Deep-copy the entire output registry
+  const regCopy = _outputRegistry.map(entry => ({
+    id: entry.id,
+    filename: entry.filename,
+    type: entry.type,
+    snap: JSON.parse(JSON.stringify(entry.snap)),
+    diagSnap: entry.diagSnap ? JSON.parse(JSON.stringify(entry.diagSnap)) : []
+  }));
+  _runHistory.push({ label: runLabel, timestamp: Date.now(), registry: regCopy });
+  if (_runHistory.length > _maxRunHistory) _runHistory.shift();
+  toast(`Saved "${runLabel}" — ${regCopy.length} output file(s) (${_runHistory.length}/${_maxRunHistory})`, 'ok');
+  if (hydroState.tab === 'cmp') redrawActiveTab();
+};
+
+window.clearRunHistory = function() {
+  _runHistory.length = 0;
+  toast('Run comparison history cleared', 'ok');
+  if (hydroState.tab === 'cmp') redrawActiveTab();
+};
+
+window.removeRunFromHistory = function(idx) {
+  if (idx >= 0 && idx < _runHistory.length) {
+    _runHistory.splice(idx, 1);
+    if (hydroState.tab === 'cmp') redrawActiveTab();
+  }
+};
+
+function drawMultiRunComparison() {
+  const canvas = document.getElementById('hydro-cmp-canvas');
+  if (!canvas) return;
+  const wrap = canvas.parentElement;
+  if (!wrap) return;
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  if (W < 10 || H < 10) return;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  // Update run count display
+  const countEl = document.getElementById('cmp-run-count');
+  if (countEl) countEl.textContent = `${_runHistory.length} saved run${_runHistory.length!==1?'s':''} + current`;
+
+  // Determine which output file to compare — match by filename pattern
+  const activeId = _activeOutputId;
+  const activeEntry = _outputRegistry.find(r => r.id === activeId);
+  const matchPattern = activeEntry ? activeEntry.filename.replace(/.*[/\\]/, '') : null;
+  const csvType = activeEntry?.snap?.csvType || 'hydrograph';
+
+  // Determine which series key to show
+  const currentKey = hydroState.activeKeys[0]
+    || (activeEntry?.snap?.series ? Object.keys(activeEntry.snap.series)[0] : null)
+    || (ravenOut.loaded ? Object.keys(ravenOut.series)[0] : null);
+
+  // Collect runs: find matching output files across history
+  const allRuns = [];
+
+  for (let ri = 0; ri < _runHistory.length; ri++) {
+    const run = _runHistory[ri];
+    // Find matching output in this run's registry
+    const match = matchPattern
+      ? run.registry.find(e => e.filename.replace(/.*[/\\]/, '') === matchPattern && e.type === 'output')
+      : run.registry.find(e => e.type === 'output');
+    if (!match || !match.snap?.series) continue;
+    // Find matching series key
+    const serKey = Object.keys(match.snap.series).find(k => k === currentKey)
+      || Object.keys(match.snap.series)[0];
+    if (!serKey || !match.snap.series[serKey]) continue;
+    const s = match.snap.series[serKey];
+    allRuns.push({
+      label: run.label, dates: match.snap.dates || [],
+      sim: s.sim || s.data || [], obs: s.obs || null,
+      seriesLabel: s.label || serKey,
+      isCurrent: false, idx: ri
+    });
+  }
+
+  // Add current active output
+  if (activeEntry?.snap?.loaded !== false && currentKey && activeEntry?.snap?.series?.[currentKey]) {
+    const s = activeEntry.snap.series[currentKey];
+    allRuns.push({
+      label: 'Current', dates: activeEntry.snap.dates || [],
+      sim: s.sim || s.data || [], obs: s.obs || null,
+      seriesLabel: s.label || currentKey,
+      isCurrent: true, idx: -1
+    });
+  } else if (ravenOut.loaded && currentKey && ravenOut.series[currentKey]) {
+    const s = ravenOut.series[currentKey];
+    allRuns.push({
+      label: 'Current', dates: ravenOut.dates,
+      sim: s.sim || s.data || [], obs: s.obs || null,
+      seriesLabel: s.label || currentKey,
+      isCurrent: true, idx: -1
+    });
+  }
+
+  if (!allRuns.length) {
+    ctx.fillStyle = 'var(--text3)'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('No runs to compare.', W/2, H/2 - 20);
+    ctx.font = '10px sans-serif';
+    ctx.fillText('Run the model, then click "💾 Save Run" to store the current outputs.', W/2, H/2 + 5);
+    ctx.fillText('Re-run with different parameters and compare all output types.', W/2, H/2 + 22);
+    return;
+  }
+
+  const M = { t: 38, r: 15, b: 35, l: 58 };
+  const cW = W - M.l - M.r, cH = H - M.t - M.b;
+
+  // Global date range and value range
+  let allDates = new Set();
+  let vMin = Infinity, vMax = -Infinity;
+  for (const run of allRuns) {
+    for (const d of run.dates) allDates.add(d);
+    for (const v of run.sim) { if (v != null && isFinite(v)) { vMin = Math.min(vMin, v); vMax = Math.max(vMax, v); } }
+    if (run.obs) for (const v of run.obs) { if (v != null && isFinite(v)) { vMin = Math.min(vMin, v); vMax = Math.max(vMax, v); } }
+  }
+  const sortedDates = [...allDates].sort();
+  const nDates = sortedDates.length;
+  if (!nDates || !isFinite(vMin)) return;
+  vMin = Math.min(0, vMin); vMax *= 1.1;
+  if (vMax <= vMin) vMax = vMin + 1;
+  const dateIdx = new Map(sortedDates.map((d,i) => [d, i]));
+  const xScale = i => M.l + (i / Math.max(1, nDates - 1)) * cW;
+  const yScale = v => M.t + cH - ((v - vMin) / (vMax - vMin)) * cH;
+
+  // Axes
+  ctx.strokeStyle = 'var(--border)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(M.l, M.t); ctx.lineTo(M.l, M.t + cH); ctx.lineTo(M.l + cW, M.t + cH); ctx.stroke();
+  ctx.fillStyle = 'var(--text3)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+  const nYT = 5;
+  for (let i = 0; i <= nYT; i++) {
+    const v = vMin + (i / nYT) * (vMax - vMin);
+    const y = yScale(v);
+    ctx.fillText(v < 100 ? v.toFixed(2) : v.toFixed(0), M.l - 5, y + 3);
+    if (i > 0 && i < nYT) { ctx.strokeStyle = 'rgba(128,128,128,.12)'; ctx.beginPath(); ctx.moveTo(M.l, y); ctx.lineTo(M.l + cW, y); ctx.stroke(); }
+  }
+  ctx.textAlign = 'center'; ctx.fillStyle = 'var(--text3)';
+  const xStep = Math.max(1, Math.floor(nDates / 6));
+  for (let i = 0; i < nDates; i += xStep) ctx.fillText(sortedDates[i].substring(0, 10), xScale(i), M.t + cH + 14);
+
+  // Y-axis label based on output type
+  ctx.fillStyle = 'var(--text2)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+  const yLabel = csvType === 'watershed' ? (currentKey || 'mm') : csvType === 'custom' ? (currentKey || '') : 'Q (m³/s)';
+  ctx.fillText(yLabel, 4, M.t - 8);
+
+  // Draw obs (from any run that has it)
+  const obsRun = allRuns.find(r => r.obs && r.obs.some(v => v != null));
+  if (obsRun) {
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); let s = false;
+    for (let i = 0; i < obsRun.dates.length; i++) {
+      const di = dateIdx.get(obsRun.dates[i]);
+      if (di == null || obsRun.obs[i] == null) { s = false; continue; }
+      if (!s) { ctx.moveTo(xScale(di), yScale(obsRun.obs[i])); s = true; } else ctx.lineTo(xScale(di), yScale(obsRun.obs[i]));
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // Colors
+  const runColors = ['#f97583','#56d364','#d2a8ff','#ff9e64','#79c0ff','#ffa657','#7ee787','#ff7b72'];
+
+  // Draw each run
+  for (let ri = 0; ri < allRuns.length; ri++) {
+    const run = allRuns[ri];
+    const col = run.isCurrent ? '#58a6ff' : runColors[run.idx % runColors.length];
+    ctx.strokeStyle = col;
+    ctx.lineWidth = run.isCurrent ? 2.5 : 1.5;
+    ctx.globalAlpha = run.isCurrent ? 1.0 : 0.65;
+    ctx.beginPath(); let s = false;
+    for (let i = 0; i < run.dates.length; i++) {
+      const di = dateIdx.get(run.dates[i]);
+      if (di == null || run.sim[i] == null) { s = false; continue; }
+      if (!s) { ctx.moveTo(xScale(di), yScale(run.sim[i])); s = true; } else ctx.lineTo(xScale(di), yScale(run.sim[i]));
+    }
+    ctx.stroke(); ctx.globalAlpha = 1.0;
+  }
+
+  // Legend (right side)
+  ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+  const legX = W - 195, legBase = M.t + 4;
+  if (obsRun) {
+    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.setLineDash([4,3]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(legX, legBase + 4); ctx.lineTo(legX + 14, legBase + 4); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = 'var(--text2)'; ctx.fillText('Observed', legX + 18, legBase + 7);
+  }
+  for (let ri = 0; ri < allRuns.length; ri++) {
+    const run = allRuns[ri];
+    const col = run.isCurrent ? '#58a6ff' : runColors[run.idx % runColors.length];
+    const ly = legBase + 14 + ri * 13;
+    ctx.strokeStyle = col; ctx.lineWidth = run.isCurrent ? 2.5 : 1.5;
+    ctx.beginPath(); ctx.moveTo(legX, ly); ctx.lineTo(legX + 14, ly); ctx.stroke();
+    ctx.fillStyle = 'var(--text2)'; ctx.fillText(run.label, legX + 18, ly + 3);
+  }
+
+  // Title
+  const dispName = matchPattern || currentKey || 'outputs';
+  ctx.fillStyle = 'var(--text1)'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(`Multi-Run Comparison — ${currentKey || 'all'} (${dispName})`, W/2, 15);
+}
+window.drawMultiRunComparison = drawMultiRunComparison;
+
+// Request archived runs from server (for CMP tab after page refresh)
+window.requestServerRuns = function() {
+  if (typeof sendToShiny === 'function') {
+    sendToShiny({ type: 'list_runs' });
+    toast('Requesting archived runs from server...', 'ok');
+    // After receiving the list, request each run's outputs
+    const _origHandler = window._serverRunList;
+    const checkInterval = setInterval(() => {
+      const list = window._serverRunList;
+      if (list && list !== _origHandler && list.length > 0) {
+        clearInterval(checkInterval);
+        for (const run of list) {
+          // Only request runs we don't already have
+          const already = _runHistory.find(r => r.label && r.label.includes('Run ' + run.run_id));
+          if (!already) {
+            sendToShiny({ type: 'get_run_outputs', run_id: run.run_id });
+          }
+        }
+      }
+    }, 500);
+    setTimeout(() => clearInterval(checkInterval), 10000); // give up after 10s
+  } else {
+    toast('Not connected to Shiny server', 'warn');
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// D2: ENSEMBLE SPREAD VISUALIZATION (ENS tab)
+// ══════════════════════════════════════════════════════════════════════════════
+const _ensembleData = { loaded: false, members: [], dates: [], median: {}, p05: {}, p25: {}, p75: {}, p95: {}, basins: [] };
+
+function parseEnsembleOutputs(outputContents) {
+  // Look for member directories: mem_1/Hydrographs.csv, mem_2/Hydrographs.csv, etc.
+  // OR: Hydrographs_mem1.csv, Hydrographs_mem2.csv, etc.
+  const memberFiles = {};
+  for (const [fname, content] of Object.entries(outputContents)) {
+    // Match patterns: mem_N/Hydrographs.csv or Hydrographs_memN.csv or member_N/...
+    const m = fname.match(/mem(?:ber)?[_/](\d+).*Hydrograph/i) || fname.match(/Hydrograph.*mem(?:ber)?[_/]?(\d+)/i);
+    if (m && content) {
+      const memIdx = parseInt(m[1]);
+      memberFiles[memIdx] = content;
+    }
+  }
+  const memberIds = Object.keys(memberFiles).map(Number).sort((a,b) => a - b);
+  if (memberIds.length < 2) {
+    _ensembleData.loaded = false;
+    return false;
+  }
+
+  // Parse each member's hydrograph
+  const allMembers = [];
+  let commonDates = null;
+  let basins = null;
+  for (const mid of memberIds) {
+    const lines = memberFiles[mid].split('\n');
+    const hdrLine = lines.find(l => l.startsWith('date') || l.startsWith('DATE'));
+    if (!hdrLine) continue;
+    const headers = hdrLine.split(',').map(h => h.trim());
+    // Find sim columns (not obs, not precip, not date)
+    const simCols = [];
+    for (let ci = 1; ci < headers.length; ci++) {
+      const h = headers[ci];
+      if (h && !h.startsWith('obs') && !h.toLowerCase().includes('precip') && !h.toLowerCase().includes('rain')) {
+        simCols.push({ col: ci, name: h.replace(/\s*\[.*$/, '').trim() });
+      }
+    }
+    if (!basins) basins = simCols.map(c => c.name);
+
+    const dates = [], data = {};
+    for (const sc of simCols) data[sc.name] = [];
+    for (let li = 1; li < lines.length; li++) {
+      const row = lines[li].split(',');
+      if (row.length < 2 || !row[0].trim()) continue;
+      dates.push(row[0].trim());
+      for (const sc of simCols) {
+        data[sc.name].push(parseFloat(row[sc.col]) || 0);
+      }
+    }
+    if (!commonDates) commonDates = dates;
+    allMembers.push(data);
+  }
+
+  if (!allMembers.length || !commonDates || !basins) {
+    _ensembleData.loaded = false;
+    return false;
+  }
+
+  // Compute percentiles per timestep per basin
+  _ensembleData.dates = commonDates;
+  _ensembleData.basins = basins;
+  _ensembleData.members = allMembers;
+  _ensembleData.median = {};
+  _ensembleData.p05 = {};
+  _ensembleData.p25 = {};
+  _ensembleData.p75 = {};
+  _ensembleData.p95 = {};
+  _ensembleData.mean = {};
+
+  for (const basin of basins) {
+    const nT = commonDates.length;
+    _ensembleData.median[basin] = new Float64Array(nT);
+    _ensembleData.p05[basin] = new Float64Array(nT);
+    _ensembleData.p25[basin] = new Float64Array(nT);
+    _ensembleData.p75[basin] = new Float64Array(nT);
+    _ensembleData.p95[basin] = new Float64Array(nT);
+    _ensembleData.mean[basin] = new Float64Array(nT);
+
+    for (let t = 0; t < nT; t++) {
+      const vals = allMembers.map(m => m[basin]?.[t] ?? 0).filter(v => isFinite(v)).sort((a,b) => a - b);
+      const n = vals.length;
+      if (!n) continue;
+      const pctl = p => { const idx = p * (n - 1); const lo = Math.floor(idx); const hi = Math.ceil(idx); return lo === hi ? vals[lo] : vals[lo] + (vals[hi] - vals[lo]) * (idx - lo); };
+      _ensembleData.p05[basin][t] = pctl(0.05);
+      _ensembleData.p25[basin][t] = pctl(0.25);
+      _ensembleData.median[basin][t] = pctl(0.5);
+      _ensembleData.p75[basin][t] = pctl(0.75);
+      _ensembleData.p95[basin][t] = pctl(0.95);
+      _ensembleData.mean[basin][t] = vals.reduce((s,v) => s + v, 0) / n;
+    }
+  }
+  _ensembleData.loaded = true;
+
+  // Show ENS tab
+  const ensTab = document.getElementById('htab-ens');
+  if (ensTab) ensTab.style.display = '';
+  toast(`Ensemble loaded: ${memberIds.length} members, ${basins.length} basin(s)`, 'ok');
+  return true;
+}
+window.parseEnsembleOutputs = parseEnsembleOutputs;
+
+function drawEnsembleSpread() {
+  const canvas = document.getElementById('hydro-ens-canvas');
+  if (!canvas) return;
+  const wrap = canvas.parentElement;
+  if (!wrap) return;
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  if (W < 10 || H < 10) return;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  if (!_ensembleData.loaded) {
+    ctx.fillStyle = 'var(--text3)'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('No ensemble output loaded.', W/2, H/2 - 15);
+    ctx.font = '10px sans-serif';
+    ctx.fillText('Enable :EnsembleMode in RVI, run the model, and ensemble member', W/2, H/2 + 5);
+    ctx.fillText('outputs (mem_*/Hydrographs.csv) will be parsed automatically.', W/2, H/2 + 20);
+    return;
+  }
+
+  // Pick basin
+  const basin = hydroState.activeKeys[0] || _ensembleData.basins[0] || null;
+  if (!basin || !_ensembleData.median[basin]) {
+    ctx.fillStyle = 'var(--text3)'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Select a basin on the map to view ensemble spread.', W/2, H/2);
+    return;
+  }
+
+  const dates = _ensembleData.dates;
+  const nT = dates.length;
+  const M = { t: 35, r: 15, b: 35, l: 55 };
+  const cW = W - M.l - M.r, cH = H - M.t - M.b;
+
+  // Q range from p05 to p95
+  let qMin = Infinity, qMax = -Infinity;
+  for (let t = 0; t < nT; t++) {
+    qMin = Math.min(qMin, _ensembleData.p05[basin][t]);
+    qMax = Math.max(qMax, _ensembleData.p95[basin][t]);
+  }
+  qMin = Math.max(0, qMin); qMax *= 1.1;
+  const xScale = t => M.l + (t / Math.max(1, nT - 1)) * cW;
+  const yScale = v => M.t + cH - ((v - qMin) / (qMax - qMin || 1)) * cH;
+
+  // Axes
+  ctx.strokeStyle = 'var(--border)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(M.l, M.t); ctx.lineTo(M.l, M.t + cH); ctx.lineTo(M.l + cW, M.t + cH); ctx.stroke();
+  ctx.fillStyle = 'var(--text3)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const v = qMin + (i / 5) * (qMax - qMin);
+    ctx.fillText(v.toFixed(1), M.l - 5, yScale(v) + 3);
+    if (i > 0 && i < 5) { ctx.strokeStyle = 'rgba(128,128,128,.15)'; ctx.beginPath(); ctx.moveTo(M.l, yScale(v)); ctx.lineTo(M.l + cW, yScale(v)); ctx.stroke(); }
+  }
+  ctx.textAlign = 'center';
+  const xStep = Math.max(1, Math.floor(nT / 6));
+  for (let i = 0; i < nT; i += xStep) ctx.fillText(dates[i].substring(0, 10), xScale(i), M.t + cH + 14);
+  ctx.fillStyle = 'var(--text2)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('Q (m³/s)', 5, M.t - 8);
+
+  // Draw 5–95% band
+  ctx.beginPath();
+  for (let t = 0; t < nT; t++) ctx.lineTo(xScale(t), yScale(_ensembleData.p95[basin][t]));
+  for (let t = nT - 1; t >= 0; t--) ctx.lineTo(xScale(t), yScale(_ensembleData.p05[basin][t]));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(88,166,255,.12)'; ctx.fill();
+
+  // Draw 25–75% band
+  ctx.beginPath();
+  for (let t = 0; t < nT; t++) ctx.lineTo(xScale(t), yScale(_ensembleData.p75[basin][t]));
+  for (let t = nT - 1; t >= 0; t--) ctx.lineTo(xScale(t), yScale(_ensembleData.p25[basin][t]));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(88,166,255,.25)'; ctx.fill();
+
+  // Draw individual members as thin lines
+  ctx.lineWidth = 0.5; ctx.globalAlpha = 0.2; ctx.strokeStyle = '#58a6ff';
+  for (const mem of _ensembleData.members) {
+    if (!mem[basin]) continue;
+    ctx.beginPath();
+    for (let t = 0; t < nT; t++) ctx.lineTo(xScale(t), yScale(mem[basin][t] || 0));
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1.0;
+
+  // Draw median
+  ctx.strokeStyle = '#58a6ff'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let t = 0; t < nT; t++) ctx.lineTo(xScale(t), yScale(_ensembleData.median[basin][t]));
+  ctx.stroke();
+
+  // Draw mean (dashed)
+  ctx.strokeStyle = '#ff9e64'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  for (let t = 0; t < nT; t++) ctx.lineTo(xScale(t), yScale(_ensembleData.mean[basin][t]));
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // Draw obs if available from current run
+  if (ravenOut.loaded && ravenOut.series[basin]?.obs) {
+    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    const obs = ravenOut.series[basin].obs;
+    for (let i = 0; i < ravenOut.dates.length; i++) {
+      if (obs[i] == null) continue;
+      ctx.lineTo(xScale(i), yScale(obs[i]));
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // Legend
+  ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+  const legX = M.l + cW - 180, legY = M.t + 8;
+  ctx.fillStyle = 'rgba(88,166,255,.12)'; ctx.fillRect(legX, legY, 12, 8);
+  ctx.fillStyle = 'var(--text2)'; ctx.fillText('5–95th percentile', legX + 16, legY + 7);
+  ctx.fillStyle = 'rgba(88,166,255,.25)'; ctx.fillRect(legX, legY + 12, 12, 8);
+  ctx.fillStyle = 'var(--text2)'; ctx.fillText('25–75th percentile', legX + 16, legY + 19);
+  ctx.strokeStyle = '#58a6ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(legX, legY + 28); ctx.lineTo(legX + 12, legY + 28); ctx.stroke();
+  ctx.fillStyle = 'var(--text2)'; ctx.fillText('Median', legX + 16, legY + 31);
+  ctx.strokeStyle = '#ff9e64'; ctx.lineWidth = 1.5; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(legX, legY + 40); ctx.lineTo(legX + 12, legY + 40); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = 'var(--text2)'; ctx.fillText('Mean', legX + 16, legY + 43);
+
+  // Title
+  ctx.fillStyle = 'var(--text1)'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(`Ensemble Spread — ${basin} (${_ensembleData.members.length} members)`, W/2, 14);
+}
+window.drawEnsembleSpread = drawEnsembleSpread;
 window.addEventListener('resize', () => {
   if (hydroState.activeKeys.length && hydroState.tab==='wbal') requestAnimationFrame(drawWaterBalance);
 });
@@ -23573,6 +24158,67 @@ window.visualizeStationForcingHRUs = visualizeStationForcingHRUs;
       }
       return;
     }
+
+    // ── RUN_ARCHIVED: server archived previous run's outputs ────────────────
+    if (msg.type === 'run_archived') {
+      appendConsole(`[History] Server archived "${msg.label}" (${msg.file_count} files, run_id=${msg.run_id})`);
+      // Store the run_id so CMP tab can request data from server
+      if (!window._serverRunIds) window._serverRunIds = [];
+      window._serverRunIds.push({ run_id: msg.run_id, label: msg.label });
+      if (window._serverRunIds.length > 8) window._serverRunIds.shift();
+      return;
+    }
+
+    // ── RUN_HISTORY_LIST: server returns available archived runs ─────────────
+    if (msg.type === 'run_history_list') {
+      window._serverRunList = msg.runs || [];
+      appendConsole('[History] Server has ' + window._serverRunList.length + ' archived run(s)');
+      return;
+    }
+
+    // ── RUN_HISTORY_OUTPUTS: server returns outputs for a specific run ──────
+    if (msg.type === 'run_history_outputs') {
+      if (msg.error) {
+        appendConsole('[History] Error: ' + msg.error);
+        return;
+      }
+      // Parse the outputs and add to _runHistory for CMP drawing
+      const contents = msg.output_contents || {};
+      if (Object.keys(contents).length > 0) {
+        // Parse each CSV into the output registry format
+        const regCopy = [];
+        for (const [fname, text] of Object.entries(contents)) {
+          if (!fname.toLowerCase().endsWith('.csv')) continue;
+          try {
+            // Temporarily parse into ravenOut to get the snap
+            const origLoaded = ravenOut.loaded;
+            const origSeries = ravenOut.series;
+            const origDates = ravenOut.dates;
+            const origType = ravenOut.csvType;
+            parseRavenCSV(text);
+            regCopy.push({
+              id: fname, filename: fname, type: 'output',
+              snap: { loaded: true, filename: fname, dates: [...ravenOut.dates],
+                      series: JSON.parse(JSON.stringify(ravenOut.series)),
+                      precip: [...ravenOut.precip], csvType: ravenOut.csvType || 'hydrograph' },
+              diagSnap: []
+            });
+            // Restore
+            ravenOut.loaded = origLoaded;
+            ravenOut.series = origSeries;
+            ravenOut.dates = origDates;
+            ravenOut.csvType = origType;
+          } catch(e) { /* skip unparseable files */ }
+        }
+        if (regCopy.length > 0) {
+          _runHistory.push({ label: msg.label || `Server Run ${msg.run_id}`, timestamp: Date.now(), registry: regCopy });
+          if (_runHistory.length > 8) _runHistory.shift();
+          toast(`Loaded "${msg.label}" from server (${regCopy.length} files)`, 'ok');
+          if (hydroState.tab === 'cmp') redrawActiveTab();
+        }
+      }
+      return;
+    }
   });
 
   // ── Console helpers ─────────────────────────────────────────────────────────
@@ -23808,6 +24454,12 @@ window.visualizeStationForcingHRUs = visualizeStationForcingHRUs;
     }
 
     clearConsole();
+
+    // B6: Auto-save current loaded outputs to run history before overwriting
+    if (_outputRegistry.length > 0) {
+      saveCurrentRunToHistory();
+    }
+
     appendConsole('=== RAVEN MODEL EXECUTION ===');
     appendConsole('Model: ' + (S.sim.runName || 'model'));
     appendConsole('Period: ' + (S.sim.startDate || '?') + ' → ' + (S.sim.endDate || S.sim.duration + ' days'));
@@ -24040,6 +24692,23 @@ window.visualizeStationForcingHRUs = visualizeStationForcingHRUs;
       // Auto-import CSV outputs into the existing viewer (Hydrographs, Diagnostics, etc.)
       autoImportAllOutputs(msg.output_contents);
 
+      // B4: Parse RavenErrors.txt if present
+      const errKey = Object.keys(msg.output_contents).find(k =>
+        k.toLowerCase().includes('ravenerrors') || k.toLowerCase().includes('raven_errors'));
+      if (errKey) {
+        parseRavenErrorsFile(msg.output_contents[errKey]);
+        const ne = _ravenErrors.errors.length, nw = _ravenErrors.warnings.length, na = _ravenErrors.advisories.length;
+        if (ne || nw || na) {
+          appendConsole(`[Errors] Parsed RavenErrors.txt: ${ne} errors, ${nw} warnings, ${na} advisories`);
+          if (ne > 0) toast(`${ne} error(s) found — check ERR tab`, 'err');
+        }
+      }
+
+      // D2: Try parsing ensemble member outputs
+      if (typeof parseEnsembleOutputs === 'function') {
+        parseEnsembleOutputs(msg.output_contents);
+      }
+
       // CreateRVPTemplate workflow: if the flag was active, look for the generated .rvp
       if (S.flags.CreateRVPTemplate) {
         const modelName = (S.sim.runName || 'model').replace(/\s+/g, '_');
@@ -24201,6 +24870,14 @@ window.visualizeStationForcingHRUs = visualizeStationForcingHRUs;
   // ── Auto-import ALL output files after execution completes ──────────────────
   function autoImportAllOutputs(outputContents) {
     if (!outputContents || typeof outputContents !== 'object') return;
+
+    // B4: Parse RavenErrors.txt first
+    const errKey = Object.keys(outputContents).find(k =>
+      k.toLowerCase().includes('ravenerror') || k.toLowerCase() === 'raven_errors.txt');
+    if (errKey && outputContents[errKey]) {
+      parseRavenErrorsFile(outputContents[errKey]);
+    }
+
     // Priority order: Diagnostics first, then Hydrographs, then others
     const priority = ['Diagnostics.csv', 'Hydrographs.csv', 'ReservoirStages.csv',
                        'WatershedStorage.csv', 'ExhaustiveMassBalance.csv'];
