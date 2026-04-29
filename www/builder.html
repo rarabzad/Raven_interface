@@ -2430,12 +2430,12 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
           </div>
           <!-- ── Multi-Run Comparison (CMP tab) ────────────────────────── -->
           <div id="hydro-cmp-wrap" style="position:absolute;inset:0;display:none;flex-direction:column">
-            <div style="display:flex;align-items:center;gap:6px;padding:3px 8px;border-bottom:1px solid var(--border);flex-shrink:0;min-height:26px;flex-wrap:wrap">
-              <span style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Multi-Run:</span>
-              <button class="btn sm" style="font-size:8px;padding:2px 8px" onclick="saveCurrentRunToHistory(prompt('Label for this run:','Run '+ (_runHistory.length+1)))" title="Save current loaded output as a named run">💾 Save Run</button>
-              <button class="btn sm" style="font-size:8px;padding:2px 8px" onclick="requestServerRuns()" title="Load archived runs from server">📡 Load Server Runs</button>
-              <button class="btn sm" style="font-size:8px;padding:2px 8px" onclick="if(confirm('Clear all saved runs?'))clearRunHistory()" title="Clear all saved runs">🗑 Clear</button>
-              <span id="cmp-run-count" style="font-size:8px;color:var(--text3);margin-left:auto"></span>
+            <div style="display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid var(--border);flex-shrink:0;min-height:32px;flex-wrap:wrap;background:var(--bg2)">
+              <span style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;font-weight:600">Multi-Run:</span>
+              <button class="btn sm" style="font-size:9px;padding:3px 10px;background:var(--accent3);color:var(--text1)" onclick="saveCurrentRunToHistory(prompt('Label for this run:','Run '+ (_runHistory.length+1)))" title="Save current loaded output as a named run">💾 Save Run</button>
+              <button class="btn sm" style="font-size:9px;padding:3px 10px" onclick="requestServerRuns()" title="Load archived runs from server (after page refresh)">📡 Load Server Runs</button>
+              <button class="btn sm" style="font-size:9px;padding:3px 10px" onclick="if(confirm('Clear all saved runs?'))clearRunHistory()" title="Clear all saved runs">🗑 Clear</button>
+              <span id="cmp-run-count" style="font-size:9px;color:var(--text2);margin-left:auto;font-weight:600"></span>
             </div>
             <div style="flex:1;position:relative;min-height:0">
               <canvas id="hydro-cmp-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
