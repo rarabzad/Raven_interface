@@ -1387,7 +1387,7 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 .fchip .dot{width:5px;height:5px;border-radius:50%;background:var(--ok)}
 
 /* ── SPATIAL PLAYER ── */
-#player-bar{position:absolute;bottom:0;left:0;right:0;height:54px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:601;display:none;flex-direction:column;justify-content:center;padding:0 52px 0 12px;gap:5px}
+#player-bar{position:absolute;bottom:0;left:0;right:0;height:54px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:1100;display:none;flex-direction:column;justify-content:center;padding:0 12px;gap:5px}
 #player-bar.open{display:flex}
 #player-row1{display:flex;align-items:center;gap:8px}
 #player-row2{display:flex;align-items:center;gap:8px}
@@ -1433,10 +1433,11 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 .add-param-row select,.add-param-row input{background:var(--bg3);border:1px solid var(--border);color:var(--text1);padding:4px 6px;font-size:10px;border-radius:3px;width:100%}
 #player-speed{background:var(--bg3);border:1px solid var(--border);color:var(--text1);font-size:9px;padding:2px 4px;border-radius:2px;cursor:pointer}
 #player-varname{font-size:9px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#player-close{position:absolute;top:4px;right:8px;background:var(--err);border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;padding:3px 10px;border-radius:var(--r);z-index:10;line-height:1.2}#player-close:hover{background:#ff4040}
-#player-close:hover{color:var(--err)}
+#player-close{background:var(--err);border:none;color:#fff;font-size:10px;font-weight:700;cursor:pointer;padding:3px 10px;border-radius:var(--r);line-height:1.2;margin-left:auto;flex-shrink:0;white-space:nowrap}#player-close:hover{background:#ff4040}
+/* Leaflet controls — ensure player bar sits above them */
+.leaflet-control-container{z-index:400!important}
 /* Color scale legend (overlays map, top-right of map-wrap) */
-#player-legend{position:absolute;top:10px;right:10px;z-index:500;background:var(--overlay-bg2);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;width:160px;display:none}
+#player-legend{position:absolute;top:10px;right:10px;z-index:1100;background:var(--overlay-bg2);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;width:160px;display:none}
 #player-legend.open{display:block}
 #player-legend-title{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
 #player-gradient{width:100%;height:12px;border-radius:2px;margin-bottom:4px}
@@ -2208,7 +2209,6 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
 
       <!-- SPATIAL PLAYER BAR (bottom of map, above hydro panel) -->
       <div id="player-bar">
-        <button id="player-close" onclick="playerClose()" title="Close animation">✕</button>
         <div id="player-row1">
           <div class="pb-btn" id="pb-prev"  onclick="playerStep(-1)"  title="Step back">◀◀</div>
           <div class="pb-btn" id="pb-play"  onclick="playerToggle()"  title="Play/Pause">▶</div>
@@ -2223,6 +2223,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
             <option value="16">16×</option>
             <option value="24">24×</option>
           </select>
+          <button id="player-close" onclick="playerClose()" title="Close animation">✕ Close</button>
         </div>
         <div id="player-row2">
           <span id="player-varname">—</span>
@@ -4769,8 +4770,31 @@ const subsetState = { active: false, outletId: null };  // spatial subsetting mo
 const SERIES_COLORS = ['#00e4b4','#4da8ff','#f0a832','#b06aff','#ff6b6b','#7fdb6a','#ff9f40','#26c6da','#ec407a','#66bb6a'];
 const OBS_COLORS    = ['#00a07d','#2060a0','#a07000','#6040a0','#a03030','#408040','#a05800','#1080a0','#a02060','#3a6e3a'];
 function seriesColor(idx, isObs) {
+  // Check per-series overrides
+  const key = hydroState.activeKeys[idx];
+  if (key && chartStyle.seriesOverrides) {
+    const ovKey = key + (isObs ? '_obs' : '_sim');
+    const ov = chartStyle.seriesOverrides[ovKey];
+    if (ov && ov.color) return ov.color;
+  }
   if (idx === 0 && chartStyle) return isObs ? (chartStyle.obsColor || OBS_COLORS[0]) : (chartStyle.simColor || SERIES_COLORS[0]);
   return isObs ? OBS_COLORS[idx % OBS_COLORS.length] : SERIES_COLORS[idx % SERIES_COLORS.length];
+}
+function seriesLineWidth(idx, isObs) {
+  const key = hydroState.activeKeys[idx];
+  if (key && chartStyle.seriesOverrides) {
+    const ov = chartStyle.seriesOverrides[key + (isObs ? '_obs' : '_sim')];
+    if (ov && ov.lineWidth) return ov.lineWidth;
+  }
+  return isObs ? chartStyle.obsLineWidth : chartStyle.simLineWidth;
+}
+function seriesDash(idx, isObs) {
+  const key = hydroState.activeKeys[idx];
+  if (key && chartStyle.seriesOverrides) {
+    const ov = chartStyle.seriesOverrides[key + (isObs ? '_obs' : '_sim')];
+    if (ov && ov.dash !== undefined) return ov.dash;
+  }
+  return isObs ? chartStyle.obsLineDash : [];
 }
 
 
@@ -6904,14 +6928,15 @@ function drawHydrograph() {
   // Draw all active series
   activeSeries.forEach((k) => {
     const s = ravenOut.series[k];
-    const simCol = seriesColor(hydroState.activeKeys.indexOf(k), false);
-    const obsCol = seriesColor(hydroState.activeKeys.indexOf(k), true);
+    const sIdx = hydroState.activeKeys.indexOf(k);
+    const simCol = seriesColor(sIdx, false);
+    const obsCol = seriesColor(sIdx, true);
     const simData = _applyBiasAdj(_getSeriesArr(s.sim, k), _getSeriesArr(s.obs, k));
     const obsData = _getSeriesArr(s.obs, k);
     // Simulated
     if (simData && simData.slice(i0,i1+1).some(v=>v!==null)) {
-      ctx.setLineDash([]);
-      ctx.strokeStyle=simCol; ctx.lineWidth=chartStyle.simLineWidth; ctx.lineJoin='round';
+      ctx.setLineDash(seriesDash(sIdx, false));
+      ctx.strokeStyle=simCol; ctx.lineWidth=seriesLineWidth(sIdx, false); ctx.lineJoin='round';
       ctx.beginPath(); let started=false;
       for (let i=i0;i<=i1;i++) {
         const v=simData[i];
@@ -6922,8 +6947,8 @@ function drawHydrograph() {
     }
     // Observed
     if (obsData && obsData.slice(i0,i1+1).some(v=>v!==null&&!isNaN(v))) {
-      ctx.setLineDash(chartStyle.obsLineDash);
-      ctx.strokeStyle=obsCol; ctx.lineWidth=chartStyle.obsLineWidth;
+      ctx.setLineDash(seriesDash(sIdx, true));
+      ctx.strokeStyle=obsCol; ctx.lineWidth=seriesLineWidth(sIdx, true);
       ctx.beginPath(); let started=false;
       for (let i=i0;i<=i1;i++) {
         const v=obsData[i];
@@ -20546,29 +20571,27 @@ const chartStyle = {
   tooltipBg:'rgba(8,11,13,.97)', tooltipFont:9,
 };
 window.chartStyle = chartStyle;
+
+// Per-series style overrides: keyed by series label
+// e.g. chartStyle.seriesOverrides['sub_032 sim'] = { color:'#ff0000', lineWidth:2, dash:[] }
+chartStyle.seriesOverrides = {};
+
 const _cseDefinition = [
   { title:'Background & Grid', rows:[
     {key:'bgColor',label:'Chart Background',type:'color'},{key:'gridColor',label:'Grid Lines',type:'color'},
     {key:'gridWidth',label:'Grid Width (px)',type:'number',min:0,max:5,step:0.5},
   ]},
-  { title:'Axes', rows:[
+  { title:'Axes & Labels', rows:[
     {key:'axisColor',label:'Axis Lines',type:'color'},{key:'axisWidth',label:'Axis Width (px)',type:'number',min:0.5,max:4,step:0.5},
     {key:'axisFontSize',label:'Tick Font Size',type:'number',min:6,max:16,step:1},{key:'axisLabelColor',label:'Tick Label Color',type:'color'},
   ]},
   { title:'Title', rows:[
     {key:'titleFontSize',label:'Title Font Size',type:'number',min:8,max:20,step:1},{key:'titleColor',label:'Title Color',type:'color'},
   ]},
-  { title:'Simulated Line', rows:[
-    {key:'simColor',label:'Line Color',type:'color'},{key:'simLineWidth',label:'Line Width (px)',type:'number',min:0.5,max:5,step:0.5},
-  ]},
-  { title:'Observed Line', rows:[
-    {key:'obsColor',label:'Line Color',type:'color'},{key:'obsLineWidth',label:'Line Width (px)',type:'number',min:0.5,max:5,step:0.5},
-    {key:'obsLineDash',label:'Dash Pattern',type:'select',options:[{v:'[5,3]',l:'Dashed'},{v:'[2,2]',l:'Dotted'},{v:'[8,4]',l:'Long Dash'},{v:'[]',l:'Solid'}]},
-  ]},
-  { title:'Multi-Run (CMP)', rows:[
-    {key:'currentRunColor',label:'Current Run',type:'color'},
-    {key:'runColors[0]',label:'Run 1',type:'color'},{key:'runColors[1]',label:'Run 2',type:'color'},
-    {key:'runColors[2]',label:'Run 3',type:'color'},{key:'runColors[3]',label:'Run 4',type:'color'},
+  { title:'Default Line Styles', rows:[
+    {key:'simColor',label:'Simulated Color',type:'color'},{key:'simLineWidth',label:'Sim Line Width',type:'number',min:0.5,max:5,step:0.5},
+    {key:'obsColor',label:'Observed Color',type:'color'},{key:'obsLineWidth',label:'Obs Line Width',type:'number',min:0.5,max:5,step:0.5},
+    {key:'obsLineDash',label:'Obs Dash',type:'select',options:[{v:'[5,3]',l:'Dashed'},{v:'[2,2]',l:'Dotted'},{v:'[8,4]',l:'Long Dash'},{v:'[]',l:'Solid'}]},
   ]},
   { title:'Precipitation', rows:[{key:'precipColor',label:'Bar Color',type:'color'}]},
   { title:'Font', rows:[
@@ -20590,27 +20613,77 @@ window.openChartStyleEditor = function() {
   const modal=document.getElementById('chart-style-modal'), body=document.getElementById('cse-body');
   if(!modal||!body) return;
   let h='';
+
+  // ── Global defaults ───────────────────────────────────────────────────────
   for(const sec of _cseDefinition){
     h+=`<div class="cse-section"><div class="cse-section-title">${sec.title}</div>`;
-    for(const r of sec.rows){
-      const v=_cseGet(r.key); h+=`<div class="cse-row"><span class="cse-label">${r.label}</span><span class="cse-input">`;
-      if(r.type==='color'){
-        h+=`<input type="color" value="${_rgbaToHex(v)}" onchange="_cseApply('${r.key}',this.value)">`;
-        h+=`<input type="text" value="${escH(String(v))}" style="width:90px;font-size:8px;margin-left:4px;padding:2px 3px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--text1)" onchange="_cseApply('${r.key}',this.value)">`;
-      } else if(r.type==='number'){
-        h+=`<input type="number" value="${v}" min="${r.min}" max="${r.max}" step="${r.step}" onchange="_cseApply('${r.key}',parseFloat(this.value))">`;
-      } else if(r.type==='select'){
-        h+=`<select onchange="_cseApply('${r.key}',this.value)">`;
-        for(const o of r.options){const sv=String(o.v),cv=typeof v==='object'?JSON.stringify(v):String(v);h+=`<option value="${escH(sv)}" ${sv===cv?'selected':''}>${o.l}</option>`;}
-        h+=`</select>`;
-      }
-      h+=`</span></div>`;
-    }
+    for(const r of sec.rows) h += _cseRenderRow(r, _cseGet(r.key), `_cseApply('${r.key}',__VAL__)`);
     h+=`</div>`;
   }
-  h+=`<div style="display:flex;gap:8px;padding:8px 0;border-top:1px solid var(--border)"><button class="btn sm" onclick="resetChartStyle()" style="font-size:9px">Reset Defaults</button><button class="btn sm" onclick="closeChartStyleEditor()" style="font-size:9px;margin-left:auto">Close</button></div>`;
+
+  // ── Per-series controls (dynamic based on what's plotted) ─────────────────
+  const seriesList = [];
+  if (hydroState.tab === 'cmp' && _cmpState.allRuns && _cmpState.allRuns.length) {
+    // CMP mode: one entry per run
+    for (const run of _cmpState.allRuns) seriesList.push({ id: run.label, label: run.label, isCurrent: run.isCurrent });
+  } else if (ravenOut.loaded && hydroState.activeKeys.length) {
+    // TS mode: one entry per active series (sim + obs)
+    for (const k of hydroState.activeKeys) {
+      const s = ravenOut.series[k];
+      if (s?.sim) seriesList.push({ id: k+'_sim', label: (s.label||k)+' (sim)', isCurrent: false });
+      if (s?.obs) seriesList.push({ id: k+'_obs', label: (s.label||k)+' (obs)', isCurrent: false });
+    }
+  }
+
+  if (seriesList.length > 0) {
+    h += `<div class="cse-section"><div class="cse-section-title">Active Series (${seriesList.length})</div>`;
+    for (const s of seriesList) {
+      const ov = chartStyle.seriesOverrides[s.id] || {};
+      const defColor = s.isCurrent ? chartStyle.currentRunColor : (s.id.endsWith('_obs') ? chartStyle.obsColor : chartStyle.simColor);
+      const curColor = ov.color || defColor;
+      const curWidth = ov.lineWidth || (s.id.endsWith('_obs') ? chartStyle.obsLineWidth : chartStyle.simLineWidth);
+      const curDash  = ov.dash !== undefined ? JSON.stringify(ov.dash) : (s.id.endsWith('_obs') ? JSON.stringify(chartStyle.obsLineDash) : '[]');
+      const lbl = s.label.length > 24 ? s.label.slice(0,23)+'…' : s.label;
+      h += `<div style="margin-bottom:6px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;border-left:3px solid ${curColor}">`;
+      h += `<div style="font-size:9px;color:var(--text1);font-weight:600;margin-bottom:4px">${escH(lbl)}</div>`;
+      h += `<div class="cse-row"><span class="cse-label">Color</span><span class="cse-input">`;
+      h += `<input type="color" value="${_rgbaToHex(curColor)}" onchange="_cseSeriesApply('${escH(s.id)}','color',this.value)">`;
+      h += `</span></div>`;
+      h += `<div class="cse-row"><span class="cse-label">Width</span><span class="cse-input">`;
+      h += `<input type="number" value="${curWidth}" min="0.5" max="6" step="0.5" onchange="_cseSeriesApply('${escH(s.id)}','lineWidth',parseFloat(this.value))">`;
+      h += `</span></div>`;
+      h += `<div class="cse-row"><span class="cse-label">Style</span><span class="cse-input">`;
+      h += `<select onchange="_cseSeriesApply('${escH(s.id)}','dash',this.value)">`;
+      for (const opt of [{v:'[]',l:'Solid'},{v:'[5,3]',l:'Dashed'},{v:'[2,2]',l:'Dotted'},{v:'[8,4]',l:'Long Dash'}]) {
+        h += `<option value="${opt.v}" ${opt.v===curDash?'selected':''}>${opt.l}</option>`;
+      }
+      h += `</select></span></div>`;
+      h += `</div>`;
+    }
+    h += `</div>`;
+  }
+
+  h+=`<div style="display:flex;gap:8px;padding:8px 0;border-top:1px solid var(--border)"><button class="btn sm" onclick="resetChartStyle()" style="font-size:9px">Reset All</button><button class="btn sm" onclick="closeChartStyleEditor()" style="font-size:9px;margin-left:auto">Close</button></div>`;
   body.innerHTML=h; modal.classList.add('open');
 };
+
+// Render a single editor row
+function _cseRenderRow(r, val, onchangeTpl) {
+  let h = `<div class="cse-row"><span class="cse-label">${r.label}</span><span class="cse-input">`;
+  if(r.type==='color'){
+    const oc = onchangeTpl.replace('__VAL__','this.value');
+    h+=`<input type="color" value="${_rgbaToHex(val)}" onchange="${oc}">`;
+    h+=`<input type="text" value="${escH(String(val))}" style="width:90px;font-size:8px;margin-left:4px;padding:2px 3px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--text1)" onchange="${oc}">`;
+  } else if(r.type==='number'){
+    h+=`<input type="number" value="${val}" min="${r.min}" max="${r.max}" step="${r.step}" onchange="${onchangeTpl.replace('__VAL__','parseFloat(this.value)')}">`;
+  } else if(r.type==='select'){
+    h+=`<select onchange="${onchangeTpl.replace('__VAL__','this.value')}">`;
+    for(const o of r.options){const sv=String(o.v),cv=typeof val==='object'?JSON.stringify(val):String(val);h+=`<option value="${escH(sv)}" ${sv===cv?'selected':''}>${o.l}</option>`;}
+    h+=`</select>`;
+  }
+  h+=`</span></div>`;
+  return h;
+}
 window.closeChartStyleEditor = function(){ const m=document.getElementById('chart-style-modal'); if(m) m.classList.remove('open'); };
 window._cseApply = function(key, val) {
   if(key==='obsLineDash'){ try{val=JSON.parse(val);}catch(e){} }
@@ -20620,8 +20693,14 @@ window._cseApply = function(key, val) {
   _cseSet(key, val);
   if(typeof redrawActiveTab==='function') redrawActiveTab();
 };
+window._cseSeriesApply = function(seriesId, prop, val) {
+  if (prop === 'dash') { try { val = JSON.parse(val); } catch(e) {} }
+  if (!chartStyle.seriesOverrides[seriesId]) chartStyle.seriesOverrides[seriesId] = {};
+  chartStyle.seriesOverrides[seriesId][prop] = val;
+  if(typeof redrawActiveTab==='function') redrawActiveTab();
+};
 window.resetChartStyle = function() {
-  Object.assign(chartStyle,{bgColor:'rgba(0,0,0,0)',gridColor:'rgba(128,128,128,.15)',gridWidth:1,axisColor:'#4a5568',axisWidth:1,axisFont:'9px sans-serif',axisFontSize:9,axisLabelColor:'#a0aec0',titleFont:'bold 11px sans-serif',titleFontSize:11,titleColor:'#e2e8f0',simLineWidth:1.8,obsLineWidth:1.5,obsLineDash:[5,3],simColor:'#00e4b4',obsColor:'rgba(255,255,255,.5)',runColors:['#f97583','#56d364','#d2a8ff','#ff9e64','#79c0ff','#ffa657','#7ee787','#ff7b72'],currentRunColor:'#58a6ff',fontFamily:'sans-serif',precipColor:'rgba(100,180,255,.35)',legendBg:'rgba(8,11,13,.75)',legendFontSize:9,legendBorder:'#4a5568',tooltipBg:'rgba(8,11,13,.97)',tooltipFont:9});
+  Object.assign(chartStyle,{bgColor:'rgba(0,0,0,0)',gridColor:'rgba(128,128,128,.15)',gridWidth:1,axisColor:'#4a5568',axisWidth:1,axisFont:'9px sans-serif',axisFontSize:9,axisLabelColor:'#a0aec0',titleFont:'bold 11px sans-serif',titleFontSize:11,titleColor:'#e2e8f0',simLineWidth:1.8,obsLineWidth:1.5,obsLineDash:[5,3],simColor:'#00e4b4',obsColor:'rgba(255,255,255,.5)',runColors:['#f97583','#56d364','#d2a8ff','#ff9e64','#79c0ff','#ffa657','#7ee787','#ff7b72'],currentRunColor:'#58a6ff',fontFamily:'sans-serif',precipColor:'rgba(100,180,255,.35)',legendBg:'rgba(8,11,13,.75)',legendFontSize:9,legendBorder:'#4a5568',tooltipBg:'rgba(8,11,13,.97)',tooltipFont:9,seriesOverrides:{}});
   openChartStyleEditor(); toast('Chart style reset to defaults','ok');
 };
 
@@ -20914,12 +20993,17 @@ function drawMultiRunComparison() {
   // Colors
   const runColors = chartStyle.runColors;
 
-  // Draw each run
+  // Draw each run — check per-series overrides
   for (let ri = 0; ri < allRuns.length; ri++) {
     const run = allRuns[ri];
-    const col = run.isCurrent ? chartStyle.currentRunColor : runColors[run.idx % runColors.length];
+    const ov = chartStyle.seriesOverrides[run.label] || {};
+    const defCol = run.isCurrent ? chartStyle.currentRunColor : runColors[run.idx % runColors.length];
+    const col = ov.color || defCol;
+    const lw = ov.lineWidth || (run.isCurrent ? chartStyle.simLineWidth + 0.7 : chartStyle.simLineWidth);
+    const dash = ov.dash !== undefined ? ov.dash : [];
     ctx.strokeStyle = col;
-    ctx.lineWidth = run.isCurrent ? chartStyle.simLineWidth + 0.7 : chartStyle.simLineWidth;
+    ctx.lineWidth = lw;
+    ctx.setLineDash(dash);
     ctx.globalAlpha = run.isCurrent ? 1.0 : 0.65;
     ctx.beginPath(); let s = false;
     for (let i = 0; i < run.dates.length; i++) {
@@ -20927,7 +21011,7 @@ function drawMultiRunComparison() {
       if (di == null || run.sim[i] == null) { s = false; continue; }
       if (!s) { ctx.moveTo(xScale(di), yScale(run.sim[i])); s = true; } else ctx.lineTo(xScale(di), yScale(run.sim[i]));
     }
-    ctx.stroke(); ctx.globalAlpha = 1.0;
+    ctx.stroke(); ctx.globalAlpha = 1.0; ctx.setLineDash([]);
   }
 
   // Legend (top-right with background box)
@@ -20936,9 +21020,12 @@ function drawMultiRunComparison() {
   if (obsRun) legItems.push({ col: chartStyle.obsColor, label: 'Observed', dash: true, lw: chartStyle.obsLineWidth });
   for (let ri = 0; ri < allRuns.length; ri++) {
     const run = allRuns[ri];
-    const col = run.isCurrent ? chartStyle.currentRunColor : runColors[run.idx % runColors.length];
+    const ov = chartStyle.seriesOverrides[run.label] || {};
+    const defCol = run.isCurrent ? chartStyle.currentRunColor : runColors[run.idx % runColors.length];
+    const col = ov.color || defCol;
+    const lw = ov.lineWidth || (run.isCurrent ? chartStyle.simLineWidth + 0.7 : chartStyle.simLineWidth);
     const label = run.label.length > 28 ? run.label.slice(0, 27) + '…' : run.label;
-    legItems.push({ col, label, dash: false, lw: run.isCurrent ? chartStyle.simLineWidth + 0.7 : chartStyle.simLineWidth });
+    legItems.push({ col, label, dash: ov.dash && ov.dash.length > 0, lw });
   }
   // Draw legend background
   const legLineH = 14, legPad = 6;
