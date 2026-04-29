@@ -1433,19 +1433,19 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 .add-param-row select,.add-param-row input{background:var(--bg3);border:1px solid var(--border);color:var(--text1);padding:4px 6px;font-size:10px;border-radius:3px;width:100%}
 #player-speed{background:var(--bg3);border:1px solid var(--border);color:var(--text1);font-size:9px;padding:2px 4px;border-radius:2px;cursor:pointer}
 #player-varname{font-size:9px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#player-close{position:absolute;top:6px;right:10px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;padding:2px 9px;border-radius:var(--r);z-index:10;line-height:1.4}#player-close:hover{color:var(--err);border-color:var(--err);background:var(--bg4)}
+#player-close{position:absolute;top:4px;right:8px;background:var(--err);border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;padding:3px 10px;border-radius:var(--r);z-index:10;line-height:1.2}#player-close:hover{background:#ff4040}
 #player-close:hover{color:var(--err)}
 /* Color scale legend (overlays map, top-right of map-wrap) */
-#player-legend{position:absolute;top:10px;right:10px;z-index:500;background:var(--overlay-bg2);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;min-width:130px;display:none}
+#player-legend{position:absolute;top:10px;right:10px;z-index:500;background:var(--overlay-bg2);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;width:160px;display:none}
 #player-legend.open{display:block}
 #player-legend-title{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
-#player-gradient{width:100%;height:10px;border-radius:2px;margin-bottom:4px}
-#player-legend-labels{display:flex;justify-content:space-between;font-size:8px;color:var(--text3)}
+#player-gradient{width:100%;height:12px;border-radius:2px;margin-bottom:4px}
+#player-legend-labels{display:flex;justify-content:space-between;font-size:8px;color:var(--text2);font-weight:600}
 
-#hydro-panel{position:absolute;bottom:0;left:0;right:8px;height:380px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:800;display:none;flex-direction:column;transform:translateY(100%);transition:transform .2s ease}
+#hydro-panel{position:absolute;bottom:0;left:0;right:0;height:380px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:800;display:none;flex-direction:column;transform:translateY(100%);transition:transform .2s ease}
 #hydro-panel.open{display:flex;transform:translateY(0)}
-/* Top control bar */
-#hydro-tabs{display:flex;gap:0;flex-shrink:0;border-bottom:1px solid var(--border);align-items:stretch;overflow:hidden;min-height:26px;position:relative;z-index:810}
+/* Top control bar — wraps to second row when space is tight */
+#hydro-tabs{display:flex;gap:0;flex-shrink:0;border-bottom:1px solid var(--border);align-items:center;overflow:visible;min-height:26px;position:relative;z-index:810;flex-wrap:wrap}
 /* Legend chips */
 #hydro-legend{display:flex;flex-wrap:wrap;gap:4px;padding:0;flex-shrink:0;align-items:center;max-width:260px;overflow:hidden}
 .hleg-chip{display:flex;align-items:center;gap:4px;padding:2px 7px;border-radius:10px;font-size:8px;cursor:pointer;border:1px solid;user-select:none;transition:opacity .12s}
@@ -1642,7 +1642,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
 
 
 /* ── MET GAUGE TIME SERIES PANEL ── */
-#met-panel{position:absolute;bottom:0;left:0;right:8px;height:360px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:601;display:none;flex-direction:column}
+#met-panel{position:absolute;bottom:0;left:0;right:0;height:360px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:601;display:none;flex-direction:column}
 #met-panel.open{display:flex}
 #met-hdr{display:flex;align-items:center;padding:5px 10px;border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;flex-wrap:wrap}
 #met-title{font-size:10px;font-weight:600;color:var(--accent);flex:1;min-width:80px}
@@ -2304,9 +2304,9 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
           <div id="hydro-legend" style="display:flex;flex-wrap:nowrap;gap:3px;padding:0 6px;flex-shrink:0;align-items:center;max-width:220px;overflow:hidden;border-right:1px solid var(--border)"></div>
           <!-- Spacer -->
           <div style="flex:1;min-width:0"></div>
-          <!-- Fixed right controls — always visible -->
-          <div style="display:flex;align-items:center;flex-shrink:0;border-left:1px solid var(--border);padding-left:4px;gap:2px">
-          <div id="hydro-zoom-wrap" style="display:flex;align-items:center;gap:3px">
+          <!-- Fixed right controls — wrap when space is tight -->
+          <div style="display:flex;align-items:center;flex-shrink:1;border-left:1px solid var(--border);padding-left:4px;gap:2px;flex-wrap:wrap">
+          <div id="hydro-zoom-wrap" style="display:flex;align-items:center;gap:3px;flex-wrap:wrap">
             <div class="hz-btn" onclick="hydroZoom(-1)" title="Zoom in">+</div>
             <div class="hz-btn" onclick="hydroZoom(1)"  title="Zoom out">−</div>
             <div class="hz-btn" onclick="hydroPan(-1)"  title="Pan left">◀</div>
@@ -2322,10 +2322,10 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
             <span id="hydro-range" style="font-size:9px;color:var(--text3);min-width:110px;text-align:center"></span>
             <span id="hydro-stats" style="font-size:9px;color:var(--accent);display:none;white-space:nowrap"></span>
           </div>
-          <div style="display:flex;align-items:center;gap:5px;padding:0 4px;flex-shrink:0">
-            <span id="hydro-meta" style="font-size:9px;color:var(--text3)"></span>
+          <div style="display:flex;align-items:center;gap:5px;padding:0 4px;flex-shrink:0;margin-left:auto">
+            <span id="hydro-meta" style="font-size:9px;color:var(--text3);display:none"></span>
             <button class="hz-btn" onclick="hydroClearAll()" style="width:auto;padding:0 6px">Clear</button>
-            <button class="hz-btn" onclick="closeHydro()" title="Close panel (Esc)" style="width:auto;padding:0 6px;flex-shrink:0">Close</button>
+            <button class="hz-btn" onclick="closeHydro()" title="Close panel (Esc / click map)" style="width:auto;padding:0 6px;flex-shrink:0">Close</button>
           </div>
           </div><!-- end fixed-right controls -->
         </div><!-- end hydro-tabs -->
@@ -5232,6 +5232,7 @@ function renderSubbasinLayer() {
         ${hasObs ? `<div class="row" style="color:#f0a840;cursor:pointer" onclick="openObsTimeSeries(${parseInt(subId)},'basin')">📊 Obs: ${escH(obsTypes)} — click to view</div>` : ''}`);
 
       layer.on('click', () => {
+        window._featureJustClicked = true; // prevent map-click-to-close
         const p2 = layer.feature?.properties || {};
         const fm2 = geodata.sbFieldMap || {};
         const subIdRaw2 = fm2.SubId ? p2[fm2.SubId] : null;
@@ -5809,7 +5810,7 @@ function linkOutputToHRUs() {
         matched++;
         // Re-wire click to open hydro panel
         layer.off('click');
-        layer.on('click', () => toggleSeriesKey(serKey));
+        layer.on('click', () => { window._featureJustClicked = true; toggleSeriesKey(serKey); });
         // Update popup
         layer.getPopup()?.setContent(layer.getPopup().getContent().replace(
           /no output series matched|✓ matched output[^<]*/,
@@ -6307,6 +6308,21 @@ function closeHydro() {
   refreshMapSelection();  // resets all to default style
 }
 window.closeHydro = closeHydro;
+
+// Close hydro panel by clicking the map background
+(function() {
+  const mapEl = document.getElementById('map');
+  if (mapEl) mapEl.addEventListener('click', function() {
+    const hydro = document.getElementById('hydro-panel');
+    if (hydro && hydro.classList.contains('open')) {
+      // Delay to let feature click handlers fire first
+      setTimeout(() => {
+        if (!window._featureJustClicked) closeHydro();
+        window._featureJustClicked = false;
+      }, 200);
+    }
+  });
+})();
 
 // ── Watershed Storage variable picker ─────────────────────────────────────
 function openWatershedPicker() {
@@ -9298,8 +9314,9 @@ function playerPaintFrame(idx) {
 function playerDrawLegend() {
   const cvs = document.getElementById('player-gradient');
   if (!cvs) return;
-  const W = cvs.offsetWidth || 130, H = 12;
+  const W = 140, H = 12;  // fixed width for consistency
   cvs.width = W; cvs.height = H;
+  cvs.style.width = '140px'; cvs.style.height = '12px';
   const ctx = cvs.getContext('2d');
   const scale = COLOR_SCALES[player._scale] || COLOR_SCALES.viridis;
   // Draw gradient with rounded feel (slightly transparent edges)
