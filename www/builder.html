@@ -1442,10 +1442,10 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 #player-gradient{width:100%;height:10px;border-radius:2px;margin-bottom:4px}
 #player-legend-labels{display:flex;justify-content:space-between;font-size:8px;color:var(--text3)}
 
-#hydro-panel{position:absolute;bottom:0;left:0;right:4px;height:380px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:800;display:none;flex-direction:column;transform:translateY(100%);transition:transform .2s ease}
+#hydro-panel{position:absolute;bottom:0;left:0;right:8px;height:380px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:800;display:none;flex-direction:column;transform:translateY(100%);transition:transform .2s ease}
 #hydro-panel.open{display:flex;transform:translateY(0)}
 /* Top control bar */
-#hydro-tabs{display:flex;gap:0;flex-shrink:0;border-bottom:1px solid var(--border);align-items:stretch;overflow:hidden;min-height:26px}
+#hydro-tabs{display:flex;gap:0;flex-shrink:0;border-bottom:1px solid var(--border);align-items:stretch;overflow:hidden;min-height:26px;position:relative;z-index:810}
 /* Legend chips */
 #hydro-legend{display:flex;flex-wrap:wrap;gap:4px;padding:0;flex-shrink:0;align-items:center;max-width:260px;overflow:hidden}
 .hleg-chip{display:flex;align-items:center;gap:4px;padding:2px 7px;border-radius:10px;font-size:8px;cursor:pointer;border:1px solid;user-select:none;transition:opacity .12s}
@@ -1628,7 +1628,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
 
 
 /* ── MET GAUGE TIME SERIES PANEL ── */
-#met-panel{position:absolute;bottom:0;left:0;right:4px;height:360px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:601;display:none;flex-direction:column}
+#met-panel{position:absolute;bottom:0;left:0;right:8px;height:360px;background:var(--overlay-bg);border-top:1px solid var(--border2);z-index:601;display:none;flex-direction:column}
 #met-panel.open{display:flex}
 #met-hdr{display:flex;align-items:center;padding:5px 10px;border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;flex-wrap:wrap}
 #met-title{font-size:10px;font-weight:600;color:var(--accent);flex:1;min-width:80px}
@@ -3073,14 +3073,27 @@ function parseRVP(lines, S) {
     } else if (c==='GlobalParameter') {
       S.globalParams[t[1]]=num(t[2]);
     } else if (c==='SoilParameterList') {
-      const {rows,next}=readBlock(lines,i,'SoilParameterList'); i=next;
-      S.soilParams.push(parseParamList(rows,'SOIL'));
+      const {rows,next}=readBlock(lines,i,'SoilParameterList');
+      const rawLines = lines.slice(i, next-1);
+      const pl = parseParamListRaw(rawLines, 'SOIL');
+      // Fall back to tokenized parse if raw parse failed
+      if (Object.keys(pl.rows).length === 0) S.soilParams.push(parseParamList(rows,'SOIL'));
+      else S.soilParams.push(pl);
+      i=next;
     } else if (c==='LandUseParameterList') {
-      const {rows,next}=readBlock(lines,i,'LandUseParameterList'); i=next;
-      S.luParams.push(parseParamList(rows,'LU'));
+      const {rows,next}=readBlock(lines,i,'LandUseParameterList');
+      const rawLines = lines.slice(i, next-1);
+      const pl = parseParamListRaw(rawLines, 'LU');
+      if (Object.keys(pl.rows).length === 0) S.luParams.push(parseParamList(rows,'LU'));
+      else S.luParams.push(pl);
+      i=next;
     } else if (c==='VegetationParameterList') {
-      const {rows,next}=readBlock(lines,i,'VegetationParameterList'); i=next;
-      S.vegParams.push(parseParamList(rows,'VEG'));
+      const {rows,next}=readBlock(lines,i,'VegetationParameterList');
+      const rawLines = lines.slice(i, next-1);
+      const pl = parseParamListRaw(rawLines, 'VEG');
+      if (Object.keys(pl.rows).length === 0) S.vegParams.push(parseParamList(rows,'VEG'));
+      else S.vegParams.push(pl);
+      i=next;
     } else if (c==='TrapezoidalChannel') {
       S.trapChannels.push({name:t[1],botWidth:num(t[2]),botElev:num(t[3]),incline:num(t[4]),n:num(t[5]),slope:num(t[6])});
     } else if (c==='GlobalParameterOverride') {
@@ -3159,12 +3172,40 @@ function parseRVP(lines, S) {
   }
 }
 function parseParamList(rows,type) {
-  const pl={type,params:[],units:[],rows:{}};
+  const pl={type,params:[],units:[],rows:{},comments:{}};
   for (const r of rows) {
     const rc=cmd(r);
     if(rc==='Parameters'){pl.params=r.slice(1);continue;}
     if(rc==='Units'){pl.units=r.slice(1);continue;}
     if(!rc&&r.length>0){pl.rows[r[0]]=r.slice(1).map(v=>v==='_DEFAULT'?'_DEFAULT':num(v));}
+  }
+  return pl;
+}
+// Store raw lines for parameter lists to preserve comments & scientific notation
+function parseParamListRaw(rawLines, type) {
+  const pl = {type, params:[], units:[], rows:{}, rawRows:{}, comments:{}};
+  for (const line of rawLines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    // Extract comment portion (after #)
+    let dataStr = trimmed, comment = '';
+    let inQ = false;
+    for (let ci = 0; ci < trimmed.length; ci++) {
+      if (trimmed[ci] === '"') inQ = !inQ;
+      if (!inQ && trimmed[ci] === '#') { dataStr = trimmed.slice(0, ci); comment = trimmed.slice(ci); break; }
+    }
+    const t = tokenize(line);
+    const rc = cmd(t);
+    if (rc === 'Parameters') { pl.params = t.slice(1); continue; }
+    if (rc === 'Units') { pl.units = t.slice(1); continue; }
+    if (rc && rc.toLowerCase().startsWith('end')) break;
+    if (!rc && t.length > 0) {
+      const name = t[0];
+      pl.rows[name] = t.slice(1).map(v => v === '_DEFAULT' ? '_DEFAULT' : num(v));
+      // Store raw value strings (preserves scientific notation)
+      pl.rawRows[name] = t.slice(1);
+      if (comment.trim()) pl.comments[name] = comment.trim();
+    }
   }
   return pl;
 }
@@ -4256,7 +4297,13 @@ function writeRVP(S) {
   for(const pl of [...S.soilParams,...S.luParams,...S.vegParams]){
     const bn=pl.type==='SOIL'?'SoilParameterList':pl.type==='LU'?'LandUseParameterList':'VegetationParameterList';
     L.push(`\n:${bn}`);L.push(':Parameters , '+pl.params.join('  , ')+',');L.push('    :Units , '+(pl.units||[]).join('  , ')+',');
-    for(const[cls,vals]of Object.entries(pl.rows||{}))L.push(`    ${cls.padEnd(16)}, ${vals.map(v=>String(v).padStart(16)).join(', ')},`);
+    for(const[cls,vals]of Object.entries(pl.rows||{})){
+      // Use raw strings if available (preserves scientific notation)
+      const raw = (pl.rawRows||{})[cls];
+      const fmtVals = raw ? raw.map(v=>String(v).padStart(16)).join(', ') : vals.map(v=>String(v).padStart(16)).join(', ');
+      const comment = (pl.comments||{})[cls];
+      L.push(`    ${cls.padEnd(16)}, ${fmtVals},${comment ? '         '+comment : ''}`);
+    }
     L.push(`:End${bn}`);
   }
   for(const cp of S.channelProfiles){
@@ -6165,7 +6212,7 @@ function _activateTabChrome(tab) {
                       if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
   if (tab==='err')   { show('hydro-err-wrap');      if(zoomWrap)zoomWrap.style.visibility='hidden';
                       if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
-  if (tab==='cmp')   { const cw=document.getElementById('hydro-cmp-wrap'); if(cw)cw.style.display='flex'; if(zoomWrap)zoomWrap.style.visibility='hidden';
+  if (tab==='cmp')   { const cw=document.getElementById('hydro-cmp-wrap'); if(cw)cw.style.display='flex'; if(zoomWrap)zoomWrap.style.visibility='visible';
                       if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
   if (tab==='ens')   { show('hydro-ens-wrap');      if(zoomWrap)zoomWrap.style.visibility='hidden';
                       if(logBtn)logBtn.style.display='none'; if(annoBtn)annoBtn.style.display='none'; }
@@ -8565,8 +8612,37 @@ window.showTemplateGallery = function() {
 window.applyTemplate = function(name) {
   const tpl = MODEL_TEMPLATES[name];
   if (!tpl) return;
-  if (!confirm(`Load "${name}" template?\n\nThis will replace your RVI methods, processes, aliases, and soil model.\nYour SubBasins, HRUs, gauges, and time series data will be preserved.`)) return;
+  if (!confirm(`Load "${name}" template?\n\nThis will CLEAR all existing data and start fresh with this template's configuration.`)) return;
   document.getElementById('tpl-modal-overlay').style.display = 'none';
+
+  // ── Full state reset — clean slate ──────────────────────────────────────────
+  S = mkStore();
+  _fileRegistry = {};
+  texts = {};
+  // Clear output registries
+  _outputRegistry.length = 0;
+  _activeOutputId = null;
+  _runHistory.length = 0;
+  ravenOut.loaded = false;
+  ravenOut.dates = [];
+  ravenOut.series = {};
+  ravenOut.precip = [];
+  ravenOut.csvType = '';
+  diagData.length = 0;
+  hydroState.activeKeys = [];
+  hydroState.viewStart = null;
+  hydroState.viewEnd = null;
+  if (window._lastOutputContents) { window._lastOutputContents = {}; }
+  if (window._dataFiles) { window._dataFiles.length = 0; }
+  // Clear map layers
+  geodata.sb = null; geodata.river = null; geodata.hruGeo = null; geodata.hruIdField = null;
+  geodata.sbFieldMap = {}; geodata.sbNameMap = {};
+  Object.keys(featureLayerMap).forEach(k => delete featureLayerMap[k]);
+  Object.keys(hruFeatureLayerMap).forEach(k => delete hruFeatureLayerMap[k]);
+  if (typeof _refreshOutputSwitcher === 'function') _refreshOutputSwitcher();
+  // Hide welcome screen
+  const ws = document.getElementById('welcome-screen');
+  if (ws) ws.style.display = 'none';
 
   // Parse the RVI snippet to populate sim methods
   const rviLines = tpl.rvi.split('\n');
@@ -10158,33 +10234,28 @@ const _origAfterLoad = afterLoad;
 
 // ── 2. KEYBOARD SHORTCUTS ────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-    // Only handle Escape inside inputs (close modals), nothing else
-    if (e.key === 'Escape') {
-      closeModal && closeModal();
-      closeCalModal && closeCalModal();
-      closeHelpModal && closeHelpModal();
-      closeThemeDropdown && closeThemeDropdown();
-      clearConnectivity && clearConnectivity();
-    }
-    return;
-  }
   const ctrl = e.ctrlKey || e.metaKey;
+  // Global shortcuts — work even when focused on inputs
   if (ctrl && e.key === 's') { e.preventDefault(); exportZip(); return; }
   if (ctrl && e.key === 'o') { e.preventDefault(); document.getElementById('file-in')?.click(); return; }
-  if (ctrl && e.key === 'k') { e.preventDefault(); showValidation && showValidation(); return; }
-  // 1–6: jump to panels; V: validate; P: preview
-  const PANEL_KEYS = {'1':'rvi','2':'rvh','3':'rvp','4':'rvt','5':'rvc','6':'rvm','7':'rve'};
-  if (!ctrl && PANEL_KEYS[e.key]) { e.preventDefault(); setPanel(PANEL_KEYS[e.key]); return; }
-  if (!ctrl && e.key === 'v') { e.preventDefault(); showValidation && showValidation(); return; }
-  if (!ctrl && e.key === 'p') { e.preventDefault(); previewFile && previewFile(); return; }
+  if (e.key === '[' || e.code === 'BracketLeft')  { if (!ctrl) { e.preventDefault(); window.toggleSidebar && window.toggleSidebar(); return; } }
+  if (e.key === ']' || e.code === 'BracketRight') { if (!ctrl) { e.preventDefault(); window.togglePanel && window.togglePanel(); return; } }
   if (e.key === 'Escape') {
     closeModal && closeModal();
     closeCalModal && closeCalModal();
     closeHelpModal && closeHelpModal();
     closeThemeDropdown && closeThemeDropdown();
     clearConnectivity && clearConnectivity();
+    return;
   }
+  // Skip remaining shortcuts if typing in an input
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (ctrl && e.key === 'k') { e.preventDefault(); showValidation && showValidation(); return; }
+  // 1–7: jump to panels; V: validate; P: preview
+  const PANEL_KEYS = {'1':'rvi','2':'rvh','3':'rvp','4':'rvt','5':'rvc','6':'rvm','7':'rve'};
+  if (!ctrl && PANEL_KEYS[e.key]) { e.preventDefault(); setPanel(PANEL_KEYS[e.key]); return; }
+  if (!ctrl && e.key === 'v') { e.preventDefault(); showValidation && showValidation(); return; }
+  if (!ctrl && e.key === 'p') { e.preventDefault(); previewFile && previewFile(); return; }
 });
 
 // ── BEFOREUNLOAD: warn about unsaved changes ─────────────────────────────
@@ -20579,11 +20650,33 @@ function drawMultiRunComparison() {
   let vMin = Infinity, vMax = -Infinity;
   for (const run of allRuns) {
     for (const d of run.dates) allDates.add(d);
-    for (const v of run.sim) { if (v != null && isFinite(v)) { vMin = Math.min(vMin, v); vMax = Math.max(vMax, v); } }
-    if (run.obs) for (const v of run.obs) { if (v != null && isFinite(v)) { vMin = Math.min(vMin, v); vMax = Math.max(vMax, v); } }
   }
-  const sortedDates = [...allDates].sort();
+  let sortedDates = [...allDates].sort();
+
+  // Apply zoom/pan from hydroState (shared with TS tab)
+  if (hydroState.viewStart || hydroState.viewEnd) {
+    const vs = hydroState.viewStart || sortedDates[0];
+    const ve = hydroState.viewEnd || sortedDates[sortedDates.length - 1];
+    sortedDates = sortedDates.filter(d => d >= vs && d <= ve);
+    if (!sortedDates.length) sortedDates = [...allDates].sort();
+  }
+
   const nDates = sortedDates.length;
+  const dateSet = new Set(sortedDates);
+
+  // Compute value range only within visible window
+  for (const run of allRuns) {
+    for (let i = 0; i < run.dates.length; i++) {
+      if (!dateSet.has(run.dates[i])) continue;
+      const v = run.sim[i];
+      if (v != null && isFinite(v)) { vMin = Math.min(vMin, v); vMax = Math.max(vMax, v); }
+    }
+    if (run.obs) for (let i = 0; i < run.dates.length; i++) {
+      if (!dateSet.has(run.dates[i])) continue;
+      const v = run.obs[i];
+      if (v != null && isFinite(v)) { vMin = Math.min(vMin, v); vMax = Math.max(vMax, v); }
+    }
+  }
   if (!nDates || !isFinite(vMin)) return;
   vMin = Math.min(0, vMin); vMax *= 1.1;
   if (vMax <= vMin) vMax = vMin + 1;
@@ -20675,6 +20768,12 @@ function drawMultiRunComparison() {
   _cmpState.W = W;
   _cmpState.H = H;
   _cmpState.currentKey = currentKey;
+
+  // Update range display (shared with TS zoom controls)
+  const rangeEl = document.getElementById('hydro-range');
+  if (rangeEl && sortedDates.length) {
+    rangeEl.textContent = `${sortedDates[0].substring(0,10)} → ${sortedDates[sortedDates.length-1].substring(0,10)}`;
+  }
 }
 window.drawMultiRunComparison = drawMultiRunComparison;
 
@@ -22422,13 +22521,7 @@ window.toast=toast;
     try { localStorage.setItem('raven_panel_collapsed', panelCollapsed); } catch(e) {}
   };
 
-  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
-  document.addEventListener('keydown', e => {
-    // Ignore if typing in an input/textarea
-    if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
-    if (e.key === '[') { window.toggleSidebar(); }
-    if (e.key === ']') { window.togglePanel(); }
-  });
+  // ── Keyboard shortcuts (handled in main handler above) ─────────────────────
 
   // ── Drag-to-resize: sidebar ────────────────────────────────────────────────
   (function setupSbResize() {
