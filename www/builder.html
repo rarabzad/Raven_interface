@@ -1506,6 +1506,20 @@ table.rv td.mono{font-family:var(--mono);color:var(--text2)}
 #hydro-zoom{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .hz-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text1);font-size:11px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;user-select:none;flex-shrink:0}
 .hz-btn:hover{background:var(--bg4);color:var(--accent)}
+#chart-style-modal{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
+#chart-style-modal.open{display:flex}
+#chart-style-editor{background:var(--bg1);border:1px solid var(--border2);border-radius:8px;width:420px;max-height:85vh;overflow-y:auto;padding:0;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+#chart-style-editor .cse-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg1);z-index:1}
+#chart-style-editor .cse-hdr h3{font-size:12px;font-weight:700;color:var(--text1);margin:0}
+#chart-style-editor .cse-body{padding:10px 14px}
+#chart-style-editor .cse-section{margin-bottom:12px}
+#chart-style-editor .cse-section-title{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:600;margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:3px}
+#chart-style-editor .cse-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+#chart-style-editor .cse-label{font-size:9px;color:var(--text2);width:110px;flex-shrink:0}
+#chart-style-editor .cse-input{flex:1}
+#chart-style-editor .cse-input input[type=color]{width:28px;height:20px;border:1px solid var(--border);border-radius:3px;padding:0;cursor:pointer;background:transparent}
+#chart-style-editor .cse-input input[type=number]{width:50px;font-size:9px;padding:2px 4px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--text1)}
+#chart-style-editor .cse-input select{font-size:9px;padding:2px 4px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--text1)}
 #hydro-range{font-size:9px;color:var(--text3);min-width:140px;text-align:center}
 #hydro-xaxis{position:absolute;bottom:0;left:0;right:0;height:18px;display:flex;align-items:center;padding:0 48px 0 52px;pointer-events:none}
 .hx-tick{position:absolute;font-size:8px;color:var(--text3);transform:translateX(-50%)}
@@ -2304,6 +2318,7 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
             <div class="hz-btn" onclick="hydroExportCSV()" title="Export visible window as CSV" style="width:auto;padding:0 5px;font-size:9px">CSV</div>
             <div class="hz-btn" id="hydro-anno-btn" onclick="hydroToggleAnnoMode()" title="Annotate date range (click-drag)" style="width:auto;padding:0 5px;font-size:9px">ANN</div>
             <div class="hz-btn" onclick="hydroDownloadPNG()" title="Download chart as PNG" style="width:auto;padding:0 5px">⬇</div>
+            <div class="hz-btn" onclick="openChartStyleEditor()" title="Chart style editor" style="width:auto;padding:0 5px;font-size:9px">🎨</div>
             <span id="hydro-range" style="font-size:9px;color:var(--text3);min-width:110px;text-align:center"></span>
             <span id="hydro-stats" style="font-size:9px;color:var(--accent);display:none;white-space:nowrap"></span>
           </div>
@@ -2452,6 +2467,17 @@ td.id.copied{background:var(--accent3)!important;color:#000!important}
           </div>
         </div><!-- end hydro-body -->
         </div><!-- end hydro-inner -->
+
+      <!-- ── Chart Style Editor Modal ────────────────────────────────── -->
+      <div id="chart-style-modal" onclick="if(event.target===this)closeChartStyleEditor()">
+        <div id="chart-style-editor">
+          <div class="cse-hdr">
+            <h3>🎨 Chart Style Editor</h3>
+            <div class="hz-btn" onclick="closeChartStyleEditor()" style="font-size:13px" title="Close">✕</div>
+          </div>
+          <div class="cse-body" id="cse-body"></div>
+        </div>
+      </div>
       </div><!-- end hydro-panel -->
     </div><!-- end map-wrap -->
     <!-- Panel collapse toggle -->
@@ -4742,7 +4768,10 @@ const subsetState = { active: false, outletId: null };  // spatial subsetting mo
 // Color palette for multi-series (sim lines)
 const SERIES_COLORS = ['#00e4b4','#4da8ff','#f0a832','#b06aff','#ff6b6b','#7fdb6a','#ff9f40','#26c6da','#ec407a','#66bb6a'];
 const OBS_COLORS    = ['#00a07d','#2060a0','#a07000','#6040a0','#a03030','#408040','#a05800','#1080a0','#a02060','#3a6e3a'];
-function seriesColor(idx, isObs) { return isObs ? OBS_COLORS[idx % OBS_COLORS.length] : SERIES_COLORS[idx % SERIES_COLORS.length]; }
+function seriesColor(idx, isObs) {
+  if (idx === 0 && chartStyle) return isObs ? (chartStyle.obsColor || OBS_COLORS[0]) : (chartStyle.simColor || SERIES_COLORS[0]);
+  return isObs ? OBS_COLORS[idx % OBS_COLORS.length] : SERIES_COLORS[idx % SERIES_COLORS.length];
+}
 
 
 function initMap() {
@@ -6406,7 +6435,7 @@ window.hydroReset = hydroReset;
 // ── CMP-specific zoom/pan/reset (uses date strings, not indices) ─────────
 const _cmpView = { startDate: null, endDate: null };
 function cmpZoom(dir) {
-  const dates = _cmpState.sortedDates;
+  const dates = _cmpState.allDates; // use FULL unfiltered dates
   if (!dates || !dates.length) return;
   const n = dates.length;
   let s = _cmpView.startDate ? dates.indexOf(_cmpView.startDate) : 0;
@@ -6422,7 +6451,7 @@ function cmpZoom(dir) {
   redrawActiveTab();
 }
 function cmpPan(dir) {
-  const dates = _cmpState.sortedDates;
+  const dates = _cmpState.allDates; // use FULL unfiltered dates
   if (!dates || !dates.length) return;
   const n = dates.length;
   let s = _cmpView.startDate ? dates.indexOf(_cmpView.startDate) : 0;
@@ -6443,13 +6472,18 @@ function cmpReset() {
 }
 
 function hydroDownloadPNG() {
-  const canvas = document.getElementById('hydro-canvas');
+  // Pick the right canvas for the active tab
+  let canvasId = 'hydro-canvas';
+  if (hydroState.tab === 'cmp') canvasId = 'hydro-cmp-canvas';
+  else if (hydroState.tab === 'ens') canvasId = 'hydro-ens-canvas';
+  else if (hydroState.tab === 'wbal') canvasId = 'hydro-wbal-canvas';
+  const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const a = document.createElement('a');
   a.href = canvas.toDataURL('image/png');
   const keys = hydroState.activeKeys;
-  const name = keys.length === 1
-    ? (ravenOut.series[keys[0]]?.label || keys[0]).replace(/[^a-z0-9_-]/gi,'_')
+  const name = hydroState.tab === 'cmp' ? 'comparison'
+    : keys.length === 1 ? (ravenOut.series[keys[0]]?.label || keys[0]).replace(/[^a-z0-9_-]/gi,'_')
     : 'hydrograph';
   a.download = name + '_' + (ravenOut.dates[0]||'').slice(0,7) + '.png';
   a.click();
@@ -6535,9 +6569,11 @@ function _isLightTheme() {
   const rm = bg.match(/rgb\((\d+)/); if (rm) return (_cachedIsLight = parseInt(rm[1]) > 128);
   return (_cachedIsLight = false);
 }
-function _gridColor(s) { return _isLightTheme() ? `rgba(0,0,0,${Math.min(1,s*1.5)})` : `rgba(255,255,255,${s})`; }
-function _labelColor() { return _cv('--text3') || '#334d60'; }
-function _axisLabelColor() { return _cv('--text2') || '#5c7d96'; }
+function _gridColor(s) { return chartStyle.gridColor || (_isLightTheme() ? `rgba(0,0,0,${Math.min(1,s*1.5)})` : `rgba(255,255,255,${s})`); }
+function _labelColor() { return chartStyle.axisLabelColor || _cv('--text3') || '#334d60'; }
+function _axisLabelColor() { return chartStyle.axisLabelColor || _cv('--text2') || '#5c7d96'; }
+function _chartFont(sz) { return `${sz||chartStyle.axisFontSize}px ${chartStyle.fontFamily==='sans-serif'?'IBM Plex Mono,monospace':chartStyle.fontFamily}`; }
+function _titleFont() { return `bold ${chartStyle.titleFontSize}px ${chartStyle.fontFamily==='sans-serif'?'IBM Plex Mono,monospace':chartStyle.fontFamily}`; }
 function _crosshairColor() { return _isLightTheme() ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.18)'; }
 function _diagonalColor() { return _isLightTheme() ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)'; }
 
@@ -6834,7 +6870,7 @@ function drawHydrograph() {
     if (precipSlice.length > 0) {
       const pMax = precipSlice.reduce((a,b)=>b>a?b:a, 1);
       const bw = Math.max(0.5, cW/span - 0.5), pH = cH*0.18;
-      ctx.fillStyle='rgba(77,168,255,0.18)';
+      ctx.fillStyle=chartStyle.precipColor;
       for (let i=i0;i<=i1;i++) {
         const v=precip[i]; if(!v||v<=0) continue;
         ctx.fillRect(px(i)-bw/2, PAD.top, bw, (v/pMax)*pH);
@@ -6859,7 +6895,7 @@ function drawHydrograph() {
     // Simulated
     if (simData && simData.slice(i0,i1+1).some(v=>v!==null)) {
       ctx.setLineDash([]);
-      ctx.strokeStyle=simCol; ctx.lineWidth=1.6; ctx.lineJoin='round';
+      ctx.strokeStyle=simCol; ctx.lineWidth=chartStyle.simLineWidth; ctx.lineJoin='round';
       ctx.beginPath(); let started=false;
       for (let i=i0;i<=i1;i++) {
         const v=simData[i];
@@ -6870,8 +6906,8 @@ function drawHydrograph() {
     }
     // Observed
     if (obsData && obsData.slice(i0,i1+1).some(v=>v!==null&&!isNaN(v))) {
-      ctx.setLineDash([4,3]);
-      ctx.strokeStyle=obsCol; ctx.lineWidth=1.2;
+      ctx.setLineDash(chartStyle.obsLineDash);
+      ctx.strokeStyle=obsCol; ctx.lineWidth=chartStyle.obsLineWidth;
       ctx.beginPath(); let started=false;
       for (let i=i0;i<=i1;i++) {
         const v=obsData[i];
@@ -20480,6 +20516,99 @@ function drawWaterBalance() {
 window.drawWaterBalance = drawWaterBalance;
 
 // ══════════════════════════════════════════════════════════════════════════════
+// UNIVERSAL CHART STYLE EDITOR
+// ══════════════════════════════════════════════════════════════════════════════
+const chartStyle = {
+  bgColor:'rgba(0,0,0,0)', gridColor:'rgba(128,128,128,.15)', gridWidth:1,
+  axisColor:'#4a5568', axisWidth:1, axisFont:'9px sans-serif', axisFontSize:9, axisLabelColor:'#a0aec0',
+  titleFont:'bold 11px sans-serif', titleFontSize:11, titleColor:'#e2e8f0',
+  simLineWidth:1.8, obsLineWidth:1.5, obsLineDash:[5,3], simColor:'#00e4b4', obsColor:'rgba(255,255,255,.5)',
+  runColors:['#f97583','#56d364','#d2a8ff','#ff9e64','#79c0ff','#ffa657','#7ee787','#ff7b72'],
+  currentRunColor:'#58a6ff', fontFamily:'sans-serif',
+  precipColor:'rgba(100,180,255,.35)', legendBg:'rgba(8,11,13,.75)', legendFontSize:9, legendBorder:'#4a5568',
+  tooltipBg:'rgba(8,11,13,.97)', tooltipFont:9,
+};
+window.chartStyle = chartStyle;
+const _cseDefinition = [
+  { title:'Background & Grid', rows:[
+    {key:'bgColor',label:'Chart Background',type:'color'},{key:'gridColor',label:'Grid Lines',type:'color'},
+    {key:'gridWidth',label:'Grid Width (px)',type:'number',min:0,max:5,step:0.5},
+  ]},
+  { title:'Axes', rows:[
+    {key:'axisColor',label:'Axis Lines',type:'color'},{key:'axisWidth',label:'Axis Width (px)',type:'number',min:0.5,max:4,step:0.5},
+    {key:'axisFontSize',label:'Tick Font Size',type:'number',min:6,max:16,step:1},{key:'axisLabelColor',label:'Tick Label Color',type:'color'},
+  ]},
+  { title:'Title', rows:[
+    {key:'titleFontSize',label:'Title Font Size',type:'number',min:8,max:20,step:1},{key:'titleColor',label:'Title Color',type:'color'},
+  ]},
+  { title:'Simulated Line', rows:[
+    {key:'simColor',label:'Line Color',type:'color'},{key:'simLineWidth',label:'Line Width (px)',type:'number',min:0.5,max:5,step:0.5},
+  ]},
+  { title:'Observed Line', rows:[
+    {key:'obsColor',label:'Line Color',type:'color'},{key:'obsLineWidth',label:'Line Width (px)',type:'number',min:0.5,max:5,step:0.5},
+    {key:'obsLineDash',label:'Dash Pattern',type:'select',options:[{v:'[5,3]',l:'Dashed'},{v:'[2,2]',l:'Dotted'},{v:'[8,4]',l:'Long Dash'},{v:'[]',l:'Solid'}]},
+  ]},
+  { title:'Multi-Run (CMP)', rows:[
+    {key:'currentRunColor',label:'Current Run',type:'color'},
+    {key:'runColors[0]',label:'Run 1',type:'color'},{key:'runColors[1]',label:'Run 2',type:'color'},
+    {key:'runColors[2]',label:'Run 3',type:'color'},{key:'runColors[3]',label:'Run 4',type:'color'},
+  ]},
+  { title:'Precipitation', rows:[{key:'precipColor',label:'Bar Color',type:'color'}]},
+  { title:'Font', rows:[
+    {key:'fontFamily',label:'Font Family',type:'select',options:[
+      {v:'sans-serif',l:'Sans-serif'},{v:'monospace',l:'Monospace'},{v:'"Segoe UI",sans-serif',l:'Segoe UI'},
+      {v:'Arial,sans-serif',l:'Arial'},{v:'"Courier New",monospace',l:'Courier New'},{v:'Georgia,serif',l:'Georgia'},
+    ]},
+  ]},
+  { title:'Legend', rows:[
+    {key:'legendBg',label:'Background',type:'color'},{key:'legendBorder',label:'Border',type:'color'},
+    {key:'legendFontSize',label:'Font Size',type:'number',min:7,max:14,step:1},
+  ]},
+];
+function _cseGet(key){const m=key.match(/^(\w+)\[(\d+)\]$/);return m?chartStyle[m[1]][+m[2]]:chartStyle[key];}
+function _cseSet(key,val){const m=key.match(/^(\w+)\[(\d+)\]$/);if(m)chartStyle[m[1]][+m[2]]=val;else chartStyle[key]=val;}
+function _rgbaToHex(c){if(!c)return'#000000';if(c.startsWith('#')&&c.length<=7)return c;const m=c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);if(m)return'#'+[m[1],m[2],m[3]].map(x=>(+x).toString(16).padStart(2,'0')).join('');return'#666666';}
+
+window.openChartStyleEditor = function() {
+  const modal=document.getElementById('chart-style-modal'), body=document.getElementById('cse-body');
+  if(!modal||!body) return;
+  let h='';
+  for(const sec of _cseDefinition){
+    h+=`<div class="cse-section"><div class="cse-section-title">${sec.title}</div>`;
+    for(const r of sec.rows){
+      const v=_cseGet(r.key); h+=`<div class="cse-row"><span class="cse-label">${r.label}</span><span class="cse-input">`;
+      if(r.type==='color'){
+        h+=`<input type="color" value="${_rgbaToHex(v)}" onchange="_cseApply('${r.key}',this.value)">`;
+        h+=`<input type="text" value="${escH(String(v))}" style="width:90px;font-size:8px;margin-left:4px;padding:2px 3px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--text1)" onchange="_cseApply('${r.key}',this.value)">`;
+      } else if(r.type==='number'){
+        h+=`<input type="number" value="${v}" min="${r.min}" max="${r.max}" step="${r.step}" onchange="_cseApply('${r.key}',parseFloat(this.value))">`;
+      } else if(r.type==='select'){
+        h+=`<select onchange="_cseApply('${r.key}',this.value)">`;
+        for(const o of r.options){const sv=String(o.v),cv=typeof v==='object'?JSON.stringify(v):String(v);h+=`<option value="${escH(sv)}" ${sv===cv?'selected':''}>${o.l}</option>`;}
+        h+=`</select>`;
+      }
+      h+=`</span></div>`;
+    }
+    h+=`</div>`;
+  }
+  h+=`<div style="display:flex;gap:8px;padding:8px 0;border-top:1px solid var(--border)"><button class="btn sm" onclick="resetChartStyle()" style="font-size:9px">Reset Defaults</button><button class="btn sm" onclick="closeChartStyleEditor()" style="font-size:9px;margin-left:auto">Close</button></div>`;
+  body.innerHTML=h; modal.classList.add('open');
+};
+window.closeChartStyleEditor = function(){ const m=document.getElementById('chart-style-modal'); if(m) m.classList.remove('open'); };
+window._cseApply = function(key, val) {
+  if(key==='obsLineDash'){ try{val=JSON.parse(val);}catch(e){} }
+  if(key==='axisFontSize'){chartStyle.axisFont=`${val}px ${chartStyle.fontFamily}`;}
+  if(key==='titleFontSize'){chartStyle.titleFont=`bold ${val}px ${chartStyle.fontFamily}`;}
+  if(key==='fontFamily'){chartStyle.axisFont=`${chartStyle.axisFontSize}px ${val}`;chartStyle.titleFont=`bold ${chartStyle.titleFontSize}px ${val}`;}
+  _cseSet(key, val);
+  if(typeof redrawActiveTab==='function') redrawActiveTab();
+};
+window.resetChartStyle = function() {
+  Object.assign(chartStyle,{bgColor:'rgba(0,0,0,0)',gridColor:'rgba(128,128,128,.15)',gridWidth:1,axisColor:'#4a5568',axisWidth:1,axisFont:'9px sans-serif',axisFontSize:9,axisLabelColor:'#a0aec0',titleFont:'bold 11px sans-serif',titleFontSize:11,titleColor:'#e2e8f0',simLineWidth:1.8,obsLineWidth:1.5,obsLineDash:[5,3],simColor:'#00e4b4',obsColor:'rgba(255,255,255,.5)',runColors:['#f97583','#56d364','#d2a8ff','#ff9e64','#79c0ff','#ffa657','#7ee787','#ff7b72'],currentRunColor:'#58a6ff',fontFamily:'sans-serif',precipColor:'rgba(100,180,255,.35)',legendBg:'rgba(8,11,13,.75)',legendFontSize:9,legendBorder:'#4a5568',tooltipBg:'rgba(8,11,13,.97)',tooltipFont:9});
+  openChartStyleEditor(); toast('Chart style reset to defaults','ok');
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
 // B4: RAVEN ERROR/WARNING PARSER (ERR tab)
 // ══════════════════════════════════════════════════════════════════════════════
 const _ravenErrors = { parsed: false, advisories:[], warnings:[], errors:[], summary:{} };
@@ -20698,6 +20827,9 @@ function drawMultiRunComparison() {
   }
   let sortedDates = [...allDates].sort();
 
+  // Store FULL date list for zoom/pan (before filtering)
+  _cmpState.allDates = [...sortedDates];
+
   // Apply CMP-specific zoom/pan view window
   if (_cmpView.startDate || _cmpView.endDate) {
     const vs = _cmpView.startDate || sortedDates[0];
@@ -20730,29 +20862,29 @@ function drawMultiRunComparison() {
   const yScale = v => M.t + cH - ((v - vMin) / (vMax - vMin)) * cH;
 
   // Axes
-  ctx.strokeStyle = 'var(--border)'; ctx.lineWidth = 1;
+  ctx.strokeStyle = chartStyle.axisColor; ctx.lineWidth = chartStyle.axisWidth;
   ctx.beginPath(); ctx.moveTo(M.l, M.t); ctx.lineTo(M.l, M.t + cH); ctx.lineTo(M.l + cW, M.t + cH); ctx.stroke();
-  ctx.fillStyle = 'var(--text3)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillStyle = chartStyle.axisLabelColor; ctx.font = _chartFont(); ctx.textAlign = 'right';
   const nYT = 5;
   for (let i = 0; i <= nYT; i++) {
     const v = vMin + (i / nYT) * (vMax - vMin);
     const y = yScale(v);
     ctx.fillText(v < 100 ? v.toFixed(2) : v.toFixed(0), M.l - 5, y + 3);
-    if (i > 0 && i < nYT) { ctx.strokeStyle = 'rgba(128,128,128,.12)'; ctx.beginPath(); ctx.moveTo(M.l, y); ctx.lineTo(M.l + cW, y); ctx.stroke(); }
+    if (i > 0 && i < nYT) { ctx.strokeStyle = chartStyle.gridColor; ctx.lineWidth = chartStyle.gridWidth; ctx.beginPath(); ctx.moveTo(M.l, y); ctx.lineTo(M.l + cW, y); ctx.stroke(); }
   }
-  ctx.textAlign = 'center'; ctx.fillStyle = 'var(--text3)';
+  ctx.textAlign = 'center'; ctx.fillStyle = chartStyle.axisLabelColor;
   const xStep = Math.max(1, Math.floor(nDates / 6));
   for (let i = 0; i < nDates; i += xStep) ctx.fillText(sortedDates[i].substring(0, 10), xScale(i), M.t + cH + 14);
 
   // Y-axis label based on output type
-  ctx.fillStyle = 'var(--text2)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillStyle = chartStyle.axisLabelColor; ctx.font = _chartFont(); ctx.textAlign = 'left';
   const yLabel = csvType === 'watershed' ? (currentKey || 'mm') : csvType === 'custom' ? (currentKey || '') : 'Q (m³/s)';
   ctx.fillText(yLabel, 4, M.t - 8);
 
   // Draw obs (from any run that has it)
   const obsRun = allRuns.find(r => r.obs && r.obs.some(v => v != null));
   if (obsRun) {
-    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = chartStyle.obsColor; ctx.lineWidth = chartStyle.obsLineWidth; ctx.setLineDash(chartStyle.obsLineDash);
     ctx.beginPath(); let s = false;
     for (let i = 0; i < obsRun.dates.length; i++) {
       const di = dateIdx.get(obsRun.dates[i]);
@@ -20763,14 +20895,14 @@ function drawMultiRunComparison() {
   }
 
   // Colors
-  const runColors = ['#f97583','#56d364','#d2a8ff','#ff9e64','#79c0ff','#ffa657','#7ee787','#ff7b72'];
+  const runColors = chartStyle.runColors;
 
   // Draw each run
   for (let ri = 0; ri < allRuns.length; ri++) {
     const run = allRuns[ri];
-    const col = run.isCurrent ? '#58a6ff' : runColors[run.idx % runColors.length];
+    const col = run.isCurrent ? chartStyle.currentRunColor : runColors[run.idx % runColors.length];
     ctx.strokeStyle = col;
-    ctx.lineWidth = run.isCurrent ? 2.5 : 1.5;
+    ctx.lineWidth = run.isCurrent ? chartStyle.simLineWidth + 0.7 : chartStyle.simLineWidth;
     ctx.globalAlpha = run.isCurrent ? 1.0 : 0.65;
     ctx.beginPath(); let s = false;
     for (let i = 0; i < run.dates.length; i++) {
@@ -20782,21 +20914,21 @@ function drawMultiRunComparison() {
   }
 
   // Legend (top-right with background box)
-  ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+  ctx.font = `${chartStyle.legendFontSize}px ${chartStyle.fontFamily}`; ctx.textAlign = 'left';
   const legItems = [];
-  if (obsRun) legItems.push({ col: 'rgba(255,255,255,.5)', label: 'Observed', dash: true, lw: 1 });
+  if (obsRun) legItems.push({ col: chartStyle.obsColor, label: 'Observed', dash: true, lw: chartStyle.obsLineWidth });
   for (let ri = 0; ri < allRuns.length; ri++) {
     const run = allRuns[ri];
-    const col = run.isCurrent ? '#58a6ff' : runColors[run.idx % runColors.length];
+    const col = run.isCurrent ? chartStyle.currentRunColor : runColors[run.idx % runColors.length];
     const label = run.label.length > 28 ? run.label.slice(0, 27) + '…' : run.label;
-    legItems.push({ col, label, dash: false, lw: run.isCurrent ? 2.5 : 1.5 });
+    legItems.push({ col, label, dash: false, lw: run.isCurrent ? chartStyle.simLineWidth + 0.7 : chartStyle.simLineWidth });
   }
   // Draw legend background
   const legLineH = 14, legPad = 6;
   const legH = legItems.length * legLineH + legPad * 2;
   const legW = 190;
   const legX = W - legW - M.r - 4, legY = M.t + 4;
-  ctx.fillStyle = 'rgba(8,11,13,.75)'; ctx.strokeStyle = 'var(--border)'; ctx.lineWidth = 1;
+  ctx.fillStyle = chartStyle.legendBg; ctx.strokeStyle = chartStyle.legendBorder; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.roundRect(legX, legY, legW, legH, 4); ctx.fill(); ctx.stroke();
   // Draw legend items
   for (let li = 0; li < legItems.length; li++) {
@@ -20811,7 +20943,7 @@ function drawMultiRunComparison() {
 
   // Title
   const dispName = matchPattern || currentKey || 'outputs';
-  ctx.fillStyle = 'var(--text1)'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillStyle = chartStyle.titleColor; ctx.font = _titleFont(); ctx.textAlign = 'center';
   ctx.fillText(`Multi-Run Comparison — ${currentKey || 'all'} (${dispName})`, W/2, 15);
 
   // Store state for mouse interaction
@@ -20834,7 +20966,7 @@ function drawMultiRunComparison() {
 window.drawMultiRunComparison = drawMultiRunComparison;
 
 // ── CMP interactive mouse handler (crosshair + tooltip like TS) ──────────────
-const _cmpState = { allRuns:[], sortedDates:[], xScale:null, yScale:null, M:null, nDates:0, W:0, H:0, currentKey:null };
+const _cmpState = { allRuns:[], sortedDates:[], allDates:[], xScale:null, yScale:null, M:null, nDates:0, W:0, H:0, currentKey:null };
 
 (function() {
   let _cmpInitDone = false;
