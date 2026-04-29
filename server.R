@@ -9,6 +9,13 @@ WORK_BASE <- file.path(tempdir(), "raven_work")
 
 server <- function(input, output, session) {
 
+  # ── Run history: server-side storage for multi-run comparison ────────────────
+  # Stores up to 8 previous runs in R session memory (survives across browser
+  # interactions within the same R session, lost on app restart)
+  run_history <- reactiveVal(list())   # list of {run_id, label, timestamp, files, contents}
+  run_counter <- reactiveVal(0L)
+  MAX_RUN_HISTORY <- 8L
+
   # ── Clean up when browser session ends ──────────────────────────────────────
   # Note: stopApp() is NOT called — on hosted platforms (Connect Cloud) it would
   # kill the app for all users. The platform manages app lifecycle automatically.
@@ -111,6 +118,32 @@ server <- function(input, output, session) {
                             content = paste("Error reading file:", conditionMessage(e)),
                             is_binary = FALSE))
       })
+      return()
+    }
+
+    # ── LIST_RUNS: return list of archived runs for multi-run comparison ──────
+    if (msg$type == "list_runs") {
+      hist <- run_history()
+      runs <- lapply(hist, function(r) list(
+        run_id = r$run_id, label = r$label, timestamp = r$timestamp,
+        file_count = length(r$files)
+      ))
+      send_to_iframe(list(type = "run_history_list", runs = runs))
+      return()
+    }
+
+    # ── GET_RUN_OUTPUTS: return all output contents for a historical run ──────
+    if (msg$type == "get_run_outputs") {
+      run_id <- msg$run_id
+      hist <- run_history()
+      entry <- Find(function(r) r$run_id == run_id, hist)
+      if (is.null(entry)) {
+        send_to_iframe(list(type = "run_history_outputs", run_id = run_id,
+                            output_contents = list(), error = "Run not found"))
+      } else {
+        send_to_iframe(list(type = "run_history_outputs", run_id = run_id,
+                            label = entry$label, output_contents = entry$contents))
+      }
       return()
     }
   })
@@ -460,6 +493,52 @@ server <- function(input, output, session) {
     list(status = status, messages = messages, files = file_list)
   }
 
+  # ── Archive previous run outputs to server-side history ─────────────────────
+  # Called before each new execution to preserve the previous run's outputs
+  # in R session memory. The browser can request these later via list_runs /
+  # get_run_outputs messages.
+  archive_previous_run <- function(dirs, model_name) {
+    prev_output_dir <- dirs$output
+    if (!dir.exists(prev_output_dir) || length(list.files(prev_output_dir)) == 0) return(invisible(NULL))
+    tryCatch({
+      prev_contents <- list()
+      prev_files <- list.files(prev_output_dir, full.names = TRUE, recursive = TRUE)
+      for (f in prev_files) {
+        fname <- basename(f)
+        ext <- tolower(tools::file_ext(fname))
+        if (ext %in% c("nc", "nc4", "hdf5", "bin")) next   # skip large binary files
+        if (file.size(f) > 5 * 1024 * 1024) next            # skip files > 5MB
+        prev_contents[[fname]] <- paste(readLines(f, warn = FALSE), collapse = "\n")
+      }
+      # Also grab RavenErrors.txt from main/ (Raven writes it there, not output/)
+      for (ef in c(file.path(dirs$main, paste0(model_name, "_Raven_errors.txt")),
+                   file.path(dirs$main, "RavenErrors.txt"))) {
+        if (file.exists(ef) && file.size(ef) > 0) {
+          prev_contents[["RavenErrors.txt"]] <- paste(readLines(ef, warn = FALSE), collapse = "\n")
+          break
+        }
+      }
+      if (length(prev_contents) > 0) {
+        rid <- run_counter() + 1L
+        run_counter(rid)
+        label <- paste0("Run ", rid, " (", format(Sys.time(), "%H:%M:%S"), ")")
+        hist <- run_history()
+        hist <- c(hist, list(list(
+          run_id = rid, label = label, timestamp = as.numeric(Sys.time()),
+          files = names(prev_contents), contents = prev_contents
+        )))
+        if (length(hist) > MAX_RUN_HISTORY) hist <- tail(hist, MAX_RUN_HISTORY)
+        run_history(hist)
+        cat("[RAVEN-HIST] Archived previous run as '", label, "' (",
+            length(prev_contents), " files)\n")
+        send_to_iframe(list(type = "run_archived", run_id = rid, label = label,
+                            file_count = length(prev_contents)))
+      }
+    }, error = function(e) {
+      cat("[RAVEN-HIST] Warning: could not archive previous run:", conditionMessage(e), "\n")
+    })
+  }
+
   # ── Execute the Raven model ──────────────────────────────────────────────────
   execute_raven <- function(msg, send_to_iframe) {
     model_name <- msg$model_name %||% "model"
@@ -479,6 +558,9 @@ server <- function(input, output, session) {
     # 1. Create folder structure
     send_status("Creating folder structure...")
     dirs <- create_folder_structure(model_name)
+
+    # 1b. Archive previous run outputs before they get overwritten
+    archive_previous_run(dirs, model_name)
 
     # 2. Write rv* files to main directory — EXACTLY as provided, no modification
     send_status("Writing model files...")
@@ -949,6 +1031,16 @@ server <- function(input, output, session) {
       })
     }
 
+    # Include RavenErrors.txt from working directory (Raven writes it to main/, not output/)
+    for (ef in c(file.path(dirs$main, paste0(model_name, "_Raven_errors.txt")),
+                 file.path(dirs$main, "RavenErrors.txt"))) {
+      if (file.exists(ef) && file.size(ef) > 0) {
+        output_contents[["RavenErrors.txt"]] <- paste(readLines(ef, warn = FALSE), collapse = "\n")
+        cat("[RAVEN-EXEC] Included RavenErrors.txt (", file.size(ef), "bytes)\n")
+        break
+      }
+    }
+
     send_to_iframe(list(
       type = "run_result",
       status = if (exit_code == 0) "success" else "warning",
@@ -956,7 +1048,8 @@ server <- function(input, output, session) {
                 else paste("Raven finished with exit code:", exit_code),
       console = console_output,
       output_files = output_files,
-      output_contents = output_contents
+      output_contents = output_contents,
+      run_history_count = length(run_history())
     ))
     cat("[RAVEN-EXEC] Results sent to client. Done.\n")
     cat("[RAVEN-EXEC] ═══════════════════════════════════════════\n\n")
